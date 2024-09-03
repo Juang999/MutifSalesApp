@@ -100,7 +100,7 @@ class AuthController {
 
             let token = this.createToken(admin.dataValues)
 
-            info({feature: "LOGIN ADMIN", message: `${user.dataValues.usernama} LOGGED IN!`})
+            info({feature: "LOGIN ADMIN", message: `${admin.dataValues.usernama} LOGGED IN!`})
 
             res.status(200)
                 .json({
