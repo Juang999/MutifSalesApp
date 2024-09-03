@@ -3,14 +3,16 @@
 */
 const {info, error: errorLog} = require('/root/Project/MutifSalesAppDev/helper/Logging')
 const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesAppDev/.env'});
+const Auth = require('/root/Project/MutifSalesApp/helper/Auth');
 
 /**
  * package for local Windows
 */
 // const {info, error: errorLog} = require('C:/Users/user/Project/MutifSalesApp/helper/Logging')
 // const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
+// const Auth = require('C:/Users/user/Project/MutifSalesApp/helper/Auth');
 
-const {TConfUser, TokenStorage, Sequelize} = require('../../models');
+const {TConfUser, TokenStorage, PtnrMstr, PtnrgGrp, Sequelize} = require('../../models');
 const jwt = require('jsonwebtoken');
 const {Op} = require('sequelize');
 
@@ -23,6 +25,15 @@ class AuthController {
                     'usernama',
                     'password',
                     'groupid',
+                    'user_ptnr_id',
+                    [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id']
+                ],
+                include: [
+                    {
+                        model: PtnrMstr,
+                        as: 'detail_partner',
+                        attributes: []
+                    }
                 ],
                 where: {
                     usernama: req.body.username,
@@ -77,6 +88,15 @@ class AuthController {
                     'usernama',
                     'password',
                     'groupid',
+                    'user_ptnr_id',
+                    [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id']
+                ],
+                include: [
+                    {
+                        model: PtnrMstr,
+                        as: 'detail_partner',
+                        attributes: []
+                    }
                 ],
                 where: {
                     usernama: req.body.username,
@@ -119,6 +139,56 @@ class AuthController {
                     data: null,
                     error: error.message
 
+                })
+        }
+    }
+
+    getProfile = async (req, res) => {
+        try {
+            let user = await Auth.user();
+
+            let userProfile = await PtnrMstr.findOne({
+                attributes: [
+                    'ptnr_name',
+                    [Sequelize.literal('"user"."usernama"'), 'username'],
+                    ['ptnr_ptnrg_id', 'group_id'],
+                    [Sequelize.col("group_partner.ptnrg_code"), 'group_code'],
+                    [Sequelize.col("group_partner.ptnrg_name"), 'group_name'],
+                    [Sequelize.literal(`CASE WHEN ptnr_ptnrg_id = 9911 THEN '0.40' WHEN ptnr_ptnrg_id = 998 THEN '0.30' WHEN ptnr_ptnrg_id = 357 THEN '0.30' ELSE '0' END`), 'discount']
+                ],
+                include: [
+                    {
+                        model: TConfUser,
+                        as: 'user',
+                        attributes: []
+                    },
+                    {
+                        model: PtnrgGrp,
+                        as: 'group_partner',
+                        attributes: []
+                    }
+                ],
+                where: {
+                    ptnr_id: user.user_ptnr_id
+                }
+            })
+
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'got profile!',
+                    data: userProfile,
+                    error: null
+                })
+        } catch (error) {
+            errorLog({feature: "PROFILE USER", message: error.message})
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'failed to get profile!',
+                    data: null,
+                    error: error.message
                 })
         }
     }
