@@ -1,8 +1,18 @@
+/**
+ * package for Virtual Private Server
+*/
+const {info, error: errorLog} = require('/root/Project/MutifSalesAppDev/helper/Logging')
+const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesAppDev/.env'});
+
+/**
+ * package for local Windows
+*/
+// const {info, error: errorLog} = require('C:/Users/user/Project/MutifSalesApp/helper/Logging')
+// const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
+
 const {TConfUser, TokenStorage, Sequelize} = require('../../models');
-const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
 const jwt = require('jsonwebtoken');
 const {Op} = require('sequelize');
-const {v4: uuidv4} = require('uuid');
 
 class AuthController {
     loginClient = async (req, res) => {
@@ -38,6 +48,7 @@ class AuthController {
 
             let token = await this.createToken(user.dataValues);
 
+            info({feature: "LOGIN CLIENT", message: `${user.dataValues.usernama} LOGGED IN!`})
             res.status(200)
                 .json({
                     status: 'success',
@@ -46,6 +57,8 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
+            errorLog({feature: "LOGIN CLIENT", message: error.message})
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -87,6 +100,8 @@ class AuthController {
 
             let token = this.createToken(admin.dataValues)
 
+            info({feature: "LOGIN ADMIN", message: `${user.dataValues.usernama} LOGGED IN!`})
+
             res.status(200)
                 .json({
                     status: 'success',
@@ -95,6 +110,8 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
+            errorLog({feature: "LOGIN ADMIN", message: error.message})
+
             res.status(400)
                 .json({
                     status: 'failed',
