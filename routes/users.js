@@ -4,7 +4,7 @@ var router = express.Router();
 /**
  * controller for Virtual Private Server
 */
-// const {loginClient, loginAdmin} = require('root/Project/MutifSalesApp/app/controllers/AuthController')
+const {loginClient, loginAdmin, getProfile} = require('root/Project/MutifSalesApp/app/controllers/AuthController')
 const AuthMiddleware = require('/root/Project/MutifSalesApp/app/middleware/AuthMiddleware');
 
 /**
