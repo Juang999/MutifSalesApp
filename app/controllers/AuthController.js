@@ -46,7 +46,7 @@ class AuthController {
             })
 
             if (user == null) {
-                res.status(300)
+                res.status(400)
                     .json({
                         status: 'fales',
                         message: 'Unauthorized',
@@ -107,7 +107,7 @@ class AuthController {
             })
 
             if (admin == null) {
-                res.status(300)
+                res.status(400)
                     .json({
                         status: 'fales',
                         message: 'Unauthorized',
@@ -169,7 +169,9 @@ class AuthController {
                     }
                 ],
                 where: {
-                    ptnr_id: user.user_ptnr_id
+                    ptnr_id: {
+                        [Op.eq]: Sequelize.literal(`(SELECT user_ptnr_id FROM public.tconfuser WHERE userid = ${user.userid})`)
+                    }
                 }
             })
 
