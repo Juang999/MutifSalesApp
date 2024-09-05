@@ -22,7 +22,7 @@ app.use('/', require('./routes/index'));
 app.use('/users', require('./routes/users'));
 
 // routes for client
-app.use('/product', require('./routes/Client/product'));
+app.use('/client/product', require('./routes/Client/product'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
