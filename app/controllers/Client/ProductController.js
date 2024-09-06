@@ -1,13 +1,106 @@
-const {PtCatMstr, SoMstr, PidDet, PiddDet, SodDet, PtMstr, Sequelize} = require('../../../models');
+const {PtCatMstr, SoMstr, InvcMstr, PidDet, PiddDet, SodDet, PtMstr, EnMstr, Sequelize} = require('../../../models');
 const {info, error: errorLog} = require('../../../helper/Logging');
 const moment = require('moment');
 const {Op} = require('sequelize')
 const Auth = require('../../../helper/Auth');
 const {getData} = require('../../../helper/ProductUrl');
+const Page = require('../../../helper/Page');
 
 class ProductController {
-    index = (req, res) => {
+    index = async (req, res) => {
+        try {
+            let categoriesId = (req.query.categories) ? req.query.categories.split(',') : [4, 1, 5, 3, 0, 2, 7, 8, 9, 10, 11];
+            let productName = (req.query.search) ? req.query.search : '';
+            let {ptnrg_id} = Auth.user();
+            let currentPage = (req.query.page) ? req.query.page : 1;
+            let {page, limit, offset} = new Page(currentPage, 15);
+            let priceList = this.getPriceListUser(ptnrg_id);
+    
+            let product = await PtMstr.findAll({
+                    attributes: [
+                        ['pt_desc1', 'product_name'],
+                        ['pt_code', 'product_code'],
+                        [Sequelize.col('entity_product.en_desc'), 'entity'],
+                        [Sequelize.col('master_category.ptcat_desc'), 'category'],
+                        [Sequelize.literal('CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
+                        [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'price'],
+                        [Sequelize.literal('CAST("singular_product_location"."invc_qty_available" AS INTEGER)'), 'qty']
+                    ],
+                    include: [
+                        {
+                            model: PtCatMstr,
+                            as: 'master_category',
+                            attributes: []
+                        },
+                        {
+                            model: InvcMstr,
+                            as: 'singular_product_location',
+                            attributes: [],
+                            where: {
+                                invc_loc_id: {
+                                    [Op.in]: [10001, 200010, 30008]
+                                },
+                                invc_qty_available: {
+                                    [Op.not]: 0
+                                }
+                            }
+                        },
+                        {
+                            model: PidDet,
+                            as: 'singular_relation_price_list',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PiddDet,
+                                    as: 'singular_detail_price_list',
+                                    attributes: [],
+                                    where: {
+                                        pidd_payment_type: 9941
+                                    }
+                                }
+                            ],
+                            where: {
+                                pid_pi_oid: {
+                                    [Op.in]: priceList
+                                }
+                            }
+                        },
+                        {
+                            model: EnMstr,
+                            as: 'entity_product',
+                            attributes: []
+                        }
+                    ],
+                    where: {
+                        pt_cat_id: {
+                            [Op.in]: categoriesId
+                        },
+                        pt_desc1: {
+                            [Op.iLike]: `%${productName}%`
+                        }
+                    },
+                    limit,
+                    offset
+                })
 
+            let result = await this.getImages(product);
+
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        } catch (error) {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        }
     }
 
     getDetailProduct = async (req, res) => {
@@ -103,6 +196,14 @@ class ProductController {
             attributes: [
                 ['ptcat_id', 'category_id'],
                 ['ptcat_desc', 'category_desc']
+            ],
+            where: {
+                ptcat_id: {
+                    [Op.not]: 12
+                }
+            },
+            order: [
+                ['ptcat_id', 'asc']
             ]
         })
         .then(result => {
@@ -265,17 +366,9 @@ class ProductController {
         let result = [];
 
         for (const {dataValues} of dataProduct) {
-            let imageProduct = await this.getImageProduct(dataValues.product_code)
+            dataValues.photo = await this.getImageProduct(dataValues.product_code)
 
-            result.push({
-                product_name: dataValues.product_name,
-                category_desc: dataValues.category_desc,
-                product_code: dataValues.product_code,
-                total_purchases: dataValues.total_purchases,
-                price: dataValues.price,
-                photo: imageProduct,
-                discount: dataValues.discount
-            })
+            result.push(dataValues)
         }
 
         return result;
