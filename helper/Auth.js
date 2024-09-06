@@ -1,17 +1,17 @@
 /**
  * config for Virtual Private Server
 */
-// const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env'});
+const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env'});
 
 /**
  * config for local WIndows
 */
-const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
+// const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
 const {get} = require('express-http-context');
 const {verify} = require('jsonwebtoken');
 
 class Auth {
-    user = async () => {
+    user = () => {
         let token = get('token');
 
         if (token != null) {

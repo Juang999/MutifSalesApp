@@ -28,6 +28,18 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'pt_id',
         foreignKey: 'pid_pt_id'
       })
+
+      PtMstr.belongsTo(models.EnMstr, {
+        as: 'entity_product',
+        targetKey: 'en_id',
+        foreignKey: 'pt_en_id'
+      })
+
+      PtMstr.hasOne(models.InvcMstr, {
+        as: 'singular_product_location',
+        sourceKey: 'pt_id',
+        foreignKey: 'invc_pt_id'
+      })
     }
   }
   PtMstr.init({
