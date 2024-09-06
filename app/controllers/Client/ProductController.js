@@ -3,10 +3,99 @@ const {info, error: errorLog} = require('../../../helper/Logging');
 const moment = require('moment');
 const {Op} = require('sequelize')
 const Auth = require('../../../helper/Auth');
+const {getData} = require('../../../helper/ProductUrl');
 
 class ProductController {
     index = (req, res) => {
 
+    }
+
+    getDetailProduct = async (req, res) => {
+        try {
+            let {ptnrg_id} = await Auth.user();
+            let priceList = this.getPriceListUser(ptnrg_id);
+
+            let product = await PtMstr.findOne({
+                attributes: [
+                    ['pt_id', 'product_id'],
+                    ['pt_code', 'product_code'],
+                    ['pt_desc1', 'product_name'],
+                    [Sequelize.literal('"singular_relation_price_list->singular_detail_price_list"."pidd_price"'), 'price']
+                ],
+                include: [
+                    {
+                        model: PidDet,
+                        as: 'singular_relation_price_list',
+                        attributes: [],
+                        include: [
+                            {
+                                model: PiddDet,
+                                as: 'singular_detail_price_list',
+                                attributes: []
+                            }
+                        ]
+                    }
+                ],
+                where: {
+                    [Op.and]: [
+                        Sequelize.where(Sequelize.col('pt_code'), {
+                            [Op.eq]: req.params.pt_code
+                        }),
+                        Sequelize.where(Sequelize.literal('"singular_relation_price_list"."pid_pi_oid"'), {
+                            [Op.in]: priceList
+                        }),
+                        Sequelize.where(Sequelize.col('"singular_relation_price_list->singular_detail_price_list"."pidd_payment_type"'), {
+                            [Op.eq]: 9941
+                        })
+                    ]
+                }
+            })
+
+            if (product == null) {
+                res.status(404)
+                    .json({
+                        status: 'failed',
+                        message: 'Product not found',
+                        data: null,
+                        error: null
+                    });
+
+                return;
+            }
+
+            let {data} = await getData(`/exapro/${product.dataValues.product_code}/description`)
+
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'ok',
+                    data: {
+                        product_name: product.dataValues.product_name,
+                        entity_name: data.entity_name,
+                        product_code: product.dataValues.product_code,
+                        color: data.color,
+                        material: data.material,
+                        combo: data.combo,
+                        special_feature: data.special_feature,
+                        keyword: data.keyword,
+                        description: data.description,
+                        slug: data.slug,
+                        group_article: data.group_article,
+                        type_id: data.type_id,
+                        photo: data.photo,
+                        price: product.dataValues.price
+                    },
+                    error: null
+                })
+        } catch (error) {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: error.message
+                })
+        }
     }
 
     getCategories = (req, res) => {
@@ -40,80 +129,16 @@ class ProductController {
 
     getSuggest = async (req, res) => {
         try {
-        const {ptnrg_id} = await Auth.user();
-        let priceList = this.getPriceListUser(ptnrg_id);
-        // let today = moment().format('YYYY-MM-DD');
-        // let thirtyDayshBefore = moment().subtract(30, 'days').format('YYYY-MM-DD');
-        let today = '2024-06-05'
-        let thirtyDayshBefore = '2024-05-06'
+            const {ptnrg_id} = await Auth.user();
+            let priceList = this.getPriceListUser(ptnrg_id);
+            // let today = moment().format('YYYY-MM-DD');
+            // let thirtyDayshBefore = moment().subtract(30, 'days').format('YYYY-MM-DD');
+            let today = '2024-06-05'
+            let thirtyDayshBefore = '2024-05-06'
 
-        let result = await SodDet.findAll({
-                attributes: [
-                    [Sequelize.col('product.pt_desc1'), 'product_name'],
-                    [Sequelize.literal('"product->master_category"."ptcat_desc"'), 'category_desc'],
-                    [Sequelize.col('product.pt_code'), 'product_code'],
-                    [Sequelize.literal('CAST(SUM(sod_qty_shipment) AS INTEGER)'), 'total_purchases'],
-                    [Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'), 'price'],
-                    // [Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'), 'discount'],
-                ],
-                include: [
-                    {
-                        model: PtMstr,
-                        as: 'product',
-                        attributes: [],
-                        include: [
-                            {
-                                model: PtCatMstr,
-                                as: 'master_category',
-                                attributes: []
-                            }, 
-                            {
-                                model: PidDet,
-                                as: 'singular_relation_price_list',
-                                attributes: [],
-                                include: [
-                                    {
-                                        model: PiddDet,
-                                        as: 'singular_detail_price_list',
-                                        attributes: []
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ],
-                where: {
-                    [Op.and]: [
-                        Sequelize.where(Sequelize.col('sod_so_oid'), {
-                            [Op.in]: Sequelize.literal(`(SELECT so_oid FROM public.so_mstr WHERE so_date BETWEEN '${thirtyDayshBefore}' AND '${today}')`)
-                        }),
-                        Sequelize.where(Sequelize.col('sod_qty_shipment'), {
-                            [Op.not]: null
-                        }),
-                        Sequelize.where(Sequelize.literal('"product->master_category"."ptcat_id"'), {
-                            [Op.not]: 12
-                        }),
-                        Sequelize.where(Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_payment_type"'), {
-                            [Op.eq]: 9941
-                        }),
-                        Sequelize.where(Sequelize.literal('"product->singular_relation_price_list"."pid_pi_oid"'), {
-                            [Op.in]: priceList
-                        })
-                    ]
+            let dataSuggestion = await this.getProductSuggestion(thirtyDayshBefore, today, priceList);
 
-                },
-                group: [
-                    Sequelize.col('product.pt_desc1'),
-                    Sequelize.literal('"product->master_category"."ptcat_desc"'),
-                    Sequelize.col('product.pt_code'),
-                    Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
-                    // Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"')
-                ],
-                order: [
-                    ['total_purchases', 'desc']
-                ],
-                limit: 8
-            })
+            let result = await this.getImages(dataSuggestion);
 
             res.status(200)
                 .json({
@@ -162,6 +187,104 @@ class ProductController {
         }
 
         return piOid;
+    }
+
+    getProductSuggestion = async (startDate, endDate, priceList) => {
+        let result = await SodDet.findAll({
+            attributes: [
+                [Sequelize.col('product.pt_desc1'), 'product_name'],
+                [Sequelize.literal('"product->master_category"."ptcat_desc"'), 'category_desc'],
+                [Sequelize.col('product.pt_code'), 'product_code'],
+                [Sequelize.literal('CAST(SUM(sod_qty_shipment) AS INTEGER)'), 'total_purchases'],
+                [Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'), 'price'],
+                [Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'), 'discount'],
+            ],
+            include: [
+                {
+                    model: PtMstr,
+                    as: 'product',
+                    attributes: [],
+                    include: [
+                        {
+                            model: PtCatMstr,
+                            as: 'master_category',
+                            attributes: []
+                        }, 
+                        {
+                            model: PidDet,
+                            as: 'singular_relation_price_list',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PiddDet,
+                                    as: 'singular_detail_price_list',
+                                    attributes: []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            where: {
+                [Op.and]: [
+                    Sequelize.where(Sequelize.col('sod_so_oid'), {
+                        [Op.in]: Sequelize.literal(`(SELECT so_oid FROM public.so_mstr WHERE so_date BETWEEN '${startDate}' AND '${endDate}')`)
+                    }),
+                    Sequelize.where(Sequelize.col('sod_qty_shipment'), {
+                        [Op.not]: null
+                    }),
+                    Sequelize.where(Sequelize.literal('"product->master_category"."ptcat_id"'), {
+                        [Op.not]: 12
+                    }),
+                    Sequelize.where(Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_payment_type"'), {
+                        [Op.eq]: 9941
+                    }),
+                    Sequelize.where(Sequelize.literal('"product->singular_relation_price_list"."pid_pi_oid"'), {
+                        [Op.in]: priceList
+                    })
+                ]
+
+            },
+            group: [
+                Sequelize.col('product.pt_desc1'),
+                Sequelize.literal('"product->master_category"."ptcat_desc"'),
+                Sequelize.col('product.pt_code'),
+                Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
+                Sequelize.literal('"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"')
+            ],
+            order: [
+                ['total_purchases', 'desc']
+            ],
+            limit: 8
+        })
+
+        return result;
+    }
+
+    getImages = async (dataProduct) => {
+        let result = [];
+
+        for (const {dataValues} of dataProduct) {
+            let imageProduct = await this.getImageProduct(dataValues.product_code)
+
+            result.push({
+                product_name: dataValues.product_name,
+                category_desc: dataValues.category_desc,
+                product_code: dataValues.product_code,
+                total_purchases: dataValues.total_purchases,
+                price: dataValues.price,
+                photo: imageProduct,
+                discount: dataValues.discount
+            })
+        }
+
+        return result;
+    }
+
+    getImageProduct = async (productCode) => {
+        let {data: getImage} = await getData(`/exapro/${productCode}/image`)
+
+        return getImage;
     }
 }
 
