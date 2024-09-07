@@ -7,7 +7,8 @@ let findUser = async (userid) => {
     let findUser = await TConfUser.findOne({
         where: {
             userid: userid
-        }
+        },
+        logging: false
     })
 
     return (findUser) ? true : false;
