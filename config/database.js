@@ -1,40 +1,28 @@
-/**
- * config for Virtual Private Server
-*/
-const {parsed: devEnvironment} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env.development'});
-const {parsed: testEnvironment} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env.testing'});
-const {parsed: proEnvironment} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env.production'});
-
-/**
- * config for local windows
-*/
-// const {parsed: devEnvironment} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env.development'});
-// const {parsed: testEnvironment} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env.testing'});
-// const {parsed: proEnvironment} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env.production'});
+const {devEnvironment, testEnvironment, proEnvironment} = require('./environment')
 
 module.exports = {
     development: {
-        "username": devEnvironment.DB_USERNAME,
-        "password": devEnvironment.DB_PASSWORD,
-        "database": devEnvironment.DB_DATABASE,
-        "host": devEnvironment.DB_HOST,
-        "port": devEnvironment.DB_PORT,
-        "dialect": devEnvironment.DB_DIALECT
+        "username": devEnvironment.parsed.DB_USERNAME,
+        "password": devEnvironment.parsed.DB_PASSWORD,
+        "database": devEnvironment.parsed.DB_DATABASE,
+        "host": devEnvironment.parsed.DB_HOST,
+        "port": devEnvironment.parsed.DB_PORT,
+        "dialect": devEnvironment.parsed.DB_DIALECT
     },
     testing: {
-        "username": testEnvironment.DB_USERNAME,
-        "password": testEnvironment.DB_PASSWORD,
-        "database": testEnvironment.DB_DATABASE,
-        "host": testEnvironment.DB_HOST,
-        "port": testEnvironment.DB_PORT,
-        "dialect": testEnvironment.DB_DIALECT
+        "username": testEnvironment.parsed.DB_USERNAME,
+        "password": testEnvironment.parsed.DB_PASSWORD,
+        "database": testEnvironment.parsed.DB_DATABASE,
+        "host": testEnvironment.parsed.DB_HOST,
+        "port": testEnvironment.parsed.DB_PORT,
+        "dialect": testEnvironment.parsed.DB_DIALECT
     },
     production: {
-        "username": proEnvironment.DB_USERNAME,
-        "password": proEnvironment.DB_PASSWORD,
-        "database": proEnvironment.DB_DATABASE,
-        "host": proEnvironment.DB_HOST,
-        "port": proEnvironment.DB_PORT,
-        "dialect": proEnvironment.DB_DIALECT
+        "username": proEnvironment.parsed.DB_USERNAME,
+        "password": proEnvironment.parsed.DB_PASSWORD,
+        "database": proEnvironment.parsed.DB_DATABASE,
+        "host": proEnvironment.parsed.DB_HOST,
+        "port": proEnvironment.parsed.DB_PORT,
+        "dialect": proEnvironment.parsed.DB_DIALECT
     }
 }

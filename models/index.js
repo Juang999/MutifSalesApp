@@ -2,19 +2,19 @@
 /**
  * Environment Virtual Private Server
 */ 
-const {parsed: environment} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'})
+// const {parsed: environment} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'})
 
 /**
  * Environment local Windows
 */
-// const {parsed: environment} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'})
+const {config: environment} = require('../config/environment')
 
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
 const process = require('process');
 const basename = path.basename(__filename);
-const env = environment.NODE_ENV || 'development';
+const env = environment.parsed.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/database.js')[env];
 const db = {};
 

@@ -80,7 +80,8 @@ class ProductController {
                         }
                     },
                     limit,
-                    offset
+                    offset,
+                    logging: false
                 })
 
             let result = await this.getImages(product);
@@ -93,12 +94,14 @@ class ProductController {
                     error: null
                 })
         } catch (error) {
+            errorLog("GET PRODUCT", error.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
         }
     }
@@ -147,7 +150,8 @@ class ProductController {
                             [Op.eq]: 9941
                         })
                     ]
-                }
+                },
+                logging: false
             })
 
             if (product == null) {
@@ -189,6 +193,8 @@ class ProductController {
                     error: null
                 })
         } catch (error) {
+            errorLog("GET DETAIL PRODUCT", error.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -212,7 +218,8 @@ class ProductController {
             },
             order: [
                 ['ptcat_id', 'asc']
-            ]
+            ],
+            logging: false
         })
         .then(result => {
             res.status(200)
@@ -224,7 +231,7 @@ class ProductController {
                 })
         })
         .catch(err => {
-            errorLog({feature: 'GET CATEGORY', message: err.message})
+            errorLog('GET CATEGORY', err.message)
 
             res.status(400)
                 .json({
@@ -257,6 +264,8 @@ class ProductController {
                     error: null
                 })
         } catch (error) {
+            errorLog("GET SUGGEST PRODUCT", error.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -352,7 +361,6 @@ class ProductController {
                         [Op.in]: priceList
                     })
                 ]
-
             },
             group: [
                 Sequelize.col('product.pt_desc1'),
@@ -364,7 +372,8 @@ class ProductController {
             order: [
                 ['total_purchases', 'desc']
             ],
-            limit: 8
+            limit: 8,
+            logging: false
         })
 
         return result;
