@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
       })
 
       PtMstr.hasOne(models.InvcMstr, {
-        as: 'singular_product_location',
+        as: 'singular_product_quantity',
         sourceKey: 'pt_id',
         foreignKey: 'invc_pt_id'
       })
