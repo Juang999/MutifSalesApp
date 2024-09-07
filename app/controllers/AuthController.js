@@ -1,13 +1,3 @@
-/**
- * package for Virtual Private Server
-*/
-// const {info, error: errorLog} = require('/root/Project/MutifSalesAppDev/helper/Logging')
-// const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesAppDev/.env'});
-// const Auth = require('/root/Project/MutifSalesApp/helper/Auth');
-
-/**
- * package for local Windows
-*/
 const {info, error: errorLog} = require('../../helper/Logging')
 const {config} = require('../../config/environment');
 const Auth = require('../../helper/Auth');
@@ -57,6 +47,8 @@ class AuthController {
                 return;
             }
 
+            let token = await this.createToken(user.dataValues);
+
             info("LOGIN CLIENT", `${user.dataValues.usernama} LOGGED IN!`)
             res.status(200)
                 .json({
@@ -101,7 +93,7 @@ class AuthController {
                     password: req.body.password,
                     groupid: 1
                 },
-                logging: false
+                logging: () => {}
             })
 
             if (admin == null) {
