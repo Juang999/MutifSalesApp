@@ -1,12 +1,4 @@
-/**
- * config for VPS
-*/
-const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env'});
-
-/**
- * config for local Windows
-*/ 
-// const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
+const {config} = require('../../config/environment');
 const {TConfUser} = require('../../models');
 const jwt = require('jsonwebtoken');
 const {set} = require('express-http-context')
@@ -39,7 +31,7 @@ let Authorization = (req, res, next) => {
 
     set('token', token);
 
-    jwt.verify(token, config.ACCESS_TOKEN_SECRET, async (err, user) => {
+    jwt.verify(token, config.parsed.ACCESS_TOKEN_SECRET, async (err, user) => {
         if (err) {
             res.status(300)
                 .json({
