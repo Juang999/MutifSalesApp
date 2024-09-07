@@ -1,16 +1,16 @@
 /**
  * package for Virtual Private Server
 */
-const {info, error: errorLog} = require('/root/Project/MutifSalesAppDev/helper/Logging')
-const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesAppDev/.env'});
-const Auth = require('/root/Project/MutifSalesApp/helper/Auth');
+// const {info, error: errorLog} = require('/root/Project/MutifSalesAppDev/helper/Logging')
+// const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesAppDev/.env'});
+// const Auth = require('/root/Project/MutifSalesApp/helper/Auth');
 
 /**
  * package for local Windows
 */
-// const {info, error: errorLog} = require('C:/Users/user/Project/MutifSalesApp/helper/Logging')
-// const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
-// const Auth = require('C:/Users/user/Project/MutifSalesApp/helper/Auth');
+const {info, error: errorLog} = require('../../helper/Logging')
+const {config} = require('../../config/environment');
+const Auth = require('../../helper/Auth');
 
 const {TConfUser, TokenStorage, PtnrMstr, PtnrgGrp, Sequelize} = require('../../models');
 const jwt = require('jsonwebtoken');
@@ -42,7 +42,7 @@ class AuthController {
                         [Op.in]: Sequelize.literal("(SELECT ptnr_id FROM public.ptnr_mstr WHERE ptnr_is_emp = 'Y')")
                     }
                 },
-                logging: () => {}
+                logging: false
             })
 
             if (user == null) {
@@ -57,9 +57,7 @@ class AuthController {
                 return;
             }
 
-            let token = await this.createToken(user.dataValues);
-
-            info({feature: "LOGIN CLIENT", message: `${user.dataValues.usernama} LOGGED IN!`})
+            info("LOGIN CLIENT", `${user.dataValues.usernama} LOGGED IN!`)
             res.status(200)
                 .json({
                     status: 'success',
@@ -68,7 +66,7 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
-            errorLog({feature: "LOGIN CLIENT", message: error.message})
+            errorLog("LOGIN CLIENT", error.message)
 
             res.status(400)
                 .json({
@@ -103,7 +101,7 @@ class AuthController {
                     password: req.body.password,
                     groupid: 1
                 },
-                logging: () => {}
+                logging: false
             })
 
             if (admin == null) {
@@ -120,7 +118,7 @@ class AuthController {
 
             let token = this.createToken(admin.dataValues)
 
-            info({feature: "LOGIN ADMIN", message: `${admin.dataValues.usernama} LOGGED IN!`})
+            info("LOGIN ADMIN", `${admin.dataValues.usernama} LOGGED IN!`)
 
             res.status(200)
                 .json({
@@ -130,7 +128,7 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
-            errorLog({feature: "LOGIN ADMIN", message: error.message})
+            errorLog("LOGIN ADMIN", error.message)
 
             res.status(400)
                 .json({
@@ -172,7 +170,8 @@ class AuthController {
                     ptnr_id: {
                         [Op.eq]: Sequelize.literal(`(SELECT user_ptnr_id FROM public.tconfuser WHERE userid = ${user.userid})`)
                     }
-                }
+                },
+                logging: false
             })
 
             res.status(200)
@@ -196,7 +195,7 @@ class AuthController {
     }
 
     createToken = (dataUser) => {
-        return jwt.sign(dataUser, config.ACCESS_TOKEN_SECRET, {expiresIn: '24h'})
+        return jwt.sign(dataUser, config.parsed.ACCESS_TOKEN_SECRET, {expiresIn: '24h'})
     }
 
     inputToken = async (userid, token) => {
