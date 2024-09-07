@@ -24,7 +24,7 @@ class ProductController {
                         [Sequelize.col('master_category.ptcat_desc'), 'category'],
                         [Sequelize.literal('CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
                         [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'price'],
-                        [Sequelize.literal('CAST("singular_product_location"."invc_qty_available" AS INTEGER)'), 'qty']
+                        [Sequelize.literal('CAST("singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'qty']
                     ],
                     include: [
                         {
@@ -34,7 +34,7 @@ class ProductController {
                         },
                         {
                             model: InvcMstr,
-                            as: 'singular_product_location',
+                            as: 'singular_product_quantity',
                             attributes: [],
                             where: {
                                 invc_loc_id: {
@@ -113,7 +113,9 @@ class ProductController {
                     ['pt_id', 'product_id'],
                     ['pt_code', 'product_code'],
                     ['pt_desc1', 'product_name'],
-                    [Sequelize.literal('"singular_relation_price_list->singular_detail_price_list"."pidd_price"'), 'price']
+                    [Sequelize.literal('CAST("singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'quantity'],
+                    [Sequelize.literal('CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
+                    [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount']
                 ],
                 include: [
                     {
@@ -127,6 +129,10 @@ class ProductController {
                                 attributes: []
                             }
                         ]
+                    }, {
+                        model: InvcMstr,
+                        as: 'singular_product_quantity',
+                        attributes: []
                     }
                 ],
                 where: {
@@ -176,7 +182,9 @@ class ProductController {
                         group_article: data.group_article,
                         type_id: data.type_id,
                         photo: data.photo,
-                        price: product.dataValues.price
+                        quantity: product.dataValues.quantity,
+                        price: product.dataValues.price,
+                        discount: product.dataValues.discount
                     },
                     error: null
                 })
