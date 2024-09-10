@@ -251,6 +251,7 @@ class ProductController {
             let today = '2024-06-05'
             let SevenDayshBefore = '2024-05-31'
 
+
             let dataSuggestion = await this.getProductSuggestion(SevenDayshBefore, today, (ptnrg_id) ? ptnrg_id : 357);
 
             let result = await this.getImages(dataSuggestion);
@@ -274,6 +275,36 @@ class ProductController {
                 })
             
         }
+    }
+
+    getPriceListUser = (ptnrgId) => {
+        let piOid;
+
+        switch (ptnrgId) {
+            case 9911:
+                piOid = [
+                    '80c389eb-dd3a-409c-81b3-c236e98f2c32',
+                    '83415091-54cc-4fd1-8e10-0dac3561fb9c',
+                    '75606dee-e498-4a5e-9858-568dfb1fb117'
+                ]
+                break;
+            case 357:
+                piOid = [
+                    '6ed8e85a-aabd-4b53-b4a7-9e6878534b5c',
+                    '71aac24e-246e-4837-98de-0f18f4783bf5',
+                    'f71dab8c-7f65-4665-9ca3-1b7abd07312c'
+                ]
+                break;
+            default:
+                piOid = [
+                    '6ed8e85a-aabd-4b53-b4a7-9e6878534b5c',
+                    '71aac24e-246e-4837-98de-0f18f4783bf5',
+                    'f71dab8c-7f65-4665-9ca3-1b7abd07312c'
+                ]
+                break;
+        }
+
+        return piOid;
     }
 
     getProductSuggestion = async (startDate, endDate, partnerGroupId) => {
