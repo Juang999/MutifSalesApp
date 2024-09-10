@@ -40,6 +40,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'pt_id',
         foreignKey: 'invc_pt_id'
       })
+
+      PtMstr.hasOne(models.SodDet, {
+        as: 'product_sales_order',
+        sourceKey: 'pt_id',
+        foreignKey:'sod_pt_id'
+      })
     }
   }
   PtMstr.init({
