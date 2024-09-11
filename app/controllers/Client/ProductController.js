@@ -116,7 +116,11 @@ class ProductController {
                     ['pt_id', 'product_id'],
                     ['pt_code', 'product_code'],
                     ['pt_desc1', 'product_name'],
+                    'pt_en_id',
+                    [Sequelize.literal('"singular_product_quantity"."invc_oid"'), 'invc_oid'],
                     [Sequelize.literal('CAST("singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'quantity'],
+                    [Sequelize.literal('"singular_relation_price_list->master_price_list"."pi_desc"'), 'pricelist_name'],
+                    [Sequelize.literal('"singular_relation_price_list->master_price_list"."pi_id"'), 'pi_id'],
                     [Sequelize.literal('CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
                     [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount']
                 ],
@@ -129,6 +133,11 @@ class ProductController {
                             {
                                 model: PiddDet,
                                 as: 'singular_detail_price_list',
+                                attributes: []
+                            },
+                            {
+                                model: PiMstr,
+                                as: 'master_price_list',
                                 attributes: []
                             }
                         ]
@@ -173,8 +182,10 @@ class ProductController {
                     status:'success',
                     message: 'ok',
                     data: {
+                        product_id: product.dataValues.product_id,
                         product_name: product.dataValues.product_name,
                         entity_name: data.entity_name,
+                        pt_en_id: product.dataValues.pt_en_id,
                         product_code: product.dataValues.product_code,
                         color: data.color,
                         material: data.material,
@@ -186,7 +197,10 @@ class ProductController {
                         group_article: data.group_article,
                         type_id: data.type_id,
                         photo: data.photo,
+                        invc_oid: product.dataValues.invc_oid,
                         quantity: product.dataValues.quantity,
+                        pricelist_name: product.dataValues.pricelist_name,
+                        pi_id: product.dataValues.pi_id,
                         price: product.dataValues.price,
                         discount: product.dataValues.discount
                     },
