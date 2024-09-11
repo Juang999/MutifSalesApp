@@ -1,0 +1,73 @@
+'use strict';
+const {
+  Model
+} = require('sequelize');
+const {
+  v4: uuidv4
+} = require('uuid')
+const {
+  info,
+  error
+} = require('../helper/Logging')
+module.exports = (sequelize, DataTypes) => {
+  class ChartSales extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      ChartSales.belongsTo(models.PtMstr, {
+        as: 'product',
+        foreignKey: 'cs_pt_id',
+        targetKey: 'pt_id'
+      })
+
+      ChartSales.belongsTo(models.InvcMstr, {
+        as: 'qty_location',
+        foreignKey: 'cs_invc_oid',
+        targetKey: 'invc_oid'
+      })
+
+      ChartSales.belongsTo(models.PiMstr, {
+        as: 'pricelist',
+        foreignKey: 'cs_pi_id',
+        targetKey: 'pi_id'
+      })
+    }
+  }
+  ChartSales.init({
+    cs_oid: {
+      type: DataTypes.UUID,
+      primaryKey: true,
+      defaultValue: uuidv4
+    },
+    cs_userid: DataTypes.BIGINT,
+    cs_pt_id: DataTypes.BIGINT,
+    cs_pt_en_id: DataTypes.BIGINT,
+    cs_invc_oid: DataTypes.UUID,
+    cs_qty: DataTypes.INTEGER,
+    cs_created_at: DataTypes.DATE,
+    cs_updated_at: DataTypes.DATE,
+    cs_pi_id: DataTypes.BIGINT
+  }, {
+    sequelize,
+    schema: 'public',
+    tableName: 'chart_sales',
+    timestamps: false,
+    modelName: 'ChartSales',
+    hooks: {
+      afterCreate: ({dataValues}) => {
+        info('CHART', 'CREATED', dataValues)
+      },
+      afterUpdate: ({dataValues}) => {
+        info('CHART', 'UPDATED', dataValues)
+      },
+      afterDestroy: ({dataValues}) => {
+        info('CHART', 'DELETED!', dataValues)
+      }
+    }
+  });
+  return ChartSales;
+};
