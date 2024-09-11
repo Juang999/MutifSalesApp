@@ -1,4 +1,4 @@
-const {ChartSales, PiMstr, PiddDet, InvcMstr, PtMstr, PidDet, Sequelize} = require('../../../models');
+const {ChartSales, PiMstr, PiddDet, InvcMstr, PtMstr, PidDet, Sequelize, SogGenPtnrMstr} = require('../../../models');
 const Auth = require('../../../helper/Auth');
 const moment = require('moment');
 const {info, error: errorLog} = require('../../../helper/Logging');
@@ -57,7 +57,7 @@ class SalesController {
                     [Sequelize.literal('CAST("qty_location"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
                     [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN 'pemesanan melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
                     [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                    [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc" AS INTEGER)'), 'discount'],
+                    [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
                     ['cs_created_at', 'created_at'],
                     ['cs_updated_at', 'updated_at'],
                 ],
@@ -192,7 +192,17 @@ class SalesController {
                     error: err.message
                 })
         })
-    } 
+    }
+
+    checkOut = async (req, res) => {
+        try {
+            let dataPartner = await this.getPartner(Auth.user().user_ptnr_id);
+
+
+        } catch (error) {
+            
+        }
+    }
 
     updateDataChart = async (qty, userid, csOid) => {
         await ChartSales.update({
@@ -235,6 +245,25 @@ class SalesController {
         let {data: getImage} = await getData(`/exapro/${productCode}/image`)
 
         return getImage;
+    }
+
+    getPartner = async (userPtnrId) => {
+        let result = await SogGenPtnrMstr.findOne({
+            attributes: [
+                'sog_gen_emp_mstr_id',
+                'sog_gen_emp_mstr_en_id',
+                'sog_gen_emp_mstr_code',
+                'sog_gen_emp_mstr_name',
+                'sog_gen_emp_mstr_addr',
+                'sog_gen_emp_mstr_jbl_id',
+                'sog_gen_emp_mstr_is_emp',
+            ],
+            where: {
+                sog_gen_emp_mstr_id: userPtnrId,
+            }
+        })
+
+        return result;
     }
 }
 
