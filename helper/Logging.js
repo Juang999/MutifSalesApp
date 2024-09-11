@@ -21,12 +21,12 @@ class Logging {
         ]
     })
 
-    info = (feature, message) => {
-        this.Logger.info({feature, message});
+    info = (feature, message, data) => {
+        this.Logger.info({feature, message, data});
     }
 
     error = (feature, message) => {
-        this.Logger.error({feature, message});
+        this.Logger.error({feature, message, data: 0});
     }
 }
 
