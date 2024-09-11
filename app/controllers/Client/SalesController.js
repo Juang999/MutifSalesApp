@@ -32,6 +32,8 @@ class SalesController {
                     error: null
                 })
         } catch (error) {
+            errorLog('STORE CHART', error.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -55,7 +57,9 @@ class SalesController {
                     [Sequelize.literal('CAST("qty_location"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
                     [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN 'pemesanan melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
                     [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                    [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc" AS INTEGER)'), 'discount']
+                    [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc" AS INTEGER)'), 'discount'],
+                    ['cs_created_at', 'created_at'],
+                    ['cs_updated_at', 'updated_at'],
                 ],
                 include: [
                     {
@@ -100,6 +104,9 @@ class SalesController {
                         })
                     ]
                 },
+                order: [
+                    ['cs_updated_at', 'desc']
+                ],
                 logging: false
             })
 
@@ -123,7 +130,7 @@ class SalesController {
                     error: null
                 })
         } catch (error) {
-            errorLog('CHART', error.message)
+            errorLog('GET CHART', error.message)
 
             res.status(400)
                 .json({
@@ -133,6 +140,83 @@ class SalesController {
                     error: error.message
                 })
         }
+    }
+
+    updateChart = async (req, res) => {
+        try {
+            if (req.body.cs_qty == 0) {
+                await this.deleteDataChart(Auth.user().userid, req.params.cs_oid)
+            } else {
+                await this.updateDataChart(req.body.cs_qty, Auth.user().userid, req.params.cs_oid)
+            }
+
+            res.status(200)
+                    .json({
+                        status:'success',
+                        message: 'updated!',
+                        data: null,
+                        error: null
+                    })
+        } catch (error) {
+            errorLog('UPDATE CHART', error.message)
+
+                res.status(200)
+                    .json({
+                        status: 'failed',
+                        message: 'error',
+                        data: null,
+                        error: error.message
+                    })
+        }
+    }
+
+    deleteChart = (req, res) => {
+        this.deleteDataChart(Auth.user().userid, req.params.cs_oid)
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'deleted!',
+                    data: null,
+                    error: null
+                })
+        })
+        .catch(err => {
+            errorLog('DELETE CHART', err.message)
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    } 
+
+    updateDataChart = async (qty, userid, csOid) => {
+        await ChartSales.update({
+            cs_qty: qty,
+            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
+        }, {
+            where: {
+                cs_oid: csOid,
+                cs_userid: userid
+            },
+            logging: false,
+            individualHooks: true
+        })
+    } 
+
+    deleteDataChart = async (userid, csOid) => {
+        await ChartSales.destroy({
+            where: {
+                cs_oid: csOid,
+                cs_userid: userid
+            },
+            logging: false,
+            individualHooks: true
+        })
     }
 
     getImages = async (dataProduct) => {
