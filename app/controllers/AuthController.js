@@ -2,9 +2,10 @@ const {info, error: errorLog} = require('../../helper/Logging')
 const {config} = require('../../config/environment');
 const Auth = require('../../helper/Auth');
 
-const {TConfUser, TokenStorage, PtnrMstr, PtnrgGrp, Sequelize, ChartSales} = require('../../models');
+const {TConfUser, TokenStorage, PtnrMstr, PtnrgGrp, Sequelize, ChartSales, PtMstr, InvcMstr, PidDet, PiddDet, PiMstr} = require('../../models');
 const jwt = require('jsonwebtoken');
 const {Op} = require('sequelize');
+const {getData} = require('../../helper/ProductUrl');
 
 class AuthController {
     loginClient = async (req, res) => {
@@ -135,62 +136,134 @@ class AuthController {
 
     getProfile = async (req, res) => {
         try {
-            let user = await Auth.user();
+            let {userid, ptnrg_id} = Auth.user();
 
-            let userProfile = await PtnrMstr.findOne({
+            let dataProfile = await TConfUser.findOne({
                 attributes: [
-                    'ptnr_name',
-                    [Sequelize.literal('"user"."usernama"'), 'username'],
-                    ['ptnr_ptnrg_id', 'group_id'],
-                    [Sequelize.col("group_partner.ptnrg_code"), 'group_code'],
-                    [Sequelize.col("group_partner.ptnrg_name"), 'group_name'],
-                    [Sequelize.literal(`CASE WHEN ptnr_ptnrg_id = 9911 THEN '0.40' WHEN ptnr_ptnrg_id = 998 THEN '0.30' WHEN ptnr_ptnrg_id = 357 THEN '0.30' ELSE '0' END`), 'discount'],
-                    [Sequelize.literal('COUNT("user->chart_sales".*)'), 'products_in_chart']
+                    [Sequelize.col('"detail_partner"."ptnr_name"'), 'ptnr_name'],
+                    ['usernama', 'username'],
+                    [Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'), 'group_id'],
+                    [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
+                    [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
+                    [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' WHEN "detail_partner"."ptnr_ptnrg_id" = 998 THEN '0.30' WHEN "detail_partner"."ptnr_ptnrg_id" = 357 THEN '0.30' ELSE '0' END`), 'discount'],
+                    [Sequelize.literal('COUNT("singular_chart_sales".*)'), 'products_in_chart']
                 ],
                 include: [
                     {
-                        model: TConfUser,
-                        as: 'user',
+                        model: PtnrMstr,
+                        as: 'detail_partner',
                         attributes: [],
                         include: [
                             {
-                                model: ChartSales,
-                                as: 'chart_sales',
+                                model: PtnrgGrp,
+                                as: 'group_partner',
                                 attributes: []
                             }
                         ]
                     },
                     {
-                        model: PtnrgGrp,
-                        as: 'group_partner',
+                        model: ChartSales,
+                        as: 'singular_chart_sales',
                         attributes: []
+                    },
+                    {
+                        model: ChartSales,
+                        as: 'chart_sales',
+                        attributes: [
+                            'cs_oid',
+                            [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
+                            [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
+                            ['cs_qty', 'chart_quantity'],
+                            [Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'), 'available_quantity'],
+                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN 'pemesanan melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
+                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN false ELSE true END`), 'can_be_sold'],
+                            [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+                            [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                        ],
+                        include: [
+                            {
+                                model: PtMstr,
+                                as: 'product',
+                                attributes: [],
+                                include: [
+                                    {
+                                        model: InvcMstr,
+                                        as: 'singular_product_quantity',
+                                        attributes: [],
+                                        where: {
+                                            invc_loc_id: {
+                                                [Op.in]: [10001, 200010, 300018]
+                                            }
+                                        }
+                                    }, {
+                                        model: PidDet,
+                                        as: 'singular_relation_price_list',
+                                        attributes: [],
+                                        include: [
+                                            {
+                                                model: PiMstr,
+                                                as: 'master_price_list',
+                                                attributes: [],
+                                                where: {
+                                                    pi_id: {
+                                                        [Op.in]: (ptnrg_id == 9911) ? [103, 202, 304] : [991, 203, 302]
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                model: PiddDet,
+                                                as: 'singular_detail_price_list',
+                                                attributes: [],
+                                                where: {
+                                                    pidd_payment_type: 9941
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ],
+                            }
+                        ]
                     }
                 ],
                 where: {
-                    ptnr_id: {
-                        [Op.eq]: Sequelize.literal(`(SELECT user_ptnr_id FROM public.tconfuser WHERE userid = ${user.userid})`)
-                    }
+                    userid
                 },
                 group: [
-                    'ptnr_name',
-                    Sequelize.literal('"user"."usernama"'),
-                    'ptnr_ptnrg_id',
-                    Sequelize.col("group_partner.ptnrg_code"),
-                    Sequelize.col("group_partner.ptnrg_name")
+                    'userid',
+                    Sequelize.col('"detail_partner"."ptnr_name"'),
+                    'usernama',
+                    Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'),
+                    Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'),
+                    Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'),
+                    Sequelize.col('"chart_sales"."cs_oid"'),
+                    Sequelize.literal('"chart_sales->product"."pt_desc1"'),
+                    Sequelize.literal('"chart_sales->product"."pt_code"'),
+                    Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'),
+                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"`),
+                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`)
                 ],
                 logging: false
-            })
+            });
 
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'got profile!',
-                    data: userProfile,
+                    data: {
+                        ptnr_name: dataProfile.dataValues.ptnr_name, 
+                        username: dataProfile.dataValues.username, 
+                        group_id: dataProfile.dataValues.group_id, 
+                        group_code: dataProfile.dataValues.group_code, 
+                        group_name: dataProfile.dataValues.group_name, 
+                        discount: dataProfile.dataValues.discount, 
+                        products_in_chart: dataProfile.dataValues.products_in_chart, 
+                        chart_sales: await this.getImages(dataProfile.dataValues.chart_sales)
+                    },
                     error: null
                 })
         } catch (error) {
             errorLog({feature: "PROFILE USER", message: error.message})
-
+    
             res.status(400)
                 .json({
                     status: 'failed',
@@ -213,6 +286,24 @@ class AuthController {
         }, {
             logging: () => {}
         })
+    }
+
+    getImages = async (dataProduct) => {
+        let result = [];
+
+        for (const {dataValues} of dataProduct) {
+            let image = await this.getImageProduct(dataValues.product_code)
+            dataValues.photo = (image == '-') ? null : image;
+            result.push(dataValues)
+        }
+
+        return result;
+    }
+
+    getImageProduct = async (productCode) => {
+        let {data: getImage} = await getData(`/exapro/${productCode}/image`)
+
+        return getImage;
     }
 }
 
