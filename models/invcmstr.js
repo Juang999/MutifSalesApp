@@ -11,6 +11,12 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+
+      InvcMstr.belongsTo(models.LocMstr, {
+        as: 'location',
+        foreignKey: 'invc_loc_id',
+        targetKey: 'loc_id'
+      })
     }
   }
   InvcMstr.init({
