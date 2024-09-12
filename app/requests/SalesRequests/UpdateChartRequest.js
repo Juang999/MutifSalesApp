@@ -1,15 +1,13 @@
 const Joi = require('joi');
 
-const validation = Joi.object({
+const validation = Joi.array().items(Joi.object({
     cs_oid: Joi.string().required(),
-    qty: Joi.number().required(),
-})
+    cs_qty: Joi.number().required(),
+}))
 
 const updateChartRequest = (req, res, next) => {
-    let updateChartValidate = validation.validate({
-        cs_oid: req.params.cs_oid,
-        qty: req.body.cs_qty
-    }, {
+
+    let updateChartValidate = validation.validate(req.body.updateData, {
         abortEarly: false
     })
 

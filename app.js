@@ -3,7 +3,8 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var {middleware} = require('express-http-context')
+var {middleware} = require('express-http-context');
+const fileUpload = require('express-fileupload');
 
 var app = express();
 
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(middleware);
+app.use(fileUpload());
 
 app.use('/', require('./routes/index'));
 app.use('/users', require('./routes/users'));
