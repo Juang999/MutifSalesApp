@@ -144,10 +144,13 @@ class SalesController {
 
     updateChart = async (req, res) => {
         try {
-            if (req.body.cs_qty == 0) {
-                await this.deleteDataChart(Auth.user().userid, req.params.cs_oid)
-            } else {
-                await this.updateDataChart(req.body.cs_qty, Auth.user().userid, req.params.cs_oid)
+
+            for (const singularDataUpdate of req.body.updateData) {
+                if (singularDataUpdate.cs_qty == 0) {
+                    await this.deleteDataChart(Auth.user().userid, singularDataUpdate.cs_oid)
+                } else {
+                    await this.updateDataChart(singularDataUpdate.cs_qty, Auth.user().userid, singularDataUpdate.cs_oid)
+                }    
             }
 
             res.status(200)
@@ -160,7 +163,7 @@ class SalesController {
         } catch (error) {
             errorLog('UPDATE CHART', error.message)
 
-                res.status(200)
+                res.status(400)
                     .json({
                         status: 'failed',
                         message: 'error',

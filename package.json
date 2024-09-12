@@ -11,6 +11,7 @@
     "debug": "~2.6.9",
     "dotenv": "^16.4.5",
     "express": "~4.16.1",
+    "express-fileupload": "^1.5.1",
     "express-http-context": "^1.2.4",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",

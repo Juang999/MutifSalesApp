@@ -263,11 +263,9 @@ class ProductController {
             // let today = moment().format('YYYY-MM-DD');
             // let thirtyDayshBefore = moment().subtract(7, 'days').format('YYYY-MM-DD');
             let today = '2024-06-05'
-            let SevenDayshBefore = '2024-05-31'
-
+            let SevenDayshBefore = '2024-06-02'
 
             let dataSuggestion = await this.getProductSuggestion(SevenDayshBefore, today, (ptnrg_id) ? ptnrg_id : 357);
-
             let result = await this.getImages(dataSuggestion);
 
             res.status(200)
