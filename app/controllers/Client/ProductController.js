@@ -196,7 +196,7 @@ class ProductController {
                         slug: data.slug,
                         group_article: data.group_article,
                         type_id: data.type_id,
-                        photo: data.photo,
+                        photo: (data.photo == '-') ? null : data.photo,
                         invc_oid: product.dataValues.invc_oid,
                         quantity: product.dataValues.quantity,
                         pricelist_name: product.dataValues.pricelist_name,
