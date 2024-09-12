@@ -2,7 +2,7 @@ const {info, error: errorLog} = require('../../helper/Logging')
 const {config} = require('../../config/environment');
 const Auth = require('../../helper/Auth');
 
-const {TConfUser, TokenStorage, PtnrMstr, PtnrgGrp, Sequelize} = require('../../models');
+const {TConfUser, TokenStorage, PtnrMstr, PtnrgGrp, Sequelize, ChartSales} = require('../../models');
 const jwt = require('jsonwebtoken');
 const {Op} = require('sequelize');
 
@@ -144,13 +144,21 @@ class AuthController {
                     ['ptnr_ptnrg_id', 'group_id'],
                     [Sequelize.col("group_partner.ptnrg_code"), 'group_code'],
                     [Sequelize.col("group_partner.ptnrg_name"), 'group_name'],
-                    [Sequelize.literal(`CASE WHEN ptnr_ptnrg_id = 9911 THEN '0.40' WHEN ptnr_ptnrg_id = 998 THEN '0.30' WHEN ptnr_ptnrg_id = 357 THEN '0.30' ELSE '0' END`), 'discount']
+                    [Sequelize.literal(`CASE WHEN ptnr_ptnrg_id = 9911 THEN '0.40' WHEN ptnr_ptnrg_id = 998 THEN '0.30' WHEN ptnr_ptnrg_id = 357 THEN '0.30' ELSE '0' END`), 'discount'],
+                    [Sequelize.literal('COUNT("user->chart_sales".*)'), 'products_in_chart']
                 ],
                 include: [
                     {
                         model: TConfUser,
                         as: 'user',
-                        attributes: []
+                        attributes: [],
+                        include: [
+                            {
+                                model: ChartSales,
+                                as: 'chart_sales',
+                                attributes: []
+                            }
+                        ]
                     },
                     {
                         model: PtnrgGrp,
@@ -163,6 +171,13 @@ class AuthController {
                         [Op.eq]: Sequelize.literal(`(SELECT user_ptnr_id FROM public.tconfuser WHERE userid = ${user.userid})`)
                     }
                 },
+                group: [
+                    'ptnr_name',
+                    Sequelize.literal('"user"."usernama"'),
+                    'ptnr_ptnrg_id',
+                    Sequelize.col("group_partner.ptnrg_code"),
+                    Sequelize.col("group_partner.ptnrg_name")
+                ],
                 logging: false
             })
 

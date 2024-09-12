@@ -15,6 +15,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'user_ptnr_id',
         targetKey: 'ptnr_id'
       })
+
+      TConfUser.hasOne(models.ChartSales, {
+        as: 'chart_sales',
+        sourceKey: 'userid',
+        foreignKey: 'cs_userid'
+      })
     }
   }
   TConfUser.init({
