@@ -92,8 +92,10 @@ class ProductController {
                     message: 'ok',
                     data: {
                         data: result,
-                        total_data: result.length,
+                        total_data: count,
+                        per_page: rows.length,
                         current_page: page,
+                        last_page: Math.ceil(count / limit),
                         total_page: Math.ceil(count / limit)
                     },
                     error: null
