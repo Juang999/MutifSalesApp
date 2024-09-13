@@ -23,7 +23,7 @@ class ProductController {
                         [Sequelize.col('entity_product.en_desc'), 'entity'],
                         [Sequelize.col('master_category.ptcat_desc'), 'category'],
                         [Sequelize.literal('CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                        [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'price'],
+                        [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
                         [Sequelize.literal('CAST("singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'qty']
                     ],
                     include: [
