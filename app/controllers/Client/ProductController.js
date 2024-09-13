@@ -16,7 +16,7 @@ class ProductController {
             let {page, limit, offset} = new Page(currentPage, 15);
             let priceList = this.getPriceListUser(ptnrg_id);
     
-            let product = await PtMstr.findAll({
+            let {count, rows} = await PtMstr.findAndCountAll({
                     attributes: [
                         ['pt_desc1', 'product_name'],
                         ['pt_code', 'product_code'],
@@ -84,13 +84,18 @@ class ProductController {
                     logging: false
                 })
 
-            let result = await this.getImages(product);
+            let result = await this.getImages(rows);
 
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: result,
+                    data: {
+                        data: result,
+                        total_data: result.length,
+                        current_page: page,
+                        total_page: Math.ceil(count / limit)
+                    },
                     error: null
                 })
         } catch (error) {
