@@ -1,9 +1,18 @@
-const {ChartSales, PiMstr, PiddDet, TConfUser, PtnrMstr, InvcMstr, PtnraAddr, PtnracCntc, PtMstr, PidDet, Sequelize, LocMstr, SogGenPtnrMstr} = require('../../../models');
-const Auth = require('../../../helper/Auth');
-const moment = require('moment');
-const {info, error: errorLog} = require('../../../helper/Logging');
 const {Op} = require('sequelize');
+const moment = require('moment');
+const Auth = require('../../../helper/Auth');
 const {getData} = require('../../../helper/ProductUrl');
+const {info, error: errorLog} = require('../../../helper/Logging');
+const {
+    ChartSales, PiMstr,
+    PtnrMstr, InvcMstr,
+    PiddDet, TConfUser,
+    PtnraAddr, PtnracCntc, 
+    LocMstr, SogGenPtnrMstr,
+    PtMstr, PidDet, Sequelize, 
+    RegKecMstr, RegKelMstr,
+    RegPropMstr, RegCityMstr,
+} = require('../../../models');
 
 class SalesController {
     inputIntoChart = async (req, res) => {
@@ -231,9 +240,17 @@ class SalesController {
             attributes: [
                 [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
                 [Sequelize.literal('"detail_partner"."ptnr_name"'), 'ptnr_name'],
-                [Sequelize.literal(`CASE WHEN "detail_partner->singular_partner_address"."ptnra_line_3" IS NOT NULL THEN CONCAT("detail_partner->singular_partner_address"."ptnra_line_3", ' ', "detail_partner->singular_partner_address"."ptnra_line_2", ' ', "detail_partner->singular_partner_address"."ptnra_line_1") ELSE '-' END`), 'ptnr_address'],
+                [Sequelize.literal(`CONCAT("detail_partner->singular_partner_address"."ptnra_line_3", ', ', "detail_partner->singular_partner_address"."ptnra_line_2", ', ', "detail_partner->singular_partner_address"."ptnra_line_1")`), 'ptnr_address'],
                 [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_phone_1"`), 'phone'],
-                [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_email"`), 'email']
+                [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_email"`), 'email'],
+                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_prov_id"'), 'prop_id'],
+                [Sequelize.col('"detail_partner->singular_partner_address->singular_province"."prop_name"'), 'prop_name'],
+                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_city_id"'), 'kota_id'],
+                [Sequelize.col(`"detail_partner->singular_partner_address->singular_city"."kota_name"`), 'kota_name'],
+                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kec_id"'), 'kec_id'],
+                [Sequelize.col(`"detail_partner->singular_partner_address->singular_kecamatan"."kec_name"`), 'kec_name'],
+                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kel_id"'), 'kel_id'],
+                [Sequelize.col(`"detail_partner->singular_partner_address->singular_kelurahan"."kel_name"`), 'kel_name']
             ],
             include: [
                 {
@@ -249,6 +266,22 @@ class SalesController {
                                 {
                                     model: PtnracCntc,
                                     as: 'singular_contact_address',
+                                    attributes: []
+                                }, {
+                                    model: RegPropMstr,
+                                    as: 'singular_province',
+                                    attributes: []
+                                }, {
+                                    model: RegCityMstr,
+                                    as: 'singular_city',
+                                    attributes: []
+                                }, {
+                                    model: RegKecMstr,
+                                    as: 'singular_kecamatan',
+                                    attributes: []
+                                }, {
+                                    model: RegKelMstr,
+                                    as: 'singular_kelurahan',
                                     attributes: []
                                 }
                             ]
@@ -314,7 +347,7 @@ class SalesController {
             where: {
                 userid: Auth.user().userid
             },
-            logging: false
+            // logging: false
 
         })
         .then(result => {

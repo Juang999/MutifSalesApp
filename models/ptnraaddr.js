@@ -16,6 +16,30 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'ptnra_oid',
         foreignKey: 'addrc_ptnra_oid'
       })
+
+      PtnraAddr.belongsTo(models.RegPropMstr, {
+        as: 'singular_province',
+        targetKey: 'prop_id',
+        foreignKey: 'ptnra_prov_id'
+      })
+
+      PtnraAddr.belongsTo(models.RegCityMstr, {
+        as: 'singular_city',
+        targetKey: 'kota_id',
+        foreignKey: 'ptnra_city_id'
+      })
+
+      PtnraAddr.belongsTo(models.RegKecMstr, {
+        as: 'singular_kecamatan',
+        targetKey: 'kec_id',
+        foreignKey: 'ptnra_kec_id'
+      })
+
+      PtnraAddr.belongsTo(models.RegKelMstr, {
+        as: 'singular_kelurahan',
+        targetKey: 'kel_id',
+        foreignKey: 'ptnra_kel_id'
+      })
     }
   }
   PtnraAddr.init({
@@ -47,7 +71,12 @@ module.exports = (sequelize, DataTypes) => {
     ptnra_line_4: DataTypes.STRING,
     ptnra_line_5: DataTypes.STRING,
     ptnra_lat_addr: DataTypes.INTEGER,
-    ptnra_long_addr: DataTypes.INTEGER
+    ptnra_long_addr: DataTypes.INTEGER,
+    ptnra_country_id: DataTypes.INTEGER,
+    ptnra_prov_id: DataTypes.INTEGER,
+    ptnra_city_id: DataTypes.INTEGER,
+    ptnra_kec_id: DataTypes.INTEGER,
+    ptnra_kel_id: DataTypes.INTEGER,
   }, {
     sequelize,
     schema: 'public',
