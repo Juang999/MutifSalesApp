@@ -12,6 +12,7 @@ const {
     PtMstr, PidDet, Sequelize, 
     RegKecMstr, RegKelMstr,
     RegPropMstr, RegCityMstr,
+    SqMstr,
 } = require('../../../models');
 
 class SalesController {
@@ -298,6 +299,7 @@ class SalesController {
                         [Sequelize.literal('CAST("chart_sales->product->singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
                         [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                         [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                        [Sequelize.literal(`CAST("chart_sales->product"."pt_weight" AS INTEGER)`), 'pt_weight']
                     ],
                     include: [
                         {
@@ -341,14 +343,12 @@ class SalesController {
                             ],
                         }
                     ]
-
                 }
             ],
             where: {
                 userid: Auth.user().userid
             },
-            // logging: false
-
+            logging: false
         })
         .then(result => {
             res.status(200)
@@ -529,6 +529,77 @@ class SalesController {
             individualHooks: true,
             logging: false
         })
+    }
+
+    createSqForm = (body) => {
+        let createdAt = moment().format('YYY-MM-DD HH:mm:ss');
+
+        // sq_oid
+        // sq_dom_id: 1,
+        // sq_en_id
+        // sq_add_by: Auth.user().usernama,
+        // sq_add_date: createdAt,
+        // sq_code
+        // sq_ptnr_id_sold: Auth.user().user_ptnr_id,
+        // sq_ptnr_id_bill: Auth.user().user_ptnr_id,
+        // sq_date
+        // sq_si_id: 992,
+        // sq_type: 'R',
+        // sq_sales_person
+        // sq_pi_id
+        // sq_pay_type: body.payment_type,
+        // sq_pay_method: body.payment_method,
+        // sq_dp: 0,
+        // sq_disc_header: body.discount,
+        // sq_total
+        // sq_close_date
+        // sq_trans_id: 'D',
+        // sq_trans_rmks: body.remarks,
+        // sq_dt
+        // sq_cu_id: 1,
+        // sq_total_ppn: 0,
+        // sq_total_pph: 0,
+        // sq_payment: 0,
+        // sq_exc_rate
+        // sq_cons: 'N',
+        // sq_terbilang: body.terbilang,
+        // sq_interval
+        // sq_ar_ac_id: 13,
+        // sq_ar_sb_id
+        // sq_ar_cc_id
+        // sq_need_date
+        // sq_is_package
+        // sq_sales_program
+        // sq_booking
+        // sq_book_start_date
+        // sq_book_end_date
+        // sq_alocated
+        // sq_shipping_charges
+        // sq_ptsfr_loc_id
+        // sq_ptsfr_loc_to_id
+        // sq_ptsfr_loc_git
+        // sq_en_to_id
+        // sq_dropshipper
+        // sq_pi_area_id
+    }
+
+    createSalesQuotationNumber = async () => {
+
+    }
+
+    countDataSalesQuotation = async () => {
+        let startOfMonth = moment().startOf('months').format('YYYY-MM-DD');
+        let endOfMonth = moment().endOf('months').format('YYYY-MM-DD');
+
+        let result = await SqMstr.count({
+            where: {
+                sq_add_date: {
+                    [Op.between]: [startOfMonth, endOfMonth]
+                }
+            }
+        });
+
+        return result;
     }
 }
 
