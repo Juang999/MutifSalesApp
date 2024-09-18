@@ -1,4 +1,4 @@
-const {ChartSales, PiMstr, PiddDet, InvcMstr, PtMstr, PidDet, Sequelize, LocMstr, SogGenPtnrMstr} = require('../../../models');
+const {ChartSales, PiMstr, PiddDet, TConfUser, PtnrMstr, InvcMstr, PtnraAddr, PtnracCntc, PtMstr, PidDet, Sequelize, LocMstr, SogGenPtnrMstr} = require('../../../models');
 const Auth = require('../../../helper/Auth');
 const moment = require('moment');
 const {info, error: errorLog} = require('../../../helper/Logging');
@@ -224,6 +224,119 @@ class SalesController {
                     error: error.message
                 });
         }
+    }
+
+    readyToCheckout = (req, res) => {
+        TConfUser.findOne({
+            attributes: [
+                [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
+                [Sequelize.literal('"detail_partner"."ptnr_name"'), 'ptnr_name'],
+                [Sequelize.literal(`CASE WHEN "detail_partner->singular_partner_address"."ptnra_line_3" IS NOT NULL THEN CONCAT("detail_partner->singular_partner_address"."ptnra_line_3", ' ', "detail_partner->singular_partner_address"."ptnra_line_2", ' ', "detail_partner->singular_partner_address"."ptnra_line_1") ELSE '-' END`), 'ptnr_address'],
+                [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_phone_1"`), 'phone'],
+                [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_email"`), 'email']
+            ],
+            include: [
+                {
+                    model: PtnrMstr,
+                    as: 'detail_partner',
+                    attributes: [],
+                    include: [
+                        {
+                            model: PtnraAddr,
+                            as: 'singular_partner_address',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PtnracCntc,
+                                    as: 'singular_contact_address',
+                                    attributes: []
+                                }
+                            ]
+                        }
+                    ]
+                }, {
+                    model: ChartSales,
+                    as: 'chart_sales',
+                    attributes: [
+                        'cs_oid',
+                        [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
+                        [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
+                        [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
+                        [Sequelize.literal('CAST("chart_sales->product->singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
+                        [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+                        [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                    ],
+                    include: [
+                        {
+                            model: PtMstr,
+                            as: 'product',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: InvcMstr,
+                                    as: 'singular_product_quantity',
+                                    attributes: [],
+                                    where: {
+                                        invc_loc_id: {
+                                            [Op.in]: [10001, 200010, 300018]
+                                        }
+                                    }
+                                }, {
+                                    model: PidDet,
+                                    as: 'singular_relation_price_list',
+                                    attributes: [],
+                                    include: [
+                                        {
+                                            model: PiMstr,
+                                            as: 'master_price_list',
+                                            attributes: [],
+                                            where: {
+                                                pi_id: {
+                                                    [Op.in]: (Auth.user().ptnrg_id == 9911) ? [103, 202, 304] : [991, 203, 302]
+                                                }
+                                            }
+                                        }, {
+                                            model: PiddDet,
+                                            as: 'singular_detail_price_list',
+                                            attributes: [],
+                                            where: {
+                                                pidd_payment_type: 9941
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                        }
+                    ]
+
+                }
+            ],
+            where: {
+                userid: Auth.user().userid
+            },
+            logging: false
+
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            errorLog('GET DETAIL USER', err.message)
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
     }
 
     updateDataChart = async (qty, userid, csOid) => {
