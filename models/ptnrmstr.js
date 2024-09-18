@@ -22,6 +22,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'ptnr_id',
         foreignKey: 'user_ptnr_id'
       })
+
+      PtnrMstr.hasOne(models.PtnraAddr, {
+        as: 'singular_partner_address',
+        sourceKey: 'ptnr_oid',
+        foreignKey: 'ptnra_ptnr_oid'
+      })
     }
   }
   PtnrMstr.init({
