@@ -116,7 +116,8 @@ module.exports = (sequelize, DataTypes) => {
     sq_dbg_ptnr_id: DataTypes.INTEGER,
     sq_dg_group: DataTypes.STRING,
     sq_ps_id: DataTypes.INTEGER,
-    sq_midtrans_inv_number: DataTypes.STRING
+    sq_midtrans_inv_number: DataTypes.STRING,
+    sq_midtrans_inv_status: DataTypes.STRING,
   }, {
     sequelize,
     schema: 'public',

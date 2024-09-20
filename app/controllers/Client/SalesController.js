@@ -623,7 +623,8 @@ class SalesController {
                 sq_en_to_id: 0,
                 sq_pi_area_id: 1,
                 sq_shipping_name: body.shipping_name,
-                sq_midtrans_inv_number: body.invoice_number
+                sq_midtrans_inv_number: body.invoice_number,
+                sq_midtrans_inv_status: 'pending'
             })
         }
 
