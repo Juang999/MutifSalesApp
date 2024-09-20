@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      SqMstr.hasOne(models.SqdDet, {
+        as: 'singular_detail_sales_quotation',
+        sourceKey: 'sq_oid',
+        foreignKey: 'sqd_sq_oid'
+      })
     }
   }
   SqMstr.init({
