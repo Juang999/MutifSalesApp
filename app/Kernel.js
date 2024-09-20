@@ -7,8 +7,9 @@ class Kernel {
             },
             Requests: {
                 SalesRequests: {
+                    CheckoutRequest: require('./requests/SalesRequests/CheckoutRequest'),
                     InputChartRequest: require('./requests/SalesRequests/InputChartRequest'),
-                    UpdateChartRequest: require('./requests/SalesRequests/UpdateChartRequest')
+                    UpdateChartRequest: require('./requests/SalesRequests/UpdateChartRequest'),
                 }
             }
         }
