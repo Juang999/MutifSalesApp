@@ -46,6 +46,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'pt_id',
         foreignKey:'sod_pt_id'
       })
+
+      PtMstr.hasOne(models.InvctTable, {
+        as: 'singular_table_cost',
+        sourceKey: 'pt_id',
+        foreignKey: 'invct_pt_id'
+      })
     }
   }
   PtMstr.init({
