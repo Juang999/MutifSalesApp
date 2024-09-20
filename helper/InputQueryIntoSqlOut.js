@@ -22,7 +22,6 @@ class InputQueryIntoSqlOut {
     }
 
     createData = async (sql) => {
-        console.info(sql)
         try {
             await TSqlOut.create({
                 sql_uid: uuidv4(),
