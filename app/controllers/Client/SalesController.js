@@ -224,8 +224,8 @@ class SalesController {
 
     checkOut = async (req, res) => {
         try {
-            let {userid, ptnrg_id, usernama} = Auth.user();
-            let headerSalesQuotation = await this.generateHeaderSalesQuotation(req.body, userid, usernama, ptnrg_id)
+            let {userid, usernama, user_ptnr_id} = Auth.user();
+            let headerSalesQuotation = await this.generateHeaderSalesQuotation(req.body, userid, usernama, user_ptnr_id)
             
             if (headerSalesQuotation.length == 0) {
                 res.status(300)
