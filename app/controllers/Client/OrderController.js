@@ -27,12 +27,17 @@ class OrderController {
                 }
             },
         })
-        .then(result => {
+        .then(([countedData]) => {
+            let baseNumber = '0000';
+            let dataSequence = countedData.dataValues.invoice_number;
+            let invoiceNumber = baseNumber.slice(0, -dataSequence.toString().length) + dataSequence;
+
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: result,
+                    data: {invoice_number: invoiceNumber},
+                    
                     error: null
                 }) 
         })
@@ -68,7 +73,7 @@ class OrderController {
             ],
             include: [
                 {
-                    model: TConfUser,
+                    model: PtnrMstr,
                     as: 'detail_partner',
                     attributes: [],
                     include: [
@@ -100,13 +105,15 @@ class OrderController {
                                 }
                             ]
                         }, 
+                        {
+                            model: SqMstr,
+                            as: ''
+                        }
                     ]
                 }
             ],
             where: {
-                ptnr_id: {
-                    [Op.eq]: Sequelize.literal('')
-                }
+                userid
             }
         })
         .then(result => {
@@ -137,6 +144,7 @@ class OrderController {
             attributes: [
                 ['sq_midtrans_inv_number', 'invoice'],
                 ['sq_midtrans_inv_status', 'status'],
+                // [Sequelize.literal(`DATE(sq_add_date)`), 'date'],
                 [Sequelize.literal('CAST(SUM(sq_total) AS INTEGER)'), 'total_puchase'],
             ],
             where: {
@@ -146,8 +154,12 @@ class OrderController {
                 sq_ptnr_id_sold: Auth.user().user_ptnr_id
             },
             group: [
+                'sq_add_date',
                 'sq_midtrans_inv_number',
                 'sq_midtrans_inv_status',
+            ],
+            order: [
+                [Sequelize.literal(`DATE(sq_add_date)`), 'DESC']
             ]
         })
         .then(result => {
