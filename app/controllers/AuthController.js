@@ -1,11 +1,17 @@
-const {info, error: errorLog} = require('../../helper/Logging')
-const {config} = require('../../config/environment');
-const Auth = require('../../helper/Auth');
-
-const {TConfUser, TokenStorage, PtnrMstr, PtnrgGrp, Sequelize, ChartSales, PtMstr, InvcMstr, PidDet, PiddDet, PiMstr} = require('../../models');
-const jwt = require('jsonwebtoken');
 const {Op} = require('sequelize');
+const jwt = require('jsonwebtoken');
+const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
+const {info, error: errorLog} = require('../../helper/Logging')
+const {
+    PiMstr,
+    PidDet, PiddDet,
+    PtMstr, InvcMstr,
+    PtnrMstr, PtnrgGrp,
+    Sequelize, ChartSales, 
+    PtnraAddr, PtnracCntc,
+    TConfUser, TokenStorage,
+} = require('../../models');
 
 class AuthController {
     loginClient = async (req, res) => {
