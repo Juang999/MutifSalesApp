@@ -613,7 +613,7 @@ class SalesController {
                 sq_ar_cc_id: 0,
                 sq_need_date: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_is_package: 'N',
-                sq_sales_program: ptnrId,
+                sq_sales_program: '-',
                 sq_booking: 'N',
                 sq_alocated: 'N',
                 sq_shipping_charges: 0,
@@ -621,7 +621,9 @@ class SalesController {
                 sq_ptsfr_loc_to_id: dataValues.loc_id,
                 sq_ptsfr_loc_git: dataValues.loc_id,
                 sq_en_to_id: 0,
+                sq_dropshipper: 'N',
                 sq_pi_area_id: 1,
+                sq_dg_group: 'N',
                 sq_shipping_name: body.shipping_name,
                 sq_midtrans_inv_number: body.invoice_number,
                 sq_midtrans_inv_status: 'pending'
