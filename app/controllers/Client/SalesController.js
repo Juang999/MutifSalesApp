@@ -226,7 +226,7 @@ class SalesController {
         try {
             let {userid, usernama, user_ptnr_id} = Auth.user();
             let headerSalesQuotation = await this.generateHeaderSalesQuotation(req.body, userid, usernama, user_ptnr_id)
-            
+
             if (headerSalesQuotation.length == 0) {
                 res.status(300)
                     .json({
