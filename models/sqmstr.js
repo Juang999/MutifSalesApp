@@ -1,6 +1,7 @@
 'use strict';
 const {
-  Model
+  Model,
+  STRING
 } = require('sequelize');
 const {
   v4: uuidv4
@@ -119,6 +120,7 @@ module.exports = (sequelize, DataTypes) => {
     sq_shipping_name: DataTypes.STRING,
     sq_midtrans_inv_number: DataTypes.STRING,
     sq_midtrans_inv_status: DataTypes.STRING,
+    sq_shipping_service: DataTypes>STRING
   }, {
     sequelize,
     schema: 'public',

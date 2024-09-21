@@ -577,6 +577,7 @@ class SalesController {
 
         for (const {dataValues} of sqEnId) {
             baseNumber += 1;
+            let [shippingName, shippingService] = body.shipping_name.split('-'); 
 
             headersSalesQuotation.push({
                 sq_oid: uuidv4(),
@@ -624,9 +625,10 @@ class SalesController {
                 sq_dropshipper: 'N',
                 sq_pi_area_id: 1,
                 sq_dg_group: 'N',
-                sq_shipping_name: body.shipping_name,
+                sq_shipping_name: shippingName,
                 sq_midtrans_inv_number: body.invoice_number,
-                sq_midtrans_inv_status: 'pending'
+                sq_midtrans_inv_status: 'pending',
+                sq_shipping_service: shippingService
             })
         }
 

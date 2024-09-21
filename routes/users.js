@@ -11,7 +11,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/login', AuthRequest, loginClient);
-router.post('/admin/login', AuthRequest, loginAdmin);
 router.get('/profile', AuthMiddleware, getProfile);
+router.post('/admin/login', AuthRequest, loginAdmin);
 
 module.exports = router;
