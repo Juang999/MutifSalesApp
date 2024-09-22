@@ -38,6 +38,12 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: 'ptnr_id',
         foreignKey: 'sq_sales_person'
       })
+
+      SqMstr.belongsTo(models.CodeMstr, {
+        as: 'pay_type',
+        targetKey: 'code_id',
+        foreignKey:'sq_pay_type'
+      })
     }
   }
   SqMstr.init({

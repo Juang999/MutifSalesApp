@@ -1,4 +1,5 @@
 const {
+    CodeMstr,
     RegKelMstr,
     SqMstr, SqdDet, 
     PtMstr, Sequelize, 
@@ -69,6 +70,11 @@ class OrderController {
                         invoice: headerInvoice.invoice,
                         date: headerInvoice.date,
                         partner_name: headerInvoice.partner_name,
+                        partner_address: headerInvoice.partner_address,
+                        partner_phone: headerInvoice.partner_phone,
+                        partner_email: headerInvoice.partner_email,
+                        sales_person: headerInvoice.sales_person,
+                        payment_type: headerInvoice.payment_type,
                         shipping_name: headerInvoice.shipping_name,
                         shipping_service: headerInvoice.shipping_service,
                         shipping_charges: headerInvoice.shipping_charges,
@@ -226,39 +232,79 @@ class OrderController {
     }
 
     getHeaderInvoice = async (invoiceNumber, ptnrId) => {
-        let result = await SqMstr.findOne({
-            attributes: [
-                ['sq_midtrans_inv_number', 'invoice'],
-                [Sequelize.literal(`DATE(sq_add_date)`), 'date'],
-                [Sequelize.col(`bill_to.ptnr_name`), 'partner_name'],
-                ['sq_shipping_name', 'shipping_name'],
-                ['sq_shipping_service', 'shipping_service'],
-                ['sq_shipping_charges', 'shipping_charges'],
-                ['sq_midtrans_inv_status', 'status'],
-            ],
-            include: [
-                {
-                    model: PtnrMstr,
-                    as: 'bill_to',
-                    attributes: []
-                }
-            ],
-            where: {
-                sq_midtrans_inv_number: invoiceNumber,
-                sq_ptnr_id_sold: ptnrId
-            },
-            logging: false
-        }) 
-
-        return {
-            invoice: (result) ? result.dataValues.invoice : null,
-            date: (result) ? result.dataValues.date : null,
-            partner_name: (result) ? result.dataValues.partner_name : null,
-            shipping_name: (result) ? result.dataValues.shipping_name : null,
-            shipping_service: (result) ? result.dataValues.shipping_service : null,
-            shipping_charges: (result) ? result.dataValues.shipping_charges : null,
-            status: (result) ? result.dataValues.status : null,
-        };
+        try {
+            
+            let result = await SqMstr.findOne({
+                attributes: [
+                    ['sq_midtrans_inv_number', 'invoice'],
+                    [Sequelize.literal(`DATE(sq_add_date)`), 'date'],
+                    [Sequelize.col(`bill_to.ptnr_name`), 'partner_name'],
+                    [Sequelize.literal(`CONCAT("bill_to->singular_partner_address"."ptnra_line_3", ', ', "bill_to->singular_partner_address"."ptnra_line_2", ', ', "bill_to->singular_partner_address"."ptnra_line_1")`), 'partner_address'],
+                    [Sequelize.literal(`"bill_to->singular_partner_address->singular_contact_address"."ptnrac_phone_1"`), 'phone'],
+                    [Sequelize.literal(`"bill_to->singular_partner_address->singular_contact_address"."ptnrac_email"`), 'email'],
+                    [Sequelize.col(`"pay_type"."code_name"`), 'payment_type'],
+                    [Sequelize.col('"sales_person"."ptnr_name"'), 'sales_name'],
+                    ['sq_shipping_name', 'shipping_name'],
+                    ['sq_shipping_service', 'shipping_service'],
+                    ['sq_shipping_charges', 'shipping_charges'],
+                    ['sq_midtrans_inv_status', 'status'],
+                ],
+                include: [
+                    {
+                        model: PtnrMstr,
+                        as: 'bill_to',
+                        attributes: [],
+                        include: [
+                            {
+                                model: PtnraAddr,
+                                as: 'singular_partner_address',
+                                attributes: [],
+                                include: [
+                                    {
+                                        model: PtnracCntc,
+                                        as: 'singular_contact_address',
+                                        attributes: [],
+                                    }
+                                ],
+                                where: {
+                                    ptnra_active: 'Y'
+                                }
+                            }
+                        ]
+                    }, {
+                        model: PtnrMstr,
+                        as: 'sales_person',
+                        attributes: []
+                    }, {
+                        model: CodeMstr,
+                        as: 'pay_type',
+                        attributes: []
+                    }
+                ],
+                where: {
+                    sq_midtrans_inv_number: invoiceNumber,
+                    sq_ptnr_id_sold: ptnrId
+                },
+                logging: false
+            }) 
+    
+            return {
+                invoice: (result) ? result.dataValues.invoice : null,
+                date: (result) ? result.dataValues.date : null,
+                partner_name: (result) ? result.dataValues.partner_name : null,
+                partner_address: (result) ? result.dataValues.partner_address : null,
+                partner_phone: (result) ? result.dataValues.phone : null,
+                partner_email: (result) ? result.dataValues.email : null,
+                sales_person: (result) ? result.dataValues.sales_name : null,
+                payment_type: (result) ? result.dataValues.payment_type : null,
+                shipping_name: (result) ? result.dataValues.shipping_name : null,
+                shipping_service: (result) ? result.dataValues.shipping_service : null,
+                shipping_charges: (result) ? result.dataValues.shipping_charges : null,
+                status: (result) ? result.dataValues.status : null,
+            };
+        } catch (error) {
+            return error.message
+        }
     }
 
     getDetailInvoice = async (invoiceNumber, ptnrId) => {
