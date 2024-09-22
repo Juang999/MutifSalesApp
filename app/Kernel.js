@@ -10,6 +10,7 @@ class Kernel {
                     CheckoutRequest: require('./requests/SalesRequests/CheckoutRequest'),
                     InputChartRequest: require('./requests/SalesRequests/InputChartRequest'),
                     UpdateChartRequest: require('./requests/SalesRequests/UpdateChartRequest'),
+                    UpdatePaymentStatusRequest: require('./requests/SalesRequests/UpdatePaymentStatusRequest')
                 }
             }
         }

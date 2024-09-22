@@ -11,6 +11,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      PtCatMstr.hasOne(models.PtMstr, {
+        as: 'product',
+        sourceKey: 'ptcat_id',
+        foreignKey: 'pt_cat_id'
+      })
     }
   }
   PtCatMstr.init({
