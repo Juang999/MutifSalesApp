@@ -226,7 +226,7 @@ class OrderController {
     }
 
     getHeaderInvoice = async (invoiceNumber, ptnrId) => {
-        let {dataValues} = await SqMstr.findOne({
+        let result = await SqMstr.findOne({
             attributes: [
                 ['sq_midtrans_inv_number', 'invoice'],
                 [Sequelize.literal(`DATE(sq_add_date)`), 'date'],
@@ -250,27 +250,37 @@ class OrderController {
             logging: false
         }) 
 
-        return dataValues;
+        return {
+            invoice: (result) ? result.dataValues.invoice : null,
+            date: (result) ? result.dataValues.date : null,
+            partner_name: (result) ? result.dataValues.partner_name : null,
+            shipping_name: (result) ? result.dataValues.shipping_name : null,
+            shipping_service: (result) ? result.dataValues.shipping_service : null,
+            shipping_charges: (result) ? result.dataValues.shipping_charges : null,
+            status: (result) ? result.dataValues.status : null,
+        };
     }
 
     getDetailInvoice = async (invoiceNumber, ptnrId) => {
         let dataProducts = await this.getProducts(invoiceNumber, ptnrId);
         let result = [];
 
-        for (const {dataValues} of dataProducts) {
-            let imageProduct = await this.getImageProduct(dataValues.product_code);
-
-            let photo = (imageProduct === '-') ? null : imageProduct;
-            result.push({
-                product_name: dataValues.product_name,
-                product_code: dataValues.product_code,
-                qty_product: dataValues.qty_product,
-                price: dataValues.price,
-                image: photo
-            })
+        if (dataProducts.length > 0) {
+            for (const {dataValues} of dataProducts) {
+                let imageProduct = await this.getImageProduct(dataValues.product_code);
+    
+                let photo = (imageProduct === '-') ? null : imageProduct;
+                result.push({
+                    product_name: dataValues.product_name,
+                    product_code: dataValues.product_code,
+                    qty_product: dataValues.qty_product,
+                    price: dataValues.price,
+                    image: photo
+                })
+            }    
         }
 
-        return result;
+        return result || null;
     }
 
     getProducts = async (invoiceNumber, ptnrId) => {
