@@ -11,6 +11,7 @@ const {
 const moment = require('moment');
 const {Op} = require('sequelize');
 const Auth = require('../../../helper/Auth');
+let {getData} = require('../../../helper/ProductUrl');
 const {info, error: errorLog} = require('../../../helper/Logging');
 
 class OrderController {
@@ -54,79 +55,29 @@ class OrderController {
     }
 
     getDetailInvoiceNumber = (req, res) => {
-        let {userid, usernama, ptnrg_id, user_ptnr_id} = Auth.user();
+        let {user_ptnr_id} = Auth.user();
 
-        PtnrMstr.findOne({
-            attributes: [
-                [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
-                [Sequelize.literal('"detail_partner"."ptnr_name"'), 'ptnr_name'],
-                [Sequelize.literal(`CONCAT("detail_partner->singular_partner_address"."ptnra_line_3", ', ', "detail_partner->singular_partner_address"."ptnra_line_2", ', ', "detail_partner->singular_partner_address"."ptnra_line_1")`), 'ptnr_address'],
-                [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_phone_1"`), 'phone'],
-                [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_email"`), 'email'],
-                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_prov_id"'), 'prop_id'],
-                [Sequelize.col('"detail_partner->singular_partner_address->singular_province"."prop_name"'), 'prop_name'],
-                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_city_id"'), 'kota_id'],
-                [Sequelize.col(`"detail_partner->singular_partner_address->singular_city"."kota_name"`), 'kota_name'],
-                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kec_id"'), 'kec_id'],
-                [Sequelize.col(`"detail_partner->singular_partner_address->singular_kecamatan"."kec_name"`), 'kec_name'],
-                [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kel_id"'), 'kel_id'],
-                [Sequelize.col(`"detail_partner->singular_partner_address->singular_kelurahan"."kel_name"`), 'kel_name']
-            ],
-            include: [
-                {
-                    model: PtnrMstr,
-                    as: 'detail_partner',
-                    attributes: [],
-                    include: [
-                        {
-                            model: PtnraAddr,
-                            as: 'singular_partner_address',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: PtnracCntc,
-                                    as: 'singular_contact_address',
-                                    attributes: []
-                                }, {
-                                    model: RegPropMstr,
-                                    as: 'singular_province',
-                                    attributes: []
-                                }, {
-                                    model: RegCityMstr,
-                                    as: 'singular_city',
-                                    attributes: []
-                                }, {
-                                    model: RegKecMstr,
-                                    as: 'singular_kecamatan',
-                                    attributes: []
-                                }, {
-                                    model: RegKelMstr,
-                                    as: 'singular_kelurahan',
-                                    attributes: []
-                                }
-                            ]
-                        }, 
-                        {
-                            model: SqMstr,
-                            as: ''
-                        }
-                    ]
-                }
-            ],
-            where: {
-                userid
-            }
-        })
-        .then(result => {
+        Promise.all([
+            this.getHeaderInvoice(req.params.invoice, user_ptnr_id), 
+            this.getDetailInvoice(req.params.invoice, user_ptnr_id)
+        ]).then(([headerInvoice, detailInvoice]) => {
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: result,
+                    data: {
+                        invoice: headerInvoice.invoice,
+                        date: headerInvoice.date,
+                        partner_name: headerInvoice.partner_name,
+                        shipping_name: headerInvoice.shipping_name,
+                        shipping_service: headerInvoice.shipping_service,
+                        shipping_charges: headerInvoice.shipping_charges,
+                        status: headerInvoice.status,
+                        products: detailInvoice
+                    },
                     error: null
                 })
-        })
-        .catch(err => {
+        }).catch(err => {
             res.status(400)
                 .json({
                     status: 'failed',
@@ -272,6 +223,86 @@ class OrderController {
         })
 
         return dataValues.sq_add_date;
+    }
+
+    getHeaderInvoice = async (invoiceNumber, ptnrId) => {
+        let {dataValues} = await SqMstr.findOne({
+            attributes: [
+                ['sq_midtrans_inv_number', 'invoice'],
+                [Sequelize.literal(`DATE(sq_add_date)`), 'date'],
+                [Sequelize.col(`bill_to.ptnr_name`), 'partner_name'],
+                ['sq_shipping_name', 'shipping_name'],
+                ['sq_shipping_service', 'shipping_service'],
+                ['sq_shipping_charges', 'shipping_charges'],
+                ['sq_midtrans_inv_status', 'status'],
+            ],
+            include: [
+                {
+                    model: PtnrMstr,
+                    as: 'bill_to',
+                    attributes: []
+                }
+            ],
+            where: {
+                sq_midtrans_inv_number: invoiceNumber,
+                sq_ptnr_id_sold: ptnrId
+            },
+            logging: false
+        }) 
+
+        return dataValues;
+    }
+
+    getDetailInvoice = async (invoiceNumber, ptnrId) => {
+        let dataProducts = await this.getProducts(invoiceNumber, ptnrId);
+        let result = [];
+
+        for (const {dataValues} of dataProducts) {
+            let imageProduct = await this.getImageProduct(dataValues.product_code);
+
+            let photo = (imageProduct === '-') ? null : imageProduct;
+            result.push({
+                product_name: dataValues.product_name,
+                product_code: dataValues.product_code,
+                qty_product: dataValues.qty_product,
+                price: dataValues.price,
+                image: photo
+            })
+        }
+
+        return result;
+    }
+
+    getProducts = async (invoiceNumber, ptnrId) => {
+        let result = await SqdDet.findAll({
+            attributes: [
+                [Sequelize.col('product.pt_desc1'), 'product_name'],
+                [Sequelize.col('product.pt_code'), 'product_code'],
+                ['sqd_qty', 'qty_product'],
+                ['sqd_price', 'price'],
+            ],
+            include: [
+                {
+                    model: PtMstr,
+                    as: 'product',
+                    attributes: []
+                }
+            ],
+            where: {
+                sqd_sq_oid: {
+                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = '${invoiceNumber}' AND sq_ptnr_id_sold = ${ptnrId})`)
+                }
+            },
+            logging: false
+        })
+
+        return result;
+    }
+
+    getImageProduct = async (productCode) => {
+        let {data: getImage} = await getData(`/exapro/${productCode}/image`)
+
+        return getImage;
     }
 }
 

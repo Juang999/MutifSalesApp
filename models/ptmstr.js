@@ -112,9 +112,9 @@ module.exports = (sequelize, DataTypes) => {
     pt_clothes_id: DataTypes.INTEGER,
     pt_parent_cat_id: DataTypes.INTEGER,
     pt_weight: DataTypes.INTEGER,
-    pt_whight: DataTypes.INTEGER,
-    pt_widht: DataTypes.INTEGER,
-    pt_lenght: DataTypes.INTEGER,
+    pt_height: DataTypes.INTEGER,
+    pt_width: DataTypes.INTEGER,
+    pt_length: DataTypes.INTEGER,
   }, {
     sequelize,
     schema: 'public',
