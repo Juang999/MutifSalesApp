@@ -20,6 +20,24 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'sq_oid',
         foreignKey: 'sqd_sq_oid'
       })
+
+      SqMstr.belongsTo(models.PtnrMstr, {
+        as: 'sold_to',
+        targetKey: 'ptnr_id',
+        foreignKey: 'sq_ptnr_id_sold'
+      })
+
+      SqMstr.belongsTo(models.PtnrMstr, {
+        as: 'bill_to',
+        targetKey: 'ptnr_id',
+        foreignKey: 'sq_ptnr_id_bill'
+      })
+
+      SqMstr.belongsTo(models.PtnrMstr, {
+        as: 'sales_person',
+        targetKey: 'ptnr_id',
+        foreignKey: 'sq_sales_person'
+      })
     }
   }
   SqMstr.init({
