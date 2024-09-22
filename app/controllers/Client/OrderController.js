@@ -11,6 +11,7 @@ const {
 const moment = require('moment');
 const {Op} = require('sequelize');
 const Auth = require('../../../helper/Auth');
+const {info, error: errorLog} = require('../../../helper/Logging');
 
 class OrderController {
     invoiceNumberSequence = (req, res) => {
@@ -136,33 +137,32 @@ class OrderController {
         })
     }
 
-    getInvoiceNumber = (req, res) => {
-        let startDate = (req.query.start_date) ? moment(req.query.start_date).format('YYYY-MM-DD HH:mm:ss') : moment().startOf('months').format('YYYY-MM-DD HH:mm:ss')
-        let endDate = (req.query.end_date) ? moment(req.query.end_date).format('YYYY-MM-DD HH:mm:ss') : moment().endOf('months').format('YYYY-MM-DD HH:mm:ss')
+    getInvoiceNumber = async (req, res) => {
+        try {
+            let startDate = (req.query.start_date) ? moment(req.query.start_date).format('YYYY-MM-DD HH:mm:ss') : moment().startOf('months').format('YYYY-MM-DD HH:mm:ss')
+            let endDate = (req.query.end_date) ? moment(req.query.end_date).format('YYYY-MM-DD HH:mm:ss') : moment().endOf('months').format('YYYY-MM-DD HH:mm:ss')
+    
+            let dataInvoice = await SqMstr.findAll({
+                        attributes: [
+                            [Sequelize.literal('DISTINCT(sq_midtrans_inv_number)'), 'invoice'],
+                            ['sq_midtrans_inv_status', 'status'],
+                            [Sequelize.literal(`CAST(SUM(sq_total) AS INTEGER)`), 'total_purchase'],
+                        ],
+                        where: {
+                            sq_add_date: {
+                                [Op.between]: [startDate, endDate]
+                            },
+                            sq_ptnr_id_sold: Auth.user().user_ptnr_id
+                        },
+                        group: [
+                            'sq_midtrans_inv_number',
+                            'sq_midtrans_inv_status'
+                        ],
+                        logging: false
+                    })
 
-        SqMstr.findAll({
-            attributes: [
-                ['sq_midtrans_inv_number', 'invoice'],
-                ['sq_midtrans_inv_status', 'status'],
-                // [Sequelize.literal(`DATE(sq_add_date)`), 'date'],
-                [Sequelize.literal('CAST(SUM(sq_total) AS INTEGER)'), 'total_puchase'],
-            ],
-            where: {
-                sq_add_date: {
-                    [Op.between]: [startDate, endDate]
-                },
-                sq_ptnr_id_sold: Auth.user().user_ptnr_id
-            },
-            group: [
-                'sq_add_date',
-                'sq_midtrans_inv_number',
-                'sq_midtrans_inv_status',
-            ],
-            order: [
-                [Sequelize.literal(`DATE(sq_add_date)`), 'DESC']
-            ]
-        })
-        .then(result => {
+            let result = await this.makeFormatInvoice(dataInvoice)
+
             res.status(200)
                 .json({
                     status:'success',
@@ -170,16 +170,16 @@ class OrderController {
                     data: result,
                     error: null
                 })
-        })
-        .catch(err => {
+        } catch (error) {
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
-        })
+            
+        }
     }
 
     getDetailUser = async (userId) => {
@@ -243,6 +243,35 @@ class OrderController {
         } catch (error) {
             return error.message
         }
+    }
+
+    makeFormatInvoice = async (dataInvoice) => {
+        let result = [];
+
+        for (const {dataValues} of dataInvoice) {
+            result.push({
+                invoice: dataValues.invoice,
+                status: dataValues.status,
+                total_purchase: dataValues.total_purchase,
+                date: new Date(await this.getDateInvoice(dataValues.invoice))
+            })
+        }
+
+        return result.sort((a, b) => b.date.getTime() - a.date.getTime());
+    }
+
+    getDateInvoice = async (invoiceNumber) => {
+        let {dataValues} = await SqMstr.findOne({
+            attributes: [
+                [Sequelize.literal('DATE(sq_add_date)'), 'sq_add_date']
+            ],
+            where: {
+                sq_midtrans_inv_number: invoiceNumber
+            },
+            logging: false
+        })
+
+        return dataValues.sq_add_date;
     }
 }
 
