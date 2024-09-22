@@ -12,6 +12,7 @@ const {
     PtnraAddr, PtnracCntc,
     TConfUser, TokenStorage,
 } = require('../../models');
+const Auth = require('../../helper/Auth');
 
 class AuthController {
     loginClient = async (req, res) => {
