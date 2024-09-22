@@ -402,6 +402,38 @@ class SalesController {
         })
     }
 
+    updatePaymentStatus = (req, res) => {
+        SqMstr.update({
+            sq_midtrans_inv_status: req.body.payment_status
+        }, {
+            where: {
+                sq_midtrans_inv_number: req.params.invoice,
+                sq_ptnr_id_sold: Auth.user().user_ptnr_id
+            },
+            logging: async (sql, {bind}) => {
+                await insertQuery(sql, bind);
+            }
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'updated!',
+                    data: null,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
     updateDataChart = async (qty, userid, csOid) => {
         await ChartSales.update({
             cs_qty: qty,
