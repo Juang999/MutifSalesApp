@@ -319,8 +319,10 @@ class OrderController {
                 result.push({
                     product_name: dataValues.product_name,
                     product_code: dataValues.product_code,
+                    weight: dataValues.weight,
                     qty_product: dataValues.qty_product,
                     price: dataValues.price,
+                    discount: dataValues.discount,
                     image: photo
                 })
             }    
@@ -334,8 +336,10 @@ class OrderController {
             attributes: [
                 [Sequelize.col('product.pt_desc1'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
-                ['sqd_qty', 'qty_product'],
-                ['sqd_price', 'price'],
+                [Sequelize.col('product.pt_weight'), 'weight'],
+                [Sequelize.literal('CAST(sqd_qty AS INTEGER)'), 'qty_product'],
+                [Sequelize.literal('CAST(sqd_price AS INTEGER)'), 'price'],
+                [Sequelize.literal('ROUND(sqd_disc, 2)'), 'discount']
             ],
             include: [
                 {
