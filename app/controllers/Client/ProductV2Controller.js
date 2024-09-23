@@ -77,8 +77,8 @@ class ProductV2Controller {
                         discount: attachmentProduct.discount,
                         product_weight: attachmentProduct.product_weight,
                         product_height: attachmentProduct.product_height,
-                        product_widht: attachmentProduct.product_widht,
-                        product_lenght: attachmentProduct.product_lenght,
+                        product_width: attachmentProduct.product_width,
+                        product_lenght: attachmentProduct.product_length,
                     }
                 })
         })
