@@ -77,13 +77,14 @@ class ProductV2Controller {
                         discount: attachmentProduct.discount,
                         product_weight: attachmentProduct.product_weight,
                         product_height: attachmentProduct.product_height,
-                        product_widht: attachmentProduct.product_widht,
-                        product_lenght: attachmentProduct.product_lenght,
+                        product_width: attachmentProduct.product_width,
+                        product_lenght: attachmentProduct.product_length,
                     }
                 })
         })
         .catch(err => {
-            errorLog('GET DETAIL PRODUCT', err.message)
+            console.info(err.message)
+            errorLog('GET DETAIL PRODUCT', err)
 
             res.status(400)
                 .json({
