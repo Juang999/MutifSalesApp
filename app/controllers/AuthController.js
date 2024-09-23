@@ -153,7 +153,7 @@ class AuthController {
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
                     [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' WHEN "detail_partner"."ptnr_ptnrg_id" = 998 THEN '0.30' WHEN "detail_partner"."ptnr_ptnrg_id" = 357 THEN '0.30' ELSE '0' END`), 'discount'],
-                    [Sequelize.literal('COUNT("singular_chart_sales".*)'), 'products_in_chart']
+                    [Sequelize.literal(`(SELECT COUNT(*) FROM public.chart_sales WHERE cs_userid = ${userid})`), 'products_in_chart']
                 ],
                 include: [
                     {
