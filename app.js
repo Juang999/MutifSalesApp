@@ -27,6 +27,9 @@ app.use('/users', require('./routes/users'));
 app.use('/client/sales', require('./routes/Client/sales'));
 app.use('/client/product', require('./routes/Client/product'));
 
+// routes V2 for client
+app.use('/V2/client/product', require('./routes/Client/roductV2'));
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
