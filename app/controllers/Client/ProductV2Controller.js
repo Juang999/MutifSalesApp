@@ -1,14 +1,12 @@
-const axios = require('axios');
 const moment = require('moment');
 const {Op} = require('sequelize')
 const Auth = require('../../../helper/Auth');
 const Page = require('../../../helper/Page');
 const {getData} = require('../../../helper/ProductUrl');
-const {getData: urlGetData, postData: urlPostData} = require('../../../helper/ProductStock');
-const {info, error: errorLog} = require('../../../helper/Logging');
-const {PtCatMstr, SoMstr, InvcMstr, PidDet, PiddDet, SodDet, PtMstr, EnMstr, Sequelize, PiMstr} = require('../../../models');
 const ProductStock = require('../../../helper/ProductStock');
-
+const {info, error: errorLog} = require('../../../helper/Logging');
+const {getData: urlGetData, postData: urlPostData} = require('../../../helper/ProductStock');
+const {PtCatMstr, SoMstr, InvcMstr, PidDet, PiddDet, SodDet, PtMstr, EnMstr, Sequelize, PiMstr} = require('../../../models');
 
 class ProductV2Controller {
     getProduct = async (req, res) => {
@@ -48,6 +46,55 @@ class ProductV2Controller {
         }
     }
 
+    getDetailProduct = (req, res) => {
+        Promise.all([this.getDetailStockProduct(req.params.pt_code), this.getAttachmentDataProduct(req.params.pt_code), this.getDescProduct(req.params.pt_code)])
+        .then(([stockProduct, {dataValues: attachmentProduct}, descProduct]) => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: {
+                        product_id: attachmentProduct.product_id,
+                        product_name: stockProduct.product_name,
+                        entity_name: attachmentProduct.entity,
+                        pt_en_id: attachmentProduct.pt_en_id,
+                        product_code: stockProduct.product_code,
+                        color: descProduct.color,
+                        material: descProduct.material,
+                        combo: descProduct.combo,
+                        special_feature: descProduct.special_feature,
+                        keyword: descProduct.keyword,
+                        description: descProduct.description,
+                        slug: descProduct.slug,
+                        group_article: descProduct.group_article,
+                        type_id: descProduct.type_id,
+                        photo: descProduct.photo,
+                        invc_oid: descProduct.invc_oid,
+                        quantity: stockProduct.quantity,
+                        pricelist_name: attachmentProduct.pricelist_name,
+                        pi_id: attachmentProduct.pi_id,
+                        price: attachmentProduct.price,
+                        discount: attachmentProduct.discount,
+                        product_weight: attachmentProduct.product_weight,
+                        product_height: attachmentProduct.product_height,
+                        product_widht: attachmentProduct.product_widht,
+                        product_lenght: attachmentProduct.product_lenght,
+                    }
+                })
+        })
+        .catch(err => {
+            errorLog('GET DETAIL PRODUCT', err.message)
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
     getProductAndStock = async (header, body) => {
         let stockProduct = await urlGetData('/product/', {
             page: (header) ? header.page : '',
@@ -66,8 +113,15 @@ class ProductV2Controller {
                         ['pt_id', 'product_id'],
                         [Sequelize.col('"entity_product"."en_desc"'), 'entity'],
                         [Sequelize.col('"master_category"."ptcat_desc"'), 'category'],
+                        'pt_en_id',
                         [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                         [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                        [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_id"`), 'pi_id'],
+                        [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
+                        [Sequelize.literal('CAST(pt_weight AS INTEGER)'), 'product_weight'],
+                        [Sequelize.literal('CAST(pt_height AS INTEGER)'), 'product_height'],
+                        [Sequelize.literal('CAST(pt_width AS INTEGER)'), 'product_width'],
+                        [Sequelize.literal('CAST(pt_length AS INTEGER)'), 'product_length'],
                     ],
                     include: [
                         {
@@ -158,6 +212,18 @@ class ProductV2Controller {
         let {data: getImage} = await getData(`/exapro/${productCode}/image`)
 
         return getImage;
+    }
+
+    getDetailStockProduct = async (ptCode) => {
+        let result = await urlGetData(`/product/${ptCode}/detail`);
+
+        return result;
+    }
+
+    getDescProduct = async (ptCode) => {
+        let {data} = await getData(`/exapro/${ptCode}/description`)
+
+        return data;
     }
 }
 

@@ -1,7 +1,7 @@
 const {devEnvironment} = require('../config/environment');
 const axios = require('axios');
 
-class ProductUrl {
+class ProductStock {
     getData = async (route, dataHeader, dataBody) => {
         let {data} = await axios.get(`${devEnvironment.parsed.PRODUCT_STOCK}${route}`, {
             headers: dataHeader,
@@ -18,4 +18,4 @@ class ProductUrl {
     }
 }
 
-module.exports = new ProductUrl();
+module.exports = new ProductStock();
