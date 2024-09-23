@@ -69,7 +69,7 @@ class ProductV2Controller {
                         group_article: descProduct.group_article,
                         type_id: descProduct.type_id,
                         photo: descProduct.photo,
-                        invc_oid: descProduct.invc_oid,
+                        invc_oid: attachmentProduct.invc_oid,
                         quantity: stockProduct.quantity,
                         pricelist_name: attachmentProduct.pricelist_name,
                         pi_id: attachmentProduct.pi_id,
@@ -114,6 +114,7 @@ class ProductV2Controller {
                         [Sequelize.col('"entity_product"."en_desc"'), 'entity'],
                         [Sequelize.col('"master_category"."ptcat_desc"'), 'category'],
                         'pt_en_id',
+                        [Sequelize.col(`"singular_product_quantity"."invc_oid"`), 'invc_oid'],
                         [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                         [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                         [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_id"`), 'pi_id'],
@@ -128,6 +129,15 @@ class ProductV2Controller {
                             model: EnMstr,
                             as: 'entity_product',
                             attributes: []
+                        }, {
+                            model: InvcMstr,
+                            as: 'singular_product_quantity',
+                            attributes: [],
+                            where: {
+                                invc_loc_id: {
+                                    [Op.in]: [10001, 200010, 300018]
+                                }
+                            }
                         }, {
                             model: PtCatMstr,
                             as: 'master_category',
