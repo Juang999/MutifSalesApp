@@ -129,7 +129,11 @@ class ProductController {
                     [Sequelize.literal('"singular_relation_price_list->master_price_list"."pi_desc"'), 'pricelist_name'],
                     [Sequelize.literal('"singular_relation_price_list->master_price_list"."pi_id"'), 'pi_id'],
                     [Sequelize.literal('CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                    [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount']
+                    [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
+                    [Sequelize.literal('CAST(pt_weight AS INTEGER)'), 'product_weight'],
+                    [Sequelize.literal('CAST(pt_height AS INTEGER)'), 'product_height'],
+                    [Sequelize.literal('CAST(pt_width AS INTEGER)'), 'product_width'],
+                    [Sequelize.literal('CAST(pt_length AS INTEGER)'), 'product_length'],
                 ],
                 include: [
                     {
@@ -209,7 +213,11 @@ class ProductController {
                         pricelist_name: product.dataValues.pricelist_name,
                         pi_id: product.dataValues.pi_id,
                         price: product.dataValues.price,
-                        discount: product.dataValues.discount
+                        discount: product.dataValues.discount,
+                        product_weight: product.dataValues.product_weight,
+                        product_height: product.dataValues.product_height,
+                        product_widht: product.dataValues.product_width,
+                        product_lenght: product.dataValues.product_length,
                     },
                     error: null
                 })
@@ -292,6 +300,61 @@ class ProductController {
                     data: null,
                     error: error.message
                 })
+            
+        }
+    }
+
+    getNewProducts = async (req, res) => {
+        try {
+            let {userid, ptnrg_id} = Auth.user();
+
+            let newProducts = await PtCatMstr.findAll({
+                attributes: [
+                    ['ptcat_id', 'category_id'],
+                    ['ptcat_desc', 'category_desc'],
+                    [Sequelize.col('product.pt_desc1'), 'product_name'],
+                    [Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'), 'price'],
+                    [Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'), 'discount']
+                ],
+                include: [
+                    {
+                        model: PtMstr,
+                        as: 'product',
+                        attributes: [],
+                        include: [
+                            {
+                                model: PidDet,
+                                as: 'singular_relation_price_list',
+                                attributes: [],
+                                include: [
+                                    {
+                                        model: PiMstr,
+                                        as: 'master_price_list',
+                                        attributes: []
+                                    }, {
+                                        model: PiddDet,
+                                        as:'singular_detail_price_list',
+                                        attributes: []
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                where: {
+                    [Op.and]: [
+                        
+                    ],
+                    ptcat_id: {
+                        [Op.not]: 12
+                    }
+                },
+                order: [
+                    ['pt_add_date', 'DESC']
+                ],
+                limit: 8
+            })
+        } catch (error) {
             
         }
     }
