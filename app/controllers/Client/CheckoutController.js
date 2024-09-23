@@ -201,7 +201,7 @@ class CheckoutController {
             ]
         });
 
-        let sqCode = 'SQM';
+        let sqCode = 'SQ';
         let baseSequence = '0000';
         let entityCode = `${entityId}0`;
         let montlyId = '000';
