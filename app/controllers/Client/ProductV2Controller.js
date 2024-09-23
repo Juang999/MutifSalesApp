@@ -83,7 +83,6 @@ class ProductV2Controller {
                 })
         })
         .catch(err => {
-            console.info(err.message)
             errorLog('GET DETAIL PRODUCT', err)
 
             res.status(400)
