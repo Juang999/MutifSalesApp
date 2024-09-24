@@ -93,6 +93,7 @@ class CheckoutController {
                 sq_ptnr_id_sold: ptnrId,
                 sq_ptnr_id_bill: ptnrId,
                 sq_date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                sq_credit_terms: 999,
                 sq_si_id: 992,
                 sq_type: 'R',
                 sq_sales_person: ptnrId,
@@ -201,7 +202,7 @@ class CheckoutController {
             ]
         });
 
-        let sqCode = 'SQM';
+        let sqCode = 'SQ';
         let baseSequence = '0000';
         let entityCode = `${entityId}0`;
         let montlyId = '000';
