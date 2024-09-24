@@ -277,7 +277,7 @@ class ProductV2Controller {
                 price: dataValues.price,
                 discount: dataValues.discount,
                 qty: quantity,
-                photo: dataValues.photo
+                thumbnail: dataValues.thumbnail
             })
         }
 
