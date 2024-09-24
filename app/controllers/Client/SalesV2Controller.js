@@ -64,9 +64,8 @@ class SalesV2Controller {
 
     getDetailProductChart = async (dataProducts) => {
         let result = [];
-
+        
         for (const {dataValues} of dataProducts) {
-            dataValues.photo = await this.getImageProduct(dataValues.product_code)
             let [detailStockProduct, imageProduct] = await Promise.all([this.getDetailStockProduct(dataValues.product_code), this.getImageProduct(dataValues.product_code)])
 
             result.push({
@@ -115,7 +114,7 @@ class SalesV2Controller {
                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
                 [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
                 [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
-                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
+                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NOT NULL THEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" ELSE NULL END`), 'photo'],
                 ['cs_created_at', 'created_at'],
                 ['cs_updated_at', 'updated_at'],
             ],
@@ -143,7 +142,6 @@ class SalesV2Controller {
                         }, {
                             model: ProductJubelio,
                             as: 'singular_product_jubelio',
-
                             attributes: [],
                             include: [
                                 {
@@ -172,7 +170,7 @@ class SalesV2Controller {
             order: [
                 ['cs_updated_at', 'desc']
             ],
-            logging: false
+            // logging: false
         })
 
         return dataChart;
