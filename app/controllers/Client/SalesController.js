@@ -314,7 +314,7 @@ class SalesController {
                                             attributes: [],
                                             where: {
                                                 pi_id: {
-                                                    [Op.in]: (Auth.user().ptnrg_id == 9911) ? [103, 202, 304] : [991, 203, 302]
+                                                    [Op.in]: [1040, 2020, 3020]
                                                 }
                                             }
                                         }, {
