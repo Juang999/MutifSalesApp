@@ -316,7 +316,7 @@ class ProductV2Controller {
                 [Sequelize.col('"master_category"."ptcat_desc"'), 'category'],
                 [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                [Sequelize.literal(`CASE WHEN "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN '-' ELSE "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
+                [Sequelize.literal(`CASE WHEN "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'thumbnail'],
             ],
             include: [
                 {
