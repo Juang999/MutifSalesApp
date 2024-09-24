@@ -67,6 +67,7 @@ class ProductV2Controller {
                         photo: masterData.photo,
                         invc_oid: masterData.invc_oid,
                         quantity: stockProduct.quantity,
+                        status_product: (stockProduct.quantity == 0) ? 'barang tidak ada' : 'barang ada',
                         pricelist_name: masterData.pricelist_name,
                         pi_id: masterData.pi_id,
                         price: masterData.price,
@@ -277,6 +278,7 @@ class ProductV2Controller {
                 price: dataValues.price,
                 discount: dataValues.discount,
                 qty: quantity,
+                status_product: (quantity == 0) ? 'barang tidak ada' : 'barang ada',
                 thumbnail: dataValues.thumbnail
             })
         }
