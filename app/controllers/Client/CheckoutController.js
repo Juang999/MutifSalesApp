@@ -148,7 +148,7 @@ class CheckoutController {
         let baseSequence = 1;
         let result = [];
         for (const dataProduct of dataProducts) {
-            // await this.updateInvcMstr(dataProduct.dataValues.cs_invc_oid, dataProduct.dataValues.cs_qty, transaction);
+            await this.updateInvcMstr(dataProduct.dataValues.cs_invc_oid, dataProduct.dataValues.cs_qty, transaction);
             result.push({
                 sqd_oid: uuidv4(),
                 sqd_dom_id: 1,
