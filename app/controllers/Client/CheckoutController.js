@@ -122,7 +122,7 @@ class CheckoutController {
                 sq_sales_program: '-',
                 sq_booking: 'Y',
                 sq_book_start_date: moment().format('YYYY-MM-DD'),
-                sq_book_end_date: moment().add(3, 'days').format('YYYY-MM-DD'),
+                sq_book_end_date: moment().add(1, 'days').format('YYYY-MM-DD'),
                 sq_alocated: 'N',
                 sq_shipping_charges: 0,
                 sq_ptsfr_loc_id: dataValues.loc_id, 
