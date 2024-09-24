@@ -187,7 +187,7 @@ class AuthController {
                             [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN false ELSE true END`), 'can_be_sold'],
                             [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                             [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN '-' ELSE "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
+                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
                         ],
                         include: [
                             {
@@ -261,13 +261,11 @@ class AuthController {
                     Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'),
                     Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"`),
                     Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`),
-                    Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN '-' ELSE "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`)
+                    Sequelize.literal(`"chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail"`)
                 ],
                 logging: false
             });
 
-            console.info(dataProfile.dataValues.chart_sales[0])
-            
             res.status(200)
                 .json({
                     status: 'success',
