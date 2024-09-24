@@ -173,7 +173,7 @@ class OrderController {
                                         attributes: [],
                                         where: {
                                             pi_id: {
-                                                [Op.in]: (Auth.user().ptnrg_id == 9911) ? [103, 202, 304] : [991, 203, 302]
+                                                [Op.in]: [1040, 2020, 3020]
                                             }
                                         }
                                     }, {
@@ -181,7 +181,7 @@ class OrderController {
                                         as: 'singular_detail_price_list',
                                         attributes: [],
                                         where: {
-                                            pidd_payment_type: 9941
+                                            pidd_payment_type: 9942
                                         }
                                     }
                                 ]

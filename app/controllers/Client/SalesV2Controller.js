@@ -132,11 +132,19 @@ class SalesV2Controller {
                                 {
                                     model: PiMstr,
                                     as: 'master_price_list',
-                                    attributes: []
+                                    attributes: [],
+                                    where: {
+                                        pi_id: {
+                                            [Op.in]: [1040, 2020, 3020]
+                                        }
+                                    }
                                 }, {
                                     model: PiddDet,
                                     as: 'singular_detail_price_list',
-                                    attributes: []
+                                    attributes: [],
+                                    where: {
+                                        pidd_payment_type: 9941
+                                    }
                                 }
                             ]
                         }, {

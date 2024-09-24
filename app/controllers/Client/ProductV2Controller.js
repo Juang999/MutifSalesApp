@@ -142,7 +142,7 @@ class ProductV2Controller {
                                 as: 'singular_detail_price_list',
                                 attributes: [],
                                 where: {
-                                    pidd_payment_type: 9941
+                                    pidd_payment_type: 9942
                                 }
                             }, {
                                 model: PiMstr,
@@ -150,7 +150,7 @@ class ProductV2Controller {
                                 attributes: [],
                                 where: {
                                     pi_id: {
-                                        [Op.in]: [103, 202, 304]
+                                        [Op.in]: [1040, 2020, 3020]
                                     }
                                 }
                             }
@@ -230,7 +230,7 @@ class ProductV2Controller {
                                     attributes: [],
                                     where: {
                                         pi_id: {
-                                            [Op.in]: (ptnrgId == 9911) ? [103, 202, 304] : [991, 203, 302]
+                                            [Op.in]: [1040, 2020, 3020]
                                         }
                                     }
                                 }
@@ -308,7 +308,7 @@ class ProductV2Controller {
         let currentPage = ('page' in query) ? query.page : 1;
         let search = ('search' in query) ? query.search : '';
         let {page, limit, offset} = new Page(currentPage, 15);
-        let categoryId = ('category_id' in query) ? query.category_id.split(',') : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+        let categoryId = ('categories' in query) ? (query.categories != '') ? query.categories.split(',') : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
         let {count, rows} = await PtMstr.findAndCountAll({
             attributes: [
@@ -350,7 +350,7 @@ class ProductV2Controller {
                             as:'singular_detail_price_list',
                             attributes: [],
                             where: {
-                                pidd_payment_type: 9941
+                                pidd_payment_type: 9942
                             }
                         }, {
                             model: PiMstr,
@@ -358,7 +358,7 @@ class ProductV2Controller {
                             attributes: [],
                             where: {
                                 pi_id: {
-                                    [Op.in]: [103, 202, 304]
+                                    [Op.in]: [1040, 2020, 3020]
                                 }
                             }
                         }
