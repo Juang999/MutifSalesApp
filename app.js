@@ -3,9 +3,8 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var {middleware} = require('express-http-context');
+const fileUpload = require('express-fileupload');
 
 var app = express();
 
@@ -18,9 +17,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(middleware);
+app.use(fileUpload());
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/', require('./routes/index'));
+app.use('/users', require('./routes/users'));
+
+// routes for client
+app.use('/client/sales', require('./routes/Client/sales'));
+app.use('/client/product', require('./routes/Client/product'));
+
+// routes V2 for client
+app.use('/V2/client/sales', require('./routes/Client/salesV2'));
+app.use('/V2/client/product', require('./routes/Client/productV2'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

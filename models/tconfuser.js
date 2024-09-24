@@ -10,7 +10,23 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      TConfUser.belongsTo(models.PtnrMstr, {
+        as: 'detail_partner',
+        foreignKey: 'user_ptnr_id',
+        targetKey: 'ptnr_id'
+      })
+
+      TConfUser.hasOne(models.ChartSales, {
+        as: 'singular_chart_sales',
+        sourceKey: 'userid',
+        foreignKey: 'cs_userid'
+      })
+
+      TConfUser.hasMany(models.ChartSales, {
+        as: 'chart_sales',
+        sourceKey: 'userid',
+        foreignKey: 'cs_userid'
+      })
     }
   }
   TConfUser.init({
@@ -19,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true
     },
     userkode: DataTypes.STRING,
-    username: DataTypes.STRING,
+    usernama: DataTypes.STRING,
     password: DataTypes.STRING,
     groupid: DataTypes.INTEGER,
     last_access: DataTypes.DATE,
@@ -36,13 +52,13 @@ module.exports = (sequelize, DataTypes) => {
     user_imei: DataTypes.STRING,
     nik_id: DataTypes.STRING,
     user_ptnrg_id: DataTypes.INTEGER,
-    user_group_id: DataTypes.INTEGER,
-    username: DataTypes.STRING,
-    api_token: DataTypes.STRING,
-    created_at: DataTypes.DATE,
-    updated_at: DataTypes.DATE,
-    pin: DataTypes.STRING,
-    user_id_telegram: DataTypes.INTEGER
+    // user_group_id: DataTypes.INTEGER,
+    // username: DataTypes.STRING,
+    // api_token: DataTypes.STRING,
+    // created_at: DataTypes.DATE,
+    // updated_at: DataTypes.DATE,
+    // pin: DataTypes.STRING,
+    // user_id_telegram: DataTypes.INTEGER
   }, {
     sequelize,
     schema: 'public',

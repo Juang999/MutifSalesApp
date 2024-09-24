@@ -1,8 +1,19 @@
-const {TConfUser, TokenStorage, Sequelize} = require('../../models');
-const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'});
-const jwt = require('jsonwebtoken');
 const {Op} = require('sequelize');
-const {v4: uuidv4} = require('uuid');
+const jwt = require('jsonwebtoken');
+const {config} = require('../../config/environment');
+const {getData} = require('../../helper/ProductUrl');
+const {info, error: errorLog} = require('../../helper/Logging')
+const {
+    PiMstr,
+    PidDet, PiddDet,
+    PtMstr, InvcMstr,
+    PtnrMstr, PtnrgGrp,
+    Sequelize, ChartSales, 
+    PtnraAddr, PtnracCntc,
+    TConfUser, TokenStorage,
+    ProductJubelio, ProductJubelioThumbnail
+} = require('../../models');
+const Auth = require('../../helper/Auth');
 
 class AuthController {
     loginClient = async (req, res) => {
@@ -13,6 +24,15 @@ class AuthController {
                     'usernama',
                     'password',
                     'groupid',
+                    'user_ptnr_id',
+                    [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id']
+                ],
+                include: [
+                    {
+                        model: PtnrMstr,
+                        as: 'detail_partner',
+                        attributes: []
+                    }
                 ],
                 where: {
                     usernama: req.body.username,
@@ -21,11 +41,11 @@ class AuthController {
                         [Op.in]: Sequelize.literal("(SELECT ptnr_id FROM public.ptnr_mstr WHERE ptnr_is_emp = 'Y')")
                     }
                 },
-                logging: () => {}
+                logging: false
             })
 
             if (user == null) {
-                res.status(300)
+                res.status(400)
                     .json({
                         status: 'fales',
                         message: 'Unauthorized',
@@ -38,6 +58,7 @@ class AuthController {
 
             let token = await this.createToken(user.dataValues);
 
+            info("LOGIN CLIENT", `${user.dataValues.usernama} LOGGED IN!`)
             res.status(200)
                 .json({
                     status: 'success',
@@ -46,6 +67,8 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
+            errorLog("LOGIN CLIENT", error.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -64,6 +87,15 @@ class AuthController {
                     'usernama',
                     'password',
                     'groupid',
+                    'user_ptnr_id',
+                    [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id']
+                ],
+                include: [
+                    {
+                        model: PtnrMstr,
+                        as: 'detail_partner',
+                        attributes: []
+                    }
                 ],
                 where: {
                     usernama: req.body.username,
@@ -74,7 +106,7 @@ class AuthController {
             })
 
             if (admin == null) {
-                res.status(300)
+                res.status(400)
                     .json({
                         status: 'fales',
                         message: 'Unauthorized',
@@ -87,6 +119,8 @@ class AuthController {
 
             let token = this.createToken(admin.dataValues)
 
+            info("LOGIN ADMIN", `${admin.dataValues.usernama} LOGGED IN!`)
+
             res.status(200)
                 .json({
                     status: 'success',
@@ -95,6 +129,8 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
+            errorLog("LOGIN ADMIN", error.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -106,8 +142,152 @@ class AuthController {
         }
     }
 
+    getProfile = async (req, res) => {
+        try {
+            let {userid, ptnrg_id} = Auth.user();
+
+            let dataProfile = await TConfUser.findOne({
+                attributes: [
+                    [Sequelize.col('"detail_partner"."ptnr_name"'), 'ptnr_name'],
+                    ['usernama', 'username'],
+                    [Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'), 'group_id'],
+                    [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
+                    [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
+                    [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' WHEN "detail_partner"."ptnr_ptnrg_id" = 998 THEN '0.30' WHEN "detail_partner"."ptnr_ptnrg_id" = 357 THEN '0.30' ELSE '0' END`), 'discount'],
+                    [Sequelize.literal(`(SELECT COUNT(*) FROM public.chart_sales WHERE cs_userid = ${userid})`), 'products_in_chart']
+                ],
+                include: [
+                    {
+                        model: PtnrMstr,
+                        as: 'detail_partner',
+                        attributes: [],
+                        include: [
+                            {
+                                model: PtnrgGrp,
+                                as: 'group_partner',
+                                attributes: []
+                            }
+                        ]
+                    },
+                    {
+                        model: ChartSales,
+                        as: 'singular_chart_sales',
+                        attributes: []
+                    },
+                    {
+                        model: ChartSales,
+                        as: 'chart_sales',
+                        attributes: [
+                            'cs_oid',
+                            [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
+                            [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
+                            ['cs_qty', 'chart_quantity'],
+                            [Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'), 'available_quantity'],
+                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN 'pemesanan melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
+                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN false ELSE true END`), 'can_be_sold'],
+                            [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+                            [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
+                        ],
+                        include: [
+                            {
+                                model: PtMstr,
+                                as: 'product',
+                                attributes: [],
+                                include: [
+                                    {
+                                        model: InvcMstr,
+                                        as: 'singular_product_quantity',
+                                        attributes: [],
+                                        where: {
+                                            invc_loc_id: {
+                                                [Op.in]: [10001, 200010, 300018]
+                                            }
+                                        }
+                                    }, {
+                                        model: PidDet,
+                                        as: 'singular_relation_price_list',
+                                        attributes: [],
+                                        include: [
+                                            {
+                                                model: PiMstr,
+                                                as: 'master_price_list',
+                                                attributes: [],
+                                                where: {
+                                                    pi_id: {
+                                                        [Op.in]: [1040, 2020, 3020]
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                model: PiddDet,
+                                                as: 'singular_detail_price_list',
+                                                attributes: [],
+                                                where: {
+                                                    pidd_payment_type: 9942
+                                                }
+                                            }
+                                        ]
+                                    }, {
+                                        model: ProductJubelio,
+                                        as: 'singular_product_jubelio',
+                                        attributes: [],
+                                        include: [
+                                            {
+                                                model: ProductJubelioThumbnail,
+                                                as: 'singular_thumbnail_product',
+                                                attributes: []
+                                            }
+                                        ]
+                                    }
+                                ],
+                            }
+                        ]
+                    }
+                ],
+                where: {
+                    userid
+                },
+                group: [
+                    'userid',
+                    Sequelize.col('"detail_partner"."ptnr_name"'),
+                    'usernama',
+                    Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'),
+                    Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'),
+                    Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'),
+                    Sequelize.col('"chart_sales"."cs_oid"'),
+                    Sequelize.literal('"chart_sales->product"."pt_desc1"'),
+                    Sequelize.literal('"chart_sales->product"."pt_code"'),
+                    Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'),
+                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"`),
+                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`),
+                    Sequelize.literal(`"chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail"`)
+                ],
+                logging: false
+            });
+
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'got profile!',
+                    data: dataProfile,
+                    error: null
+                })
+        } catch (error) {
+            errorLog({feature: "PROFILE USER", message: error.message})
+    
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'failed to get profile!',
+                    data: null,
+                    error: error.message
+                })
+        }
+    }
+
     createToken = (dataUser) => {
-        return jwt.sign(dataUser, config.ACCESS_TOKEN_SECRET, {expiresIn: '24h'})
+        return jwt.sign(dataUser, config.parsed.ACCESS_TOKEN_SECRET, {expiresIn: '24h'})
     }
 
     inputToken = async (userid, token) => {
@@ -118,6 +298,24 @@ class AuthController {
         }, {
             logging: () => {}
         })
+    }
+
+    getImages = async (dataProduct) => {
+        let result = [];
+
+        for (const {dataValues} of dataProduct) {
+            let image = await this.getImageProduct(dataValues.product_code)
+            dataValues.photo = (image == '-') ? null : image;
+            result.push(dataValues)
+        }
+
+        return result;
+    }
+
+    getImageProduct = async (productCode) => {
+        let {data: getImage} = await getData(`/exapro/${productCode}/image`)
+
+        return getImage;
     }
 }
 
