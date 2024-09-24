@@ -15,6 +15,7 @@ const {
     RegPropMstr, RegCityMstr,
     PtMstr, PidDet, Sequelize, 
     SqMstr, sequelize, InvctTable,
+    ProductJubelio, ProductJubelioThumbnail
 } = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
 const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
@@ -70,8 +71,8 @@ class SalesV2Controller {
 
             result.push({
                 cs_oid: dataValues.cs_oid,
-                product_name: detailStockProduct.product_name,
-                product_code: detailStockProduct.product_code,
+                product_name: dataValues.product_name,
+                product_code: dataValues.product_code,
                 chart_quantity: dataValues.chart_quantity,
                 available_quantity: detailStockProduct.quantity,
                 sales_status: (dataValues.chart_quantity > detailStockProduct.quantity) ? 'melebihi stok' : 'bisa dibeli',
@@ -80,7 +81,7 @@ class SalesV2Controller {
                 discount: dataValues.discount,
                 created_at: dataValues.created_at,
                 updated_at: dataValues.updated_at,
-                photo: imageProduct
+                photo: dataValues.photo
             })
         }
 
@@ -109,10 +110,12 @@ class SalesV2Controller {
         let dataChart = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
+                [Sequelize.col('product.pt_desc1'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
                 [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
                 [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
+                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
                 ['cs_created_at', 'created_at'],
                 ['cs_updated_at', 'updated_at'],
             ],
@@ -137,9 +140,21 @@ class SalesV2Controller {
                                     attributes: []
                                 }
                             ]
+                        }, {
+                            model: ProductJubelio,
+                            as: 'singular_product_jubelio',
+
+                            attributes: [],
+                            include: [
+                                {
+                                    model: ProductJubelioThumbnail,
+                                    as: 'singular_thumbnail_product',
+                                    attributes: []
+                                }
+                            ]
                         }
                     ]
-                },
+                }
             ],
             where: {
                 [Op.and]: [

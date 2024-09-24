@@ -52,6 +52,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'pt_id',
         foreignKey: 'invct_pt_id'
       })
+
+      PtMstr.hasOne(models.ProductJubelio, {
+        as: 'singular_product_jubelio',
+        sourceKey: 'pt_code',
+        foreignKey: 'pj_item_code'
+      })
     }
   }
   PtMstr.init({

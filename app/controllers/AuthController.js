@@ -11,6 +11,7 @@ const {
     Sequelize, ChartSales, 
     PtnraAddr, PtnracCntc,
     TConfUser, TokenStorage,
+    ProductJubelio, ProductJubelioThumbnail
 } = require('../../models');
 const Auth = require('../../helper/Auth');
 
@@ -186,6 +187,7 @@ class AuthController {
                             [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN false ELSE true END`), 'can_be_sold'],
                             [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                             [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN '-' ELSE "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
                         ],
                         include: [
                             {
@@ -226,6 +228,17 @@ class AuthController {
                                                 }
                                             }
                                         ]
+                                    }, {
+                                        model: ProductJubelio,
+                                        as: 'singular_product_jubelio',
+                                        attributes: [],
+                                        include: [
+                                            {
+                                                model: ProductJubelioThumbnail,
+                                                as: 'singular_thumbnail_product',
+                                                attributes: []
+                                            }
+                                        ]
                                     }
                                 ],
                             }
@@ -247,25 +260,19 @@ class AuthController {
                     Sequelize.literal('"chart_sales->product"."pt_code"'),
                     Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'),
                     Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"`),
-                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`)
+                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`),
+                    Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN '-' ELSE "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`)
                 ],
                 logging: false
             });
 
+            console.info(dataProfile.dataValues.chart_sales[0])
+            
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'got profile!',
-                    data: {
-                        ptnr_name: dataProfile.dataValues.ptnr_name, 
-                        username: dataProfile.dataValues.username, 
-                        group_id: dataProfile.dataValues.group_id, 
-                        group_code: dataProfile.dataValues.group_code, 
-                        group_name: dataProfile.dataValues.group_name, 
-                        discount: dataProfile.dataValues.discount, 
-                        products_in_chart: dataProfile.dataValues.products_in_chart, 
-                        chart_sales: await this.getImages(dataProfile.dataValues.chart_sales)
-                    },
+                    data: dataProfile,
                     error: null
                 })
         } catch (error) {
