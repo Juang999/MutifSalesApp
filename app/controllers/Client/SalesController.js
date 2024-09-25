@@ -25,11 +25,12 @@ class SalesController {
         try {
             let {userid, ptnrg_id} = Auth.user();
 
-            let dataChart = await this.checkProductInChart(req.body.pt_id, req.body.invc_oid, req.body.pi_id);
+            let dataChart = await this.checkProductInChart(req.body.pt_id, Auth.user().userid);
             let qtyProductInChart = (dataChart != null) ? dataChart.dataValues.cs_qty : 0;
+
             let {status_normal, status_chart} = await this.checkQuantityProduct(req.body.pt_id, req.body.qty, parseInt(req.body.qty) + qtyProductInChart);
 
-            if (status_normal == false || status_chart == false) {
+            if (status_normal == true || status_chart == true) {
                 res.status(300)
                     .json({
                         status: 'failed',
@@ -483,12 +484,12 @@ class SalesController {
             status_normal: false, 
             status_chart: false, 
         } : {
-            status_normal: parseInt(quantityNeed) <= data.quantity,
-            status_chart: parseInt(quantityChart) <= data.quantity,
+            status_normal: parseInt(quantityNeed) > data.quantity,
+            status_chart: parseInt(quantityChart) > data.quantity,
         };
     }
 
-    checkProductInChart = async (ptId, invcOid, piId) => {
+    checkProductInChart = async (ptId, userId) => {
         let data = await ChartSales.findOne({
             attributes: [
                 'cs_oid',
@@ -496,8 +497,7 @@ class SalesController {
             ],
             where: {
                 cs_pt_id: ptId,
-                cs_invc_oid: invcOid,
-                cs_pi_id: piId
+                cs_userid: userId
             },
             logging: false
         });
