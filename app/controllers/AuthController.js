@@ -169,100 +169,10 @@ class AuthController {
                             }
                         ]
                     },
-                    {
-                        model: ChartSales,
-                        as: 'singular_chart_sales',
-                        attributes: []
-                    },
-                    {
-                        model: ChartSales,
-                        as: 'chart_sales',
-                        attributes: [
-                            'cs_oid',
-                            [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
-                            [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
-                            ['cs_qty', 'chart_quantity'],
-                            [Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'), 'available_quantity'],
-                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN 'pemesanan melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
-                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_quantity"."invc_qty_available" - "chart_sales"."cs_qty" < 0 THEN false ELSE true END`), 'can_be_sold'],
-                            [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
-                            [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                            [Sequelize.literal(`CASE WHEN "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
-                        ],
-                        include: [
-                            {
-                                model: PtMstr,
-                                as: 'product',
-                                attributes: [],
-                                include: [
-                                    {
-                                        model: InvcMstr,
-                                        as: 'singular_product_quantity',
-                                        attributes: [],
-                                        where: {
-                                            invc_loc_id: {
-                                                [Op.in]: [10001, 200010, 300018]
-                                            }
-                                        }
-                                    }, {
-                                        model: PidDet,
-                                        as: 'singular_relation_price_list',
-                                        attributes: [],
-                                        include: [
-                                            {
-                                                model: PiMstr,
-                                                as: 'master_price_list',
-                                                attributes: [],
-                                                where: {
-                                                    pi_id: {
-                                                        [Op.in]: [1040, 2020, 3020]
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                model: PiddDet,
-                                                as: 'singular_detail_price_list',
-                                                attributes: [],
-                                                where: {
-                                                    pidd_payment_type: 9942
-                                                }
-                                            }
-                                        ]
-                                    }, {
-                                        model: ProductJubelio,
-                                        as: 'singular_product_jubelio',
-                                        attributes: [],
-                                        include: [
-                                            {
-                                                model: ProductJubelioThumbnail,
-                                                as: 'singular_thumbnail_product',
-                                                attributes: []
-                                            }
-                                        ]
-                                    }
-                                ],
-                            }
-                        ]
-                    }
                 ],
                 where: {
                     userid
                 },
-                group: [
-                    'userid',
-                    Sequelize.col('"detail_partner"."ptnr_name"'),
-                    'usernama',
-                    Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'),
-                    Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'),
-                    Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'),
-                    Sequelize.col('"chart_sales"."cs_oid"'),
-                    Sequelize.literal('"chart_sales->product"."pt_desc1"'),
-                    Sequelize.literal('"chart_sales->product"."pt_code"'),
-                    Sequelize.literal('"chart_sales->product->singular_product_quantity"."invc_qty_available"'),
-                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"`),
-                    Sequelize.literal(`"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`),
-                    Sequelize.literal(`"chart_sales->product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail"`)
-                ],
                 logging: false
             });
 
