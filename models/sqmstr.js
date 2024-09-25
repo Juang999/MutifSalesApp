@@ -62,7 +62,7 @@ module.exports = (sequelize, DataTypes) => {
     sq_ptnr_id_sold: DataTypes.INTEGER,
     sq_ptnr_id_bill: DataTypes.INTEGER,
     sq_date: DataTypes.DATEONLY,
-    sq_credit_terms: DataTypes.INTEGER,
+    sq_credit_term: DataTypes.INTEGER,
     sq_taxable: DataTypes.STRING,
     sq_tax_class: DataTypes.INTEGER,
     sq_si_id: DataTypes.INTEGER,
