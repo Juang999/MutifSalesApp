@@ -8,7 +8,8 @@ module.exports = {
         host: devEnvironment.parsed.DB_HOST,
         port: devEnvironment.parsed.DB_PORT,
         dialect: devEnvironment.parsed.DB_DIALECT,
-        timezone: devEnvironment.parsed.DB_TIMEZONE
+        timezone: devEnvironment.parsed.DB_TIMEZONE,
+        logging: (msg) => console.info(msg)
     },
     testing: {
         username: testEnvironment.parsed.DB_USERNAME,
@@ -17,7 +18,9 @@ module.exports = {
         host: testEnvironment.parsed.DB_HOST,
         port: testEnvironment.parsed.DB_PORT,
         dialect: testEnvironment.parsed.DB_DIALECT,
-        timezone: testEnvironment.parsed.DB_TIMEZONE
+        timezone: testEnvironment.parsed.DB_TIMEZONE,
+        logging: (msg) => console.info(msg)
+
     },
     production: {
         username: proEnvironment.parsed.DB_USERNAME,
@@ -26,6 +29,7 @@ module.exports = {
         host: proEnvironment.parsed.DB_HOST,
         port: proEnvironment.parsed.DB_PORT,
         dialect: proEnvironment.parsed.DB_DIALECT,
-        timezone: proEnvironment.parsed.DB_TIMEZONE
+        timezone: proEnvironment.parsed.DB_TIMEZONE,
+        logging: (msg) => console.info(msg)
     }
 }
