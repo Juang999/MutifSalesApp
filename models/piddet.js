@@ -28,6 +28,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'pid_oid',
         foreignKey: 'pidd_pid_oid',
       })
+
+      PidDet.belongsTo(models.PtMstr, {
+        as: 'product',
+        targetKey: 'pt_id',
+        foreignKey: 'pid_pt_id'
+      })
     }
   }
   PidDet.init({

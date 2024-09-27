@@ -1,12 +1,5 @@
 'use strict';
-/**
- * Environment Virtual Private Server
-*/ 
-// const {parsed: environment} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'})
 
-/**
- * Environment local Windows
-*/
 const {config: environment} = require('../config/environment')
 
 const fs = require('fs');
