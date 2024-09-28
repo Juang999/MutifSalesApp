@@ -3,38 +3,46 @@ const {Op} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {getData} = require('../../../helper/ProductUrl');
-const {info, error: errorLog} = require('../../../helper/Logging');
+const {error: errorLog} = require('../../../helper/Logging');
 const {
-    SqdDet,
     ChartSales, PiMstr,
     PtnrMstr, InvcMstr,
     PiddDet, TConfUser,
     PtnraAddr, PtnracCntc, 
     RegKecMstr, RegKelMstr,
-    LocMstr, SogGenPtnrMstr,
+    SqMstr, SogGenPtnrMstr,
     RegPropMstr, RegCityMstr,
     PtMstr, PidDet, Sequelize, 
-    SqMstr, sequelize, InvctTable,
 } = require('../../../models');
-const Bilangan = require('../../../helper/Bilangan');
-const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
+const {insertQuery} = require('../../../helper/InputQueryIntoSqlOut');
 const {getData: urlGetData, patchData: urlPatchData, putData: urlPutData} = require('../../../helper/ProductStock');
+const {getStockWithTransaction, updateStock, deleteOidFromStockProduct} = require('../../modules/Stock/controllers/StockProductController');
 
 class SalesController {
     inputIntoChart = async (req, res) => {
         try {
-            let {userid, ptnrg_id} = Auth.user();
+            let csOid = uuidv4();
+            let {qty, pt_id} = req.body;
+            let ptCode = await this.getProductCode(pt_id);
+            let {quantity: qtyStock} = await getStockWithTransaction(ptCode);
+            let dataChart = await this.checkProductInChart(pt_id, Auth.user().userid);
 
-            let dataChart = await this.checkProductInChart(req.body.pt_id, Auth.user().userid);
-            let qtyProductInChart = (dataChart != null) ? dataChart.dataValues.cs_qty : 0;
+            let [
+                checkingStatus, 
+                statusUpdatingQuantity
+            ] = await Promise.all([
+                    this.checkQuantityProduct(qty, qtyStock), 
+                    updateStock(ptCode, csOid, qty)
+            ]);
 
-            let {status_normal, status_chart} = await this.checkQuantityProduct(req.body.pt_id, req.body.qty, parseInt(req.body.qty) + qtyProductInChart);
+            if (checkingStatus == true || statusUpdatingQuantity[0] != qty) {
+                await deleteOidFromStockProduct(csOid, statusUpdatingQuantity[0]);
+                let message = (statusUpdatingQuantity[0] == 0) ? 'stok barang sudah habis!' : `barang tersisa ${qtyStock}`;
 
-            if (status_normal == true || status_chart == true) {
                 res.status(300)
                     .json({
                         status: 'failed',
-                        message: 'jumlah permintaan barang melebihi kuantitas!',
+                        message: message,
                         data: null,
                         error: {
                             status: false
@@ -45,9 +53,11 @@ class SalesController {
             }
 
             if (dataChart == null) {
-                await this.createDataChart(req.body, userid);
+                await this.createDataChart(csOid, req.body, qty, Auth.user().userid);
             } else {
-                await this.updateDataChart(parseInt(req.body.qty), dataChart.dataValues.cs_qty, userid, dataChart.dataValues.cs_oid);
+                let {cs_qty, cs_oid} = dataChart.dataValues;
+
+                await this.updateDataChart(parseInt(req.body.qty), cs_qty, Auth.user().userid, cs_oid);
             }
 
             res.status(200)
@@ -399,9 +409,6 @@ class SalesController {
     }
 
     updateDataChart = async (qtyInput, cartSalesQty, userid, cartSalesOid) => {
-        let {cs_pt_id, cs_qty: quantityFromCart} = await this.singularDataChart(cartSalesOid);
-        let productCode = await this.getProductCode(cs_pt_id);
-
         await ChartSales.update({
                 cs_qty: qtyInput + cartSalesQty,
                 cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
@@ -413,14 +420,6 @@ class SalesController {
                 logging: false,
                 individualHooks: true
             })
-
-            if (cartSalesQty == 0 && qtyInput > parseInt(quantityFromCart)) {
-                await this.increaseQtyProduct(productCode, cartSalesOid, qtyInput - parseInt(quantityFromCart))
-            } else if (cartSalesQty != 0) {
-                await this.increaseQtyProduct(productCode, cartSalesOid, qtyInput);
-            } else if (qtyInput < quantityFromCart) {
-                await this.decreaseQtyProduct(productCode, cartSalesOid, parseInt(quantityFromCart) - qtyInput)
-            }
     } 
 
     deleteDataChart = async (userid, cartSalesOid) => {
@@ -476,17 +475,8 @@ class SalesController {
         return result;
     }
 
-    checkQuantityProduct = async (ptId, quantityNeed, quantityChart) => {
-        let ptCode = await this.getProductCode(ptId);
-        let data = await urlGetData(`/product/${ptCode}/detail`);
-
-        return (data == null) ? {
-            status_normal: false, 
-            status_chart: false, 
-        } : {
-            status_normal: parseInt(quantityNeed) > data.quantity,
-            status_chart: parseInt(quantityChart) > data.quantity,
-        };
+    checkQuantityProduct = async (quantityNeed, stock) => {
+        return (stock == 0) ? true : parseInt(quantityNeed) > stock;
     }
 
     checkProductInChart = async (ptId, userId) => {
@@ -505,23 +495,22 @@ class SalesController {
         return data;
     }
 
-    createDataChart = async (body, userid) => {
-        let {dataValues} = await ChartSales.create({
+    createDataChart = async (csOid, body, qty, userid) => {
+        console.info(csOid, body.pt_id, qty, userid)
+        await ChartSales.create({
+                cs_oid: csOid,
                 cs_userid: userid,
                 cs_pt_id: body.pt_id,
                 cs_pt_en_id: body.en_id,
                 cs_invc_oid: body.invc_oid,
-                cs_qty: body.qty,
+                cs_qty: qty,
                 cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
                 cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
                 cs_pi_id: body.pi_id
             }, {
                 individualHooks: true,
-                logging: false
+                // logging: false
             })
-
-        let ptCode = await this.getProductCode(body.pt_id);
-        await this.increaseQtyProduct(ptCode, dataValues.cs_oid, body.qty);
     }
 
     getProductCode = async (ptId) => {

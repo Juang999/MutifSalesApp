@@ -28,10 +28,28 @@ GetDescIn.init({
     defaultScope: {
         where: {
             status: '1',
-            status_transaction: null,
-            date_sold: null,
-            chart_sales_oid: null,
-            sq_code: null
+        }
+    },
+    scopes: {
+        nullStatusTransaction: {
+            where: {
+                status_transaction: null
+            }
+        },
+        nullDateSold: {
+            where: {
+                date_sold: null
+            }
+        },
+        nullChartSalesOid: {
+            where: {
+                chart_sales_oid: null
+            }
+        },
+        nullSqCode: {
+            where: {
+                sq_code: null
+            }
         }
     }
 })
