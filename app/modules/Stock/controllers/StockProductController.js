@@ -123,6 +123,19 @@ class StockController {
             return dataValues.uniq;
         })
     }
+
+    bulkReleaseQuantity = async (bulkCsOid) => {
+        let result = await GetDescIn.update({
+            chart_sales_oid: null
+        }, {
+            where: {
+                chart_sales_oid: {
+                    [Op.in]: bulkCsOid
+                }
+            },
+            logging: false
+        })
+    }
 }
 
 module.exports = new StockController();
