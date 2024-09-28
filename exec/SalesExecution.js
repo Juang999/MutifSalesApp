@@ -7,10 +7,14 @@ class SalesExecution {
     run = async () => {
         let currentTimestamp = moment().subtract(1, 'days').format('YYYY-MM-DD HH:mm:ss');
         let csOid = await this.getCartSalesOid(currentTimestamp);
-        await bulkReleaseQuantity(csOid);
-        await this.updateDataCartSales(csOid);
+        if (csOid.length != 0) {
+            await bulkReleaseQuantity(csOid);
+            await this.updateDataCartSales(csOid);
 
-        return this.getCartSalesOid(currentTimestamp);
+            console.info('data updated!');
+        } else {
+            console.info('data checked!');
+        }
     }
 
     getCartSalesOid = async (timestamp) => {
@@ -43,4 +47,5 @@ class SalesExecution {
     }
 }
 
-module.exports = new SalesExecution();
+let salesExecution = new SalesExecution();
+salesExecution.run();
