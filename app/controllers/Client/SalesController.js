@@ -17,6 +17,7 @@ const {
 const {insertQuery} = require('../../../helper/InputQueryIntoSqlOut');
 const {getData: urlGetData, patchData: urlPatchData, putData: urlPutData} = require('../../../helper/ProductStock');
 const {
+    getStock,
     getStockWithTransaction, updateStock, 
     releaseProduct, updateStatusTransction,
     deleteOidFromStockProduct, bulkReleaseQuantity, 
@@ -27,7 +28,7 @@ class SalesController {
         try {
             let {qty, pt_id} = req.body;
             let ptCode = await this.getProductCode(pt_id);
-            let {quantity: qtyStock} = await getStockWithTransaction(ptCode);
+            let {quantity: qtyStock} = await getStock(ptCode);
             let dataChart = await this.checkProductInChart(pt_id, Auth.user().userid);
             let csOid = (dataChart != null) ? dataChart.dataValues.cs_oid : uuidv4();
 
