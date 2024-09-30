@@ -210,7 +210,8 @@ class SalesV2Controller {
             order: [
                 ['cs_qty', 'DESC']
             ],
-            limit: 15
+            limit: 15,
+            logging: false
         })
 
         return dataCart;
@@ -234,7 +235,8 @@ class SalesV2Controller {
             `, {
                 replacements: {
                     userid
-                }
+                },
+                logging: false
             })
 
         return subTotal;
