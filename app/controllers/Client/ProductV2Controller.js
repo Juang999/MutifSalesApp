@@ -148,6 +148,12 @@ class ProductV2Controller {
                             ]
                         }
                     ],
+                    where: {
+                        [Op.or]: [
+                            {pt_desc1: {[Op.iLike]: `%${search}%`}},
+                            {pt_code: {[Op.iLike]: `%${search}%`}},
+                        ]
+                    }
                 }, {
                     model: PiMstr,
                     as: 'master_price_list',
@@ -183,14 +189,6 @@ class ProductV2Controller {
                 Sequelize.where(Sequelize.col('"singular_detail_price_list".""pidd_payment_type"'), {
                     [Op.eq]: 9942
                 }),
-                Sequelize.or([
-                    Sequelize.where(Sequelize.col('"product"."pt_desc1"'), {
-                        [Op.iLike]: `%${searchProduct}%`
-                    }),
-                    Sequelize.where(Sequelize.col('"product"."pt_code"'), {
-                        [Op.iLike]: `%${searchProduct}%`
-                    }),
-                ])
             ]
         }
 
