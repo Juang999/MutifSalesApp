@@ -1,6 +1,7 @@
 const GetDescIn = require('../models/getdescin');
 const {Sequelize, Op} = require('sequelize');
 const {sequelize} = require('../models/index');
+const moment = require('moment');
 
 class StockController {
     getStock = async (productCode) => {
@@ -116,7 +117,8 @@ class StockController {
             where: {
                 chart_sales_oid: csOid
             },
-            limit
+            limit,
+            logging: false
         })
 
         return result.map(({dataValues}) => {
@@ -135,6 +137,43 @@ class StockController {
             },
             logging: false
         })
+    }
+
+    releaseProduct = async (sqCode) => {
+        await GetDescIn.update({
+            status_transaction: null,
+            date_sold: null,
+            sq_code: null
+        }, {
+            where: {
+                sq_code: sqCode
+            }
+        })
+    }
+
+    updateStatusTransction = async (body, sqCode) => {
+        await GetDescIn.update({
+            status_transaction: body.status_transaction,
+            date_sold: moment().format('YYYY-MM-DD HH:mm:ss')
+        }, {
+            where: {
+                sq_code: sqCode
+            }
+        })
+    }
+
+    changeIntoSalesQuotation = async (body, csOid) => {
+        await GetDescIn.update({
+                status_transaction: body.status_transaction,
+                date_sold: moment().format('YYYY-MM-DD HH:mm:ss'),
+                chart_sales_oid: null,
+                sq_code: body.sq_code
+            }, {
+                where: {
+                    chart_sales_oid: csOid
+                },
+                logging: false
+            })
     }
 }
 
