@@ -108,7 +108,7 @@ class ProductV2Controller {
         let currentPage = ('page' in query) ? query.page : 1;
         let search = ('search' in query) ? query.search : '';
         let {page, limit, offset} = new Page(currentPage, 15);
-        let categoryId = ('categories' in query) ? query.categories : null;
+        let categoryId = ('categories' in query) ? (query.categories != '') ? query.categories : null : null;
 
         let {count, rows} = await PidDet.findAndCountAll({
             attributes: [
