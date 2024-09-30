@@ -16,16 +16,20 @@ const {
 } = require('../../../models');
 const {insertQuery} = require('../../../helper/InputQueryIntoSqlOut');
 const {getData: urlGetData, patchData: urlPatchData, putData: urlPutData} = require('../../../helper/ProductStock');
-const {getStockWithTransaction, updateStock, deleteOidFromStockProduct} = require('../../modules/Stock/controllers/StockProductController');
+const {
+    getStockWithTransaction, updateStock, 
+    releaseProduct, updateStatusTransction,
+    deleteOidFromStockProduct, bulkReleaseQuantity, 
+} = require('../../modules/Stock/controllers/StockProductController');
 
 class SalesController {
     inputIntoChart = async (req, res) => {
         try {
-            let csOid = uuidv4();
             let {qty, pt_id} = req.body;
             let ptCode = await this.getProductCode(pt_id);
             let {quantity: qtyStock} = await getStockWithTransaction(ptCode);
             let dataChart = await this.checkProductInChart(pt_id, Auth.user().userid);
+            let csOid = (dataChart != null) ? dataChart.dataValues.cs_oid : uuidv4();
 
             let [
                 checkingStatus, 
@@ -385,9 +389,9 @@ class SalesController {
             })
 
             if (req.body.payment_status == 'cancel' || req.body.payment_status == 'failure') {
-                await this.releaseProducts(req.params.invoice)
+                await releaseProduct(req.params.invoice)
             } else {
-                await this.updateStatusTransaction(req.params.invoice, req.body.payment_status)
+                await updateStatusTransction(req.body.payment_status, req.params.invoice)
             }
 
             res.status(200)
@@ -423,8 +427,7 @@ class SalesController {
     } 
 
     deleteDataChart = async (userid, cartSalesOid) => {
-        let {cs_pt_id, cs_qty: quantityFromCart} = await this.singularDataChart(cartSalesOid);
-        let productCode = await this.getProductCode(cs_pt_id);
+        await bulkReleaseQuantity([cartSalesOid]);
 
         await ChartSales.destroy({
             where: {
@@ -434,8 +437,6 @@ class SalesController {
             logging: false,
             individualHooks: true
         })
-
-        await this.decreaseQtyProduct(productCode, cartSalesOid, quantityFromCart)
     }
 
     getImages = async (dataProduct) => {
@@ -496,7 +497,6 @@ class SalesController {
     }
 
     createDataChart = async (csOid, body, qty, userid) => {
-        console.info(csOid, body.pt_id, qty, userid)
         await ChartSales.create({
                 cs_oid: csOid,
                 cs_userid: userid,
@@ -509,7 +509,7 @@ class SalesController {
                 cs_pi_id: body.pi_id
             }, {
                 individualHooks: true,
-                // logging: false
+                logging: false
             })
     }
 
@@ -539,31 +539,6 @@ class SalesController {
             chart_sales_oid: chartSalesOid,
             total_data: totalData
         })
-    }
-
-    singularDataChart = async (csOid) => {
-        let {dataValues} = await ChartSales.findOne({
-            attributes: [
-                'cs_pt_id',
-                'cs_qty'
-            ],
-            where: {
-                cs_oid: csOid
-            },
-            logging: false
-        });
-
-        return dataValues;
-    }
-
-    updateStatusTransaction = async (salesQuotationNumber, statusTransaction) => {
-        await urlPatchData(`/stock/${salesQuotationNumber}/update-status-transaction`, {
-            status_transaction: statusTransaction
-        })
-    }
-
-    releaseProducts = async (salesQuotationNumber) => {
-        await urlPutData(`/stock/${salesQuotationNumber}/release-products`)
     }
 }
 
