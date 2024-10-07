@@ -13,7 +13,6 @@ const {
 } = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
 const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
-const {getData: urlGetData, patchData: urlPatchData, putData: urlPutData, putData} = require('../../../helper/ProductStock');
 const {changeIntoSalesQuotation} = require('../../modules/Stock/controllers/StockProductController');
 
 class CheckoutController {
@@ -254,10 +253,10 @@ class CheckoutController {
             result.push({
                 sqd_oid: uuidv4(),
                 sqd_dom_id: 1,
-                sqd_en_id: headerSalesQuotation.enId,
+                sqd_en_id: dataProduct.dataValues.en_id,
                 sqd_add_by: dataUser.usernama,
                 sqd_add_date: createdAt,
-                sqd_sq_oid: headerSalesQuotation.sqOid,
+                sqd_sq_oid: dataProduct.dataValues.sqd_sq_oid,
                 sqd_seq: baseSequence,
                 sqd_si_id: 992,
                 sqd_pt_id: dataProduct.dataValues.cs_pt_id,
@@ -290,8 +289,8 @@ class CheckoutController {
             })
 
             await changeIntoSalesQuotation({
-                status_transaction: headerSalesQuotation.sq_midtrans_inv_status, 
-                sq_code: headerSalesQuotation.sq_midtrans_inv_number}, dataProduct.dataValues.cs_oid)
+                status_transaction: dataProduct.dataValues.sq_midtrans_inv_status, 
+                sq_code: dataProduct.dataValues.sq_midtrans_inv_number}, dataProduct.dataValues.cs_oid)
             await this.deleteDataChart(dataUser.userid, dataProduct.dataValues.cs_oid);
             baseSequence += 1;
         }
@@ -306,6 +305,7 @@ class CheckoutController {
                     [Sequelize.literal(`'${headerSq.sq_oid}'`), 'sqd_sq_oid'],
                     'cs_oid',
                     'cs_pt_id',
+                    ['cs_pt_en_id', 'en_id'],
                     [Sequelize.literal(`"cs_qty" * "product->singular_table_cost"."invct_cost"`), 'total_cost'],
                     [Sequelize.literal(`("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - ("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_disc")`), 'total_price'],
                     [Sequelize.literal(`"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`), 'discount'],
