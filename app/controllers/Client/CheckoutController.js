@@ -289,8 +289,9 @@ class CheckoutController {
             })
 
             await changeIntoSalesQuotation({
-                status_transaction: dataProduct.dataValues.sq_midtrans_inv_status, 
-                sq_code: dataProduct.dataValues.sq_midtrans_inv_number}, dataProduct.dataValues.cs_oid)
+                status_transaction: headerSalesQuotation.sq_midtrans_inv_status, 
+                sq_code: headerSalesQuotation.sq_midtrans_inv_number
+            }, dataProduct.dataValues.cs_oid)
             await this.deleteDataChart(dataUser.userid, dataProduct.dataValues.cs_oid);
             baseSequence += 1;
         }
