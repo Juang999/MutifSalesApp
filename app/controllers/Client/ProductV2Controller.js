@@ -249,8 +249,6 @@ class ProductV2Controller {
                 },
                 logging: false
             })
-    
-            console.info(result)
 
             return result;
         } catch (error) {
