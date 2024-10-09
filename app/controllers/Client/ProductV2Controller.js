@@ -179,7 +179,10 @@ class ProductV2Controller {
             [Op.or]: [
                 {pt_desc1: {[Op.iLike]: (searchName) ? `%${searchName}%` : '%%'}},
                 {pt_code: {[Op.iLike]: (searchName) ? `%${searchName}%` : '%%'}},
-            ]
+            ],
+            pt_id: {
+                [Op.in]: Sequelize.literal(`(SELECT invc_pt_id FROM public.invc_mstr WHERE invc_loc_id IN (10001, 200010, 30008))`)
+            }
         };
 
         if (productCategoryId) {
@@ -246,7 +249,7 @@ class ProductV2Controller {
                 },
                 logging: false
             })
-    
+
             return result;
         } catch (error) {
             return error.message
