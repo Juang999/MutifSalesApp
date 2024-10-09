@@ -247,7 +247,7 @@ class ProductV2Controller {
                 where: {
                     pt_code: productCode
                 },
-                // logging: false
+                logging: false
             })
     
             console.info(result)
