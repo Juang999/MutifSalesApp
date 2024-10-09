@@ -122,10 +122,7 @@ class ProductV2Controller {
             ],
             include: [
                 {
-                    model: PtMstr.scope([
-                        {method: ['searchProduct', search]},
-                        {method: ['findByCategory', categoryId]}
-                    ]),
+                    model: PtMstr,
                     as: 'product',
                     attributes: [],
                     required: true,
@@ -151,6 +148,7 @@ class ProductV2Controller {
                             ]
                         }
                     ],
+                    where: this.conditionProduct(search, categoryId)
                 }, {
                     model: PiMstr.scope('priceListBersukaCita'),
                     as: 'master_price_list',
@@ -174,6 +172,21 @@ class ProductV2Controller {
             last_page: Math.ceil(count/limit), 
             total_page: Math.ceil(count/limit)
         };
+    }
+
+    conditionProduct = (searchName, productCategoryId) => {
+        let condition = {
+            [Op.or]: [
+                {pt_desc1: {[Op.iLike]: (searchName) ? `%${searchName}%` : '%%'}},
+                {pt_code: {[Op.iLike]: (searchName) ? `%${searchName}%` : '%%'}},
+            ]
+        };
+
+        if (productCategoryId) {
+            condition.pt_cat_id = productCategoryId;
+        }
+
+        return condition;
     }
 
     getDataDetailProduct = async (productCode) => {
