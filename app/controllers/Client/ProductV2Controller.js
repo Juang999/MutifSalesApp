@@ -11,7 +11,7 @@ const {
     PtCatMstr, Sequelize, 
     ProductJubelioThumbnail,
 } = require('../../../models');
-const {getStock} = require('../../modules/Stock/controllers/StockProductController');
+const {getStock, bulkGetStock} = require('../../modules/Stock/controllers/StockProductController');
 
 class ProductV2Controller {
     getProduct = async (req, res) => {
@@ -278,24 +278,25 @@ class ProductV2Controller {
         }
     }
 
-    addQuantityProducts = async (dataProducts, ptnrgId) => {
-        let result = [];
+    addQuantityProducts = async (dataProducts) => {
+        let productCodes = dataProducts.map(({dataValues}) => dataValues.product_code);
+        let getStocks = await bulkGetStock(productCodes);
 
-        for (const {dataValues} of dataProducts) {
-            let {quantity} = await getStock(dataValues.product_code)
+        let result = dataProducts.map(({dataValues}) => {
+            let dataStock = getStocks.find(({dataValues: dataStock}) => dataStock.qr == dataValues.product_code)
 
-            result.push({
-                product_name: dataValues.product_name,
-                product_code: dataValues.product_code,
-                entity: dataValues.entity,
-                category: dataValues.category,
-                price: dataValues.price,
-                discount: dataValues.discount,
-                qty: quantity,
-                status_product: (quantity == 0) ? 'barang tidak ada' : 'barang ada',
-                thumbnail: dataValues.thumbnail
-            })
-        }
+            return {
+                    product_name: dataValues.product_name,
+                    product_code: dataValues.product_code,
+                    entity: dataValues.entity,
+                    category: dataValues.category,
+                    price: dataValues.price,
+                    discount: dataValues.discount,
+                    qty: (dataStock) ? dataStock.dataValues.quantity : 0,
+                    status_product: (dataStock) ? (dataStock.dataValues.quantity == 0 ) ? 'barang tidak ada' : 'barang ada' : 'barang ada',
+                    thumbnail: dataValues.thumbnail
+            }
+        })
 
         return result;
     }

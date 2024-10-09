@@ -28,6 +28,26 @@ class StockController {
         };
     }
 
+    bulkGetStock = async (productCodes) => {
+        let result = await GetDescIn.scope(['nullStatusTransaction', 'nullDateSold', 'nullChartSalesOid', 'nullSqCode']).findAll({
+            attributes: [
+                'qr',
+                'name',
+                [Sequelize.literal('COUNT(DISTINCT(uniq))'), 'quantity']
+            ],
+            group: [
+                'qr',
+                'name'
+            ],
+            where: {
+                qr: productCodes
+            },
+            logging: false
+        })
+
+        return result;
+    }
+
     getStockWithTransaction = async (productCode) => {
         let result = await sequelize.transaction(async t => {
             let stock = await GetDescIn.scope(['nullStatusTransaction', 'nullDateSold', 'nullChartSalesOid', 'nullSqCode']).findOne({
