@@ -2,6 +2,9 @@
 const {
   Model
 } = require('sequelize');
+const {
+  Op
+} = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class InvcMstr extends Model {
     /**
@@ -47,6 +50,22 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
     tableName: 'invc_mstr',
     modelName: 'InvcMstr',
+    scopes: {
+      gudangBarangJadi: {
+        where: {
+          invc_loc_id: {
+            [Op.in]: [10001, 200010, 30008]
+          }
+        }
+      },
+      notEmpty: {
+        where: {
+          invc_qty_available: {
+            [Op.not]: 0
+          }
+        }
+      }
+    }
   });
   return InvcMstr;
 };

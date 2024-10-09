@@ -122,7 +122,10 @@ class ProductV2Controller {
             ],
             include: [
                 {
-                    model: PtMstr,
+                    model: PtMstr.scope([
+                        {method: ['searchProduct', search]},
+                        {method: ['findByCategory', categoryId]}
+                    ]),
                     as: 'product',
                     attributes: [],
                     required: true,
@@ -148,23 +151,16 @@ class ProductV2Controller {
                             ]
                         }
                     ],
-                    where: {
-                        [Op.or]: [
-                            {pt_desc1: {[Op.iLike]: `%${search}%`}},
-                            {pt_code: {[Op.iLike]: `%${search}%`}},
-                        ]
-                    }
                 }, {
-                    model: PiMstr,
+                    model: PiMstr.scope('priceListBersukaCita'),
                     as: 'master_price_list',
                     attributes: [],
                 }, {
-                    model: PiddDet,
+                    model: PiddDet.scope('creditPaymentType'),
                     as: 'singular_detail_price_list',
                     attributes: [],
                 }
-            ], 
-            where: this.productCondition(search, categoryId),
+            ],
             limit,
             offset,
             logging: false
@@ -178,27 +174,6 @@ class ProductV2Controller {
             last_page: Math.ceil(count/limit), 
             total_page: Math.ceil(count/limit)
         };
-    }
-
-    productCondition = (searchProduct, categoryProduct) => {
-        let condition = {
-            [Op.and]: [
-                Sequelize.where(Sequelize.col('"master_price_list"."pi_id"'), {
-                    [Op.in]: [1040, 2020, 3020]
-                }),
-                Sequelize.where(Sequelize.col('"singular_detail_price_list".""pidd_payment_type"'), {
-                    [Op.eq]: 9942
-                }),
-            ]
-        }
-
-        if (categoryProduct != null) {
-            condition[Op.and].push(Sequelize.where(Sequelize.col('"product"."pt_cat_id"'), {
-                [Op.eq]: categoryProduct
-            }))
-        }
-
-        return condition;
     }
 
     getDataDetailProduct = async (productCode) => {
@@ -222,14 +197,9 @@ class ProductV2Controller {
                 ],
                 include: [
                     {
-                        model: InvcMstr,
+                        model: InvcMstr.scope('gudangBarangJadi'),
                         as: 'singular_product_quantity',
                         attributes: [],
-                        where: {
-                            invc_loc_id: {
-                                [Op.in]: [10001, 200010, 300018]
-                            }
-                        }
                     }, {
                         model: ProductJubelio,
                         as: 'singular_product_jubelio',
@@ -247,21 +217,13 @@ class ProductV2Controller {
                         attributes: [],
                         include: [
                             {
-                                model: PiddDet,
+                                model: PiddDet.scope('creditPaymentType'),
                                 as: 'singular_detail_price_list',
                                 attributes: [],
-                                where: {
-                                    pidd_payment_type: 9942
-                                }
                             }, {
-                                model: PiMstr,
+                                model: PiMstr.scope('priceListBersukaCita'),
                                 as: 'master_price_list',
                                 attributes: [],
-                                where: {
-                                    pi_id: {
-                                        [Op.in]: [1040, 2020, 3020]
-                                    }
-                                }
                             }
                         ]
                     }
@@ -293,7 +255,7 @@ class ProductV2Controller {
                     price: dataValues.price,
                     discount: dataValues.discount,
                     qty: (dataStock) ? dataStock.dataValues.quantity : 0,
-                    status_product: (dataStock) ? (dataStock.dataValues.quantity == 0 ) ? 'barang tidak ada' : 'barang ada' : 'barang ada',
+                    status_product: (dataStock) ? (dataStock.dataValues.quantity == 0 ) ? 'barang tidak ada' : 'barang ada' : 'barang tidak ada',
                     thumbnail: dataValues.thumbnail
             }
         })

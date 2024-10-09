@@ -2,6 +2,9 @@
 const {
   Model
 } = require('sequelize');
+const {
+  Op
+} = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class PtMstr extends Model {
     /**
@@ -127,6 +130,28 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
     tableName: 'pt_mstr',
     modelName: 'PtMstr',
+    scopes: {
+      searchProduct (value) {
+        return {
+          where: {
+            [Op.or]: [
+              {pt_desc1: {[Op.iLike]: (value) ? `%${value}%` : '%%'}},
+              {pt_code: {[Op.iLike]: (value) ? `%${value}%` : '%%'}},
+            ]
+          }
+        }
+      },
+      findByCategory (value) {
+        return {
+          where: {
+            [Op.or]: [
+              {pt_cat_id: (value) ? [value] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]},
+              {pt_cat_id: (value) ? value : null}
+            ]
+          }
+        }
+      }
+    }
   });
   return PtMstr;
 };
