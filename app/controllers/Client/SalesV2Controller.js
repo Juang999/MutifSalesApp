@@ -1,90 +1,24 @@
 const {Op} = require('sequelize');
 const Auth = require('../../../helper/Auth');
-const {getData} = require('../../../helper/ProductUrl');
 const {error: errorLog} = require('../../../helper/Logging');
 const {
     PiddDet, sequelize,
-    ChartSales, PiMstr,
     PtMstr, PidDet, Sequelize, 
+    ChartSales, PiMstr, InvcMstr,
     ProductJubelio, ProductJubelioThumbnail
 } = require('../../../models');
-const {getData: urlGetData} = require('../../../helper/ProductStock');
-const {getStock} = require('../../modules/Stock/controllers/StockProductController');
 
 class SalesV2Controller {
-    getChart = async (req, res) => {
-        try {
-            let {userid} = Auth.user();
-
-            let dataChart = await this.dataChart(userid)
-
-            if (dataChart == null) {
-                res.status(200)
-                    .json({
-                        status: 'success',
-                        message: 'ok',
-                        data: [],
-                        error: null
-                    })
-
-                return;
-            }
-
-            let result = await this.completingDataCart(dataChart);
-
-            res.status(200)
-                .json({
-                    status: 'success',
-                    message: 'ok',
-                    data: result,
-                    error: null
-                })
-        } catch (error) {
-            errorLog('GET CHART', error.message)
-
-            res.status(400)
-                .json({
-                    status: 'failed',
-                    message: 'error',
-                    data: null,
-                    error: error.message
-                })
-        }
-    }
-
-    getLimitedCart = (req, res) => {
-        Promise.all([this.getSubTotalPriceCart(Auth.user().userid), this.limitedDataCart(Auth.user().userid)])
-        .then(([subTotalPrice, dataCart]) => {
-
-            res.status(200)
-                .json({
-                    status: 'success',
-                    message: 'ok',
-                    data: {
-                        subtotal_price: subTotalPrice[0]['sum'],
-                        cart: dataCart
-                    },
-                    error: null
-                })
-        })
-        .catch(err => {
-            res.status(400)
-                .json({
-                    status: 'failed',
-                    message: 'error',
-                    data: null,
-                    error: err.message
-                })
-        })
-    }
-
-    dataChart = async (userid) => {
-        let dataChart = await ChartSales.findAll({
+    getChart = (req, res) => {
+        ChartSales.findAll({
             attributes: [
                 'cs_oid',
                 [Sequelize.col('product.pt_desc1'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
+                [Sequelize.literal(`CAST("product->singular_product_quantity"."invc_qty_available" AS INTEGER)`), 'available_quantity'],
+                [Sequelize.literal(`CASE WHEN "product->singular_product_quantity"."invc_qty_available" - "cs_qty" <= 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
+                [Sequelize.literal(`CASE WHEN "product->singular_product_quantity"."invc_qty_available" - "cs_qty" <= 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
                 [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
                 [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NOT NULL THEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" ELSE NULL END`), 'photo'],
@@ -114,6 +48,10 @@ class SalesV2Controller {
                                 }
                             ]
                         }, {
+                            model: InvcMstr.scope('gudangBarangJadi'),
+                            as: 'singular_product_quantity',
+                            attributes: [],
+                        }, {
                             model: ProductJubelio,
                             as: 'singular_product_jubelio',
                             attributes: [],
@@ -131,7 +69,7 @@ class SalesV2Controller {
             where: {
                 [Op.and]: [
                     Sequelize.where(Sequelize.col('cs_userid'), {
-                        [Op.eq]: userid
+                        [Op.eq]: Auth.user().userid
                     }),
                     Sequelize.where(Sequelize.col('"product->singular_relation_price_list->master_price_list"."pi_id"'), {
                         [Op.eq]: Sequelize.col('"cs_pi_id"')
@@ -146,8 +84,50 @@ class SalesV2Controller {
             ],
             logging: false
         })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
 
-        return dataChart;
+    getLimitedCart = (req, res) => {
+        Promise.all([this.getSubTotalPriceCart(Auth.user().userid), this.limitedDataCart(Auth.user().userid)])
+        .then(([subTotalPrice, dataCart]) => {
+
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: {
+                        subtotal_price: subTotalPrice[0]['sum'],
+                        cart: dataCart
+                    },
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
     }
 
     limitedDataCart = async (userid) => {
@@ -240,31 +220,6 @@ class SalesV2Controller {
             })
 
         return subTotal;
-    }
-
-    completingDataCart = async (dataProducts) => {
-        let result = [];
-        
-        for (const {dataValues} of dataProducts) {
-            let {quantity} = await getStock(dataValues.product_code);
-
-            result.push({
-                cs_oid: dataValues.cs_oid,
-                product_name: dataValues.product_name,
-                product_code: dataValues.product_code,
-                chart_quantity: dataValues.chart_quantity,
-                available_quantity: quantity,
-                sales_status: (dataValues.chart_quantity > quantity) ? 'melebihi stok' : 'bisa dibeli',
-                can_be_sold: (dataValues.chart_quantity > quantity) ? false : true,
-                price: dataValues.price,
-                discount: dataValues.discount,
-                created_at: dataValues.created_at,
-                updated_at: dataValues.updated_at,
-                photo: dataValues.photo
-            })
-        }
-
-        return result;
     }
 }
 

@@ -17,6 +17,8 @@ const {changeIntoSalesQuotation} = require('../../modules/Stock/controllers/Stoc
 
 class CheckoutController {
     checkOut = async (req, res) => {
+        const t = await sequelize.transaction();
+
         try {
             let headerSalesQuotations = await this.generateHeaderSalesQuotation(req.body, Auth.user())
 
@@ -32,7 +34,6 @@ class CheckoutController {
                 return;
             }
 
-            await sequelize.transaction(async t => {
                 headerSalesQuotations[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
                 for (const headerSalesQuotation of headerSalesQuotations) {
@@ -42,8 +43,8 @@ class CheckoutController {
                     this.sleep(5000)
                     await this.createDetailSalesQuotation(detailSalesQuotation, t);
                 }
-            })
 
+            await t.commit();
             info('CHECKOUT SALES QUOTATION', `${Auth.user().usernama} HAS CHECKED OUT!`, true);
 
             res.status(200)
@@ -54,6 +55,7 @@ class CheckoutController {
                     error: null
                 })
         } catch (error) {
+            await t.rollback();
             errorLog('CHECKOUT PRODUCTS', error.message);
 
             res.status(400)
@@ -248,7 +250,7 @@ class CheckoutController {
         let result = [];
 
         for (const dataProduct of dataProducts) {
-            await this.updateInvcMstr(dataProduct.dataValues, transaction);
+            // await this.updateInvcMstr(dataProduct.dataValues, transaction);
 
             result.push({
                 sqd_oid: uuidv4(),
@@ -288,10 +290,10 @@ class CheckoutController {
                 sqd_qty_outs: 0,
             })
 
-            await changeIntoSalesQuotation({
-                status_transaction: headerSalesQuotation.sq_midtrans_inv_status, 
-                sq_code: headerSalesQuotation.sq_midtrans_inv_number
-            }, dataProduct.dataValues.cs_oid)
+            // await changeIntoSalesQuotation({
+            //     status_transaction: headerSalesQuotation.sq_midtrans_inv_status, 
+            //     sq_code: headerSalesQuotation.sq_midtrans_inv_number
+            // }, dataProduct.dataValues.cs_oid)
             await this.deleteDataChart(dataUser.userid, dataProduct.dataValues.cs_oid);
             baseSequence += 1;
         }
@@ -419,7 +421,7 @@ class CheckoutController {
                 const regexPattern = /Executing \([a-f0-9-]+\):/;
                 const realSql = sql.replace(regexPattern, "");
 
-                await insertBulkQuery(realSql)
+                await insertBulkQuery(realSql, 1)
             }
             // logging: false,
         })
@@ -432,7 +434,7 @@ class CheckoutController {
                 const regexPattern = /Executing \([a-f0-9-]+\):/;
                 const realSql = sql.replace(regexPattern, "");
 
-                await insertBulkQuery(realSql)
+                await insertBulkQuery(realSql, 2)
             },
             // logging: false
         })
