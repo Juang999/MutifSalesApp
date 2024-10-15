@@ -9,10 +9,9 @@ class InputQueryIntoSqlOut {
         await this.createData(resultQuery)
     }
 
-    insertBulkQuery = async (sql) => {
-        await this.createData(sql, {
-            logging: false
-        });
+    insertBulkQuery = async (sql, sequential) => {
+        let sequence = sequential || 1;
+        await this.createData(sql, sequence);
     }
 
     bindData = (query, values) => {
@@ -21,10 +20,11 @@ class InputQueryIntoSqlOut {
         });
     }
 
-    createData = async (sql) => {
+    createData = async (sql, sequence) => {
         try {
             await TSqlOut.create({
                 sql_uid: uuidv4(),
+                seq: sequence,
                 sql_command: sql,
                 waktu: moment().format('YYYY-MM-DD HH:mm:ss')
             }, {
