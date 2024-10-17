@@ -24,14 +24,13 @@ class ProductV2Controller {
                 total_data, 
                 current_page, 
             } = await this.getDataProducts(req.query)
-            let result = await this.addQuantityProducts(data)
 
             res.status(200)
                 .json({
                     status:'success',
                     message: 'ok',
                     data: {
-                        data: result, 
+                        data, 
                         total_data, 
                         per_page, 
                         current_page, 
@@ -54,8 +53,8 @@ class ProductV2Controller {
     }
 
     getDetailProduct = (req, res) => {
-        Promise.all([getStock(req.params.pt_code), this.getDataDetailProduct(req.params.pt_code), this.getDescProduct(req.params.pt_code)])
-        .then(([stockProduct, {dataValues: masterData}, descProduct]) => {
+        Promise.all([this.getDataDetailProduct(req.params.pt_code), this.getDescProduct(req.params.pt_code)])
+        .then(([{dataValues: masterData}, descProduct]) => {
 
             res.status(200)
                 .json({
@@ -78,8 +77,8 @@ class ProductV2Controller {
                         type_id: descProduct.type_id,
                         photo: masterData.photo,
                         invc_oid: masterData.invc_oid,
-                        quantity: stockProduct.quantity,
-                        status_product: (stockProduct.quantity == 0) ? 'barang tidak ada' : 'barang ada',
+                        quantity: parseInt(masterData.quantity),
+                        status_product: (parseInt(masterData.quantity) == 0) ? 'barang tidak ada' : 'barang ada',
                         pricelist_name: masterData.pricelist_name,
                         pi_id: masterData.pi_id,
                         price: masterData.price,
@@ -113,11 +112,12 @@ class ProductV2Controller {
         let {count, rows} = await PidDet.findAndCountAll({
             attributes: [
                 [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
-                [Sequelize.col('"product"."pt_code"'), 'product_code'],
+                [Sequelize.literal('"product"."pt_code"'), 'product_code'],
                 [Sequelize.col('"product->entity_product"."en_desc"'), 'entity'],
                 [Sequelize.col('"product->master_category"."ptcat_desc"'), 'category'],
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_price" AS BIGINT)'), 'price'],
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_disc" AS BIGINT)'), 'discount'],
+                [Sequelize.literal(`CAST("product->singular_product_quantity"."invc_qty_available" AS INTEGER)`), 'qty'],
                 [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'thumbnail']
             ],
             include: [
@@ -135,6 +135,25 @@ class ProductV2Controller {
                             model: PtCatMstr,
                             as:'master_category',
                             attributes: []
+                        }, {
+                            model: InvcMstr.scope('gudangBarangJadi'),
+                            as: 'singular_product_quantity',
+                            required: true,
+                            attributes: [],
+                            where: {
+                                [Op.or]: [
+                                    {
+                                        invc_en_id: 1,
+                                        invc_loc_id: 10001,
+                                    }, {
+                                        invc_en_id: 2,
+                                        invc_loc_id: 200010,
+                                    }, {
+                                        invc_en_id: 3,
+                                        invc_loc_id: 300018,
+                                    }
+                                ]
+                            }
                         }, {
                             model: ProductJubelio,
                             as: 'singular_product_jubelio',
@@ -161,7 +180,7 @@ class ProductV2Controller {
             ],
             limit,
             offset,
-            logging: false
+            // logging: false
         })
 
         return {
@@ -201,6 +220,7 @@ class ProductV2Controller {
                     ['pt_code', 'product_code'],
                     'pt_en_id',
                     [Sequelize.col(`"singular_product_quantity"."invc_oid"`), 'invc_oid'],
+                    [Sequelize.col(`"singular_product_quantity"."invc_qty_available"`), 'quantity'],
                     [Sequelize.literal(`CASE WHEN "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
                     [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                     [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
