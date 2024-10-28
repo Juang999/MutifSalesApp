@@ -40,7 +40,7 @@ class CheckoutController {
                     let detailSalesQuotation = await this.generateDetailSalesQuotation(headerSalesQuotation, Auth.user(), t);
 
                     await this.createHeaderSalesQuotation(headerSalesQuotation, t);
-                    this.sleep(5000)
+                    this.sleep(1000)
                     await this.createDetailSalesQuotation(detailSalesQuotation, t);
                 }
 
@@ -294,7 +294,7 @@ class CheckoutController {
             //     status_transaction: headerSalesQuotation.sq_midtrans_inv_status, 
             //     sq_code: headerSalesQuotation.sq_midtrans_inv_number
             // }, dataProduct.dataValues.cs_oid)
-            await this.deleteDataChart(dataUser.userid, dataProduct.dataValues.cs_oid);
+            // await this.deleteDataChart(dataUser.userid, dataProduct.dataValues.cs_oid);
             baseSequence += 1;
         }
 
