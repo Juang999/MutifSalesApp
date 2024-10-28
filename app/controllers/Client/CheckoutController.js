@@ -151,6 +151,7 @@ class CheckoutController {
                 group: [
                     'cs_pt_en_id', 
                     'cs_pi_id',
+                    Sequelize.col(`"product"."pt_weight"`),
                     Sequelize.col(`"qty_location"."invc_loc_id"`)
                 ],
                 include: [
@@ -294,7 +295,7 @@ class CheckoutController {
             //     status_transaction: headerSalesQuotation.sq_midtrans_inv_status, 
             //     sq_code: headerSalesQuotation.sq_midtrans_inv_number
             // }, dataProduct.dataValues.cs_oid)
-            // await this.deleteDataChart(dataUser.userid, dataProduct.dataValues.cs_oid);
+            await this.deleteDataChart(dataUser.userid, dataProduct.dataValues.cs_oid);
             baseSequence += 1;
         }
 
