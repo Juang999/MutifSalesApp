@@ -145,7 +145,7 @@ class CheckoutController {
                     [Sequelize.col(`"qty_location"."invc_loc_id"`), 'loc_id'],
                     [Sequelize.literal(`ROUND(AVG("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"), 2)`), 'discount'],
                     [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'cs_qty'],
-                    [Sequelize.literal('CAST(SUM(cs_qty * "product"."pt_weight") AS INTEGER)'), 'total_weight_package'],
+                    [Sequelize.literal('CASE WHEN "product"."pt_weight" IS NULL THEN CAST(SUM(cs_qty * 600) AS INTEGER) ELSE CAST(SUM(cs_qty * "product"."pt_weight") AS INTEGER) END'), 'total_weight_package'],
                     [Sequelize.literal(`CAST(SUM((cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - (cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2))) AS INTEGER)`), 'total_price']
                 ],
                 group: [
