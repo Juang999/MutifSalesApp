@@ -151,7 +151,7 @@ class SalesController {
                 [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
                 [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
-                [Sequelize.literal('CASE WHEN "product->product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END'), 'photo'],
+                [Sequelize.literal('CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END'), 'photo'],
                 ['cs_created_at', 'created_at'],
                 ['cs_updated_at', 'updated_at'],
             ],
