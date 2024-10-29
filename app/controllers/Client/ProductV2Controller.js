@@ -152,10 +152,9 @@ class ProductV2Controller {
                         }
                     ],
                     where: {
-                        [Op.or]: [
-                            {pt_desc1: {[Op.iLike]: (search) ? `%${search}%` : '%%'}},
-                            {pt_code: {[Op.iLike]: (search) ? `%${search}%` : '%%'}},
-                        ]
+                        pt_desc1: {
+                            [Op.iLike]: (search) ? `%${search}%` : '%%'
+                        }
                     }
                 }, {
                     model: PiMstr.scope('priceListBersukaCita'),
