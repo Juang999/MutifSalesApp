@@ -106,8 +106,7 @@ class ProductV2Controller {
     getDataProducts = async (query) => {
         let currentPage = ('page' in query) ? query.page : 1;
         let search = ('search' in query) ? query.search : '';
-        let {page, limit, offset} = new Page(currentPage, 15);
-        let categoryId = ('categories' in query) ? (query.categories != '') ? query.categories : null : null;
+        let {page, limit, offset} = new Page(currentPage, 20);
 
         let {count, rows} = await PidDet.findAndCountAll({
             attributes: [
@@ -117,8 +116,8 @@ class ProductV2Controller {
                 [Sequelize.col('"product->master_category"."ptcat_desc"'), 'category'],
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_price" AS BIGINT)'), 'price'],
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_disc" AS BIGINT)'), 'discount'],
+                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'thumbnail'],
                 [Sequelize.literal(`CAST("product->singular_product_quantity"."invc_qty_available" AS INTEGER)`), 'qty'],
-                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'thumbnail']
             ],
             include: [
                 {
@@ -138,22 +137,7 @@ class ProductV2Controller {
                         }, {
                             model: InvcMstr.scope('gudangBarangJadi'),
                             as: 'singular_product_quantity',
-                            required: true,
                             attributes: [],
-                            where: {
-                                [Op.or]: [
-                                    {
-                                        invc_en_id: 1,
-                                        invc_loc_id: 10001,
-                                    }, {
-                                        invc_en_id: 2,
-                                        invc_loc_id: 200010,
-                                    }, {
-                                        invc_en_id: 3,
-                                        invc_loc_id: 300018,
-                                    }
-                                ]
-                            }
                         }, {
                             model: ProductJubelio,
                             as: 'singular_product_jubelio',
@@ -167,7 +151,12 @@ class ProductV2Controller {
                             ]
                         }
                     ],
-                    where: this.conditionProduct(search, categoryId)
+                    where: {
+                        [Op.or]: [
+                            {pt_desc1: {[Op.iLike]: (search) ? `%${search}%` : '%%'}},
+                            {pt_code: {[Op.iLike]: (search) ? `%${search}%` : '%%'}},
+                        ]
+                    }
                 }, {
                     model: PiMstr.scope('priceListBersukaCita'),
                     as: 'master_price_list',
@@ -180,7 +169,7 @@ class ProductV2Controller {
             ],
             limit,
             offset,
-            // logging: false
+            logging: false
         })
 
         return {
@@ -191,24 +180,6 @@ class ProductV2Controller {
             last_page: Math.ceil(count/limit), 
             total_page: Math.ceil(count/limit)
         };
-    }
-
-    conditionProduct = (searchName, productCategoryId) => {
-        let condition = {
-            [Op.or]: [
-                {pt_desc1: {[Op.iLike]: (searchName) ? `%${searchName}%` : '%%'}},
-                {pt_code: {[Op.iLike]: (searchName) ? `%${searchName}%` : '%%'}},
-            ],
-            pt_id: {
-                [Op.in]: Sequelize.literal(`(SELECT invc_pt_id FROM public.invc_mstr WHERE invc_loc_id IN (10001, 200010, 30008))`)
-            }
-        };
-
-        if (productCategoryId) {
-            condition.pt_cat_id = productCategoryId;
-        }
-
-        return condition;
     }
 
     getDataDetailProduct = async (productCode) => {
