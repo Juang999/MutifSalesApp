@@ -54,7 +54,7 @@ module.exports = (sequelize, DataTypes) => {
       gudangBarangJadi: {
         where: {
           invc_loc_id: {
-            [Op.in]: [10001, 200010, 30008]
+            [Op.in]: [10001, 200010, 300018]
           }
         }
       },
