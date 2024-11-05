@@ -48,7 +48,7 @@ class SalesV2Controller {
                                 }
                             ]
                         }, {
-                            model: InvcMstr.scope('gudangBarangJadi'),
+                            model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
                             as: 'singular_product_quantity',
                             attributes: [],
                         }, {

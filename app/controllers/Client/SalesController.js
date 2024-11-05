@@ -369,14 +369,9 @@ class SalesController {
                             attributes: [],
                             include: [
                                 {
-                                    model: InvcMstr,
+                                    model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
                                     as: 'singular_product_quantity',
                                     attributes: [],
-                                    where: {
-                                        invc_loc_id: {
-                                            [Op.in]: [10001, 200010, 300018]
-                                        }
-                                    }
                                 }, {
                                     model: PidDet,
                                     as: 'singular_relation_price_list',
