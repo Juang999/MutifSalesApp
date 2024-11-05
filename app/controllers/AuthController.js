@@ -4,14 +4,10 @@ const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
 const {info, error: errorLog} = require('../../helper/Logging')
 const {
-    PiMstr,
-    PidDet, PiddDet,
-    PtMstr, InvcMstr,
+    ArMstr,
     PtnrMstr, PtnrgGrp,
     Sequelize, ChartSales, 
-    PtnraAddr, PtnracCntc,
     TConfUser, TokenStorage,
-    ProductJubelio, ProductJubelioThumbnail
 } = require('../../models');
 const Auth = require('../../helper/Auth');
 
@@ -155,7 +151,7 @@ class AuthController {
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
                     [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' ELSE '0.30' END`), 'discount'],
-                    [Sequelize.literal(`COUNT(singular_chart_sales.cs_oid)`), 'products_in_chart']
+                    [Sequelize.literal(`COUNT(singular_chart_sales.cs_oid)`), 'products_in_chart'],
                 ],
                 include: [
                     {
@@ -208,6 +204,38 @@ class AuthController {
                     error: error.message
                 })
         }
+    }
+
+    getAccountReceivable = (req, res) => {
+        let {user_ptnr_id} = Auth.user();
+
+        ArMstr.findOne({
+            attributes: [
+                [Sequelize.literal(`CAST(SUM("ar_amount" - "ar_pay_amount") AS BIGINT)`), 'ar_total']
+            ],
+            where: {
+                ar_bill_to: user_ptnr_id
+            },
+            logging: false
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
     }
 
     createToken = (dataUser) => {
