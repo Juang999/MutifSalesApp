@@ -203,7 +203,7 @@ class ProductV2Controller {
                 ],
                 include: [
                     {
-                        model: InvcMstr.scope('gudangBarangJadi'),
+                        model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
                         as: 'singular_product_quantity',
                         attributes: [],
                     }, {

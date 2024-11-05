@@ -21,8 +21,8 @@ class CheckoutController {
         const t = await sequelize.transaction();
 
         try {
-            let RAW_DATA_HEADER_SQ = await this.getDataHeaderSalesQuotation(dataUser.userid);
-            let RAW_DATA_BODY_SQ = await this.getDataDetailSalesQuotation(dataUser);
+            let RAW_DATA_HEADER_SQ = this.getDataHeaderSalesQuotation(dataUser.userid);
+            let RAW_DATA_BODY_SQ = this.getDataDetailSalesQuotation(dataUser);
 
             let [dataHeaderSq, dataBodySq] = await Promise.all([RAW_DATA_HEADER_SQ, RAW_DATA_BODY_SQ])
 

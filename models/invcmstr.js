@@ -64,6 +64,22 @@ module.exports = (sequelize, DataTypes) => {
             [Op.not]: 0
           }
         }
+      },
+      gudangSesuaiDenganEntitas: {
+        where: {
+          [Op.or]: [
+            {
+                invc_en_id: 1,
+                invc_loc_id: 10001,
+            }, {
+                invc_en_id: 2,
+                invc_loc_id: 200010,
+            }, {
+                invc_en_id: 3,
+                invc_loc_id: 300018,
+            }
+        ]
+        }
       }
     }
   });

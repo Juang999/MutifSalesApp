@@ -81,7 +81,7 @@ class SalesController {
     }
 
     getStock = async (ptId, transaction) => {
-        let data = await InvcMstr.scope('gudangBarangJadi').findOne({
+        let data = await InvcMstr.scope('gudangSesuaiDenganEntitas').findOne({
             attributes: [
                 'invc_qty_available',
                 'invc_qty_booked'
