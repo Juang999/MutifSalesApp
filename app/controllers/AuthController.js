@@ -179,6 +179,7 @@ class AuthController {
                     userid
                 },
                 group: [
+                    'ptnr_id',
                     'ptnr_name',
                     'usernama',
                     'group_id',
