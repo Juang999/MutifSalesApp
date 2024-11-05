@@ -148,6 +148,7 @@ class AuthController {
 
             let dataProfile = await TConfUser.findOne({
                 attributes: [
+                    [Sequelize.col(`"detail_partner"."ptnr_id"`), 'ptnr_id'],
                     [Sequelize.col('"detail_partner"."ptnr_name"'), 'ptnr_name'],
                     ['usernama', 'username'],
                     [Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'), 'group_id'],
