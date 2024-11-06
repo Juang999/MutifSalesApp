@@ -236,6 +236,7 @@ class AuthController {
     getAccountReceivable = async (partnerId) => {
         let result = await ArMstr.findAll({
                 attributes: [
+                    'ar_oid',
                     ['ar_code', 'account_receivable_code'],
                     ['ar_remarks', 'salesorder_code'],
                     ['ar_amount', 'amount'],
@@ -287,7 +288,7 @@ class AuthController {
                 }
             ],
             where: {
-                ar_code: req.params.arCode,
+                ar_oid: req.params.arOid,
                 ar_bill_to: Auth.user().user_ptnr_id
             },
             logging: false
