@@ -14,6 +14,6 @@ router.post('/login', AuthRequest, loginClient);
 router.get('/profile', AuthMiddleware, getProfile);
 router.post('/admin/login', AuthRequest, loginAdmin);
 router.get('/account-receivable', AuthMiddleware, getDataAccountReceivable);
-router.get('/:arCode/detail-account-receivable', AuthMiddleware, getDetailAccountReceivable);
+router.get('/:arOid/detail-account-receivable', AuthMiddleware, getDetailAccountReceivable);
 
 module.exports = router;
