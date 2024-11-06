@@ -11,6 +11,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      ArMstr.hasMany(models.ArdDist, {
+        as: 'detail_account_receivable',
+        sourceKey: 'ar_oid',
+        foreignKey: 'ard_ar_oid'
+      })
     }
   }
   ArMstr.init({
