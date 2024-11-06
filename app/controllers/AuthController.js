@@ -1,8 +1,9 @@
 const {Op} = require('sequelize');
 const jwt = require('jsonwebtoken');
+const Page = require('../../helper/Page');
 const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
-const {info, error: errorLog} = require('../../helper/Logging')
+const {info, error: errorLog} = require('../../helper/Logging');
 const {
     ArMstr, ArdDist,
     PtnrMstr, PtnrgGrp,
@@ -206,19 +207,24 @@ class AuthController {
         }
     }
 
-    getDataAccountReceivable = (req, res) => {
+    sumAccountReceivable = (req, res) => {
         let {user_ptnr_id} = Auth.user();
 
-        Promise.all([this.getAccountReceivable(user_ptnr_id), this.sumAccountReceivable(user_ptnr_id)])
-        .then(([dataAr, totalAr]) => {
+        ArMstr.findOne({
+            attributes: [
+                [Sequelize.literal(`CAST(SUM("ar_amount" - "ar_pay_amount") AS BIGINT)`), 'ar_total']
+            ],
+            where: {
+                ar_bill_to: user_ptnr_id
+            },
+            logging: false
+        })
+        .then(result => {
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: {
-                        data: dataAr,
-                        ar_total: totalAr.dataValues.ar_total
-                    },
+                    data: result,
                     error: null
                 })
         })
@@ -233,36 +239,54 @@ class AuthController {
         })
     }
 
-    getAccountReceivable = async (partnerId) => {
-        let result = await ArMstr.findAll({
-                attributes: [
-                    'ar_oid',
-                    ['ar_code', 'account_receivable_code'],
-                    ['ar_remarks', 'salesorder_code'],
-                    ['ar_amount', 'amount'],
-                    ['ar_pay_amount', 'paid']
-                ],
-                where: {
-                    ar_bill_to: partnerId
-                },
-                logging: false
-            })
+    getAccountReceivable = (req, res) => {
+        let {user_ptnr_id} = Auth.user();
+        let currentPage = (req.query.page) ? parseInt(req.query.page) : 1;
+        const {limit, offset} = new Page(currentPage, 20);
 
-        return result;
-    }
-
-    sumAccountReceivable = async (partnerId) => {
-        let result = await ArMstr.findOne({
-                attributes: [
-                    [Sequelize.literal(`CAST(SUM("ar_amount" - "ar_pay_amount") AS BIGINT)`), 'ar_total']
-                ],
-                where: {
-                    ar_bill_to: partnerId
-                },
-                logging: false
-            })
-
-        return result;
+        ArMstr.findAndCountAll({
+            attributes: [
+                'ar_oid',
+                ['ar_code', 'account_receivable_code'],
+                ['ar_remarks', 'salesorder_code'],
+                ['ar_amount', 'amount'],
+                ['ar_date', 'date'],
+                ['ar_pay_amount', 'paid']
+            ],
+            where: {
+                ar_bill_to: user_ptnr_id
+            },
+            order: [
+                ['ar_date', 'DESC']
+            ],
+            limit,
+            offset,
+            // logging: false,
+        })
+        .then(({count, rows}) => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: {
+                        data: rows,
+                        total_data: count,
+                        current_page: currentPage,
+                        last_page: Math.ceil(count / limit),
+                        total_page: Math.ceil(count / limit)
+                    },
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
     }
 
     getDetailAccountReceivable = (req, res) => {
