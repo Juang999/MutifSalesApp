@@ -4,7 +4,7 @@ const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
 const {info, error: errorLog} = require('../../helper/Logging')
 const {
-    ArMstr,
+    ArMstr, ArdDist,
     PtnrMstr, PtnrgGrp,
     Sequelize, ChartSales, 
     TConfUser, TokenStorage,
@@ -206,15 +206,89 @@ class AuthController {
         }
     }
 
-    getAccountReceivable = (req, res) => {
+    getDataAccountReceivable = (req, res) => {
         let {user_ptnr_id} = Auth.user();
 
+        Promise.all([this.getAccountReceivable(user_ptnr_id), this.sumAccountReceivable(user_ptnr_id)])
+        .then(([dataAr, totalAr]) => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: {
+                        data: dataAr,
+                        ar_total: totalAr.dataValues.ar_total
+                    },
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    getAccountReceivable = async (partnerId) => {
+        let result = await ArMstr.findAll({
+                attributes: [
+                    ['ar_code', 'account_receivable_code'],
+                    ['ar_remarks', 'salesorder_code'],
+                    ['ar_amount', 'amount'],
+                    ['ar_pay_amount', 'paid']
+                ],
+                where: {
+                    ar_bill_to: partnerId
+                },
+                logging: false
+            })
+
+        return result;
+    }
+
+    sumAccountReceivable = async (partnerId) => {
+        let result = await ArMstr.findOne({
+                attributes: [
+                    [Sequelize.literal(`CAST(SUM("ar_amount" - "ar_pay_amount") AS BIGINT)`), 'ar_total']
+                ],
+                where: {
+                    ar_bill_to: partnerId
+                },
+                logging: false
+            })
+
+        return result;
+    }
+
+    getDetailAccountReceivable = (req, res) => {
         ArMstr.findOne({
             attributes: [
-                [Sequelize.literal(`CAST(SUM("ar_amount" - "ar_pay_amount") AS BIGINT)`), 'ar_total']
+                ['ar_code', 'account_receivable_code'],
+                ['ar_remarks', 'salesorder_code'],
+                ['ar_date', 'date'],
+                ['ar_eff_date', 'effective_date'],
+                ['ar_status', 'status'],
+                ['ar_amount', 'amount'],
+                ['ar_pay_amount', 'paid']
+            ],
+            include: [
+                {
+                    model: ArdDist,
+                    as: 'detail_account_receivable',
+                    attributes: [
+                        'ard_ac_id',
+                        'ard_amount',
+                        'ard_remarks'
+                    ]
+                }
             ],
             where: {
-                ar_bill_to: user_ptnr_id
+                ar_code: req.params.arCode,
+                ar_bill_to: Auth.user().user_ptnr_id
             },
             logging: false
         })
