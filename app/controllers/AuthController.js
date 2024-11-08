@@ -242,7 +242,8 @@ class AuthController {
     getAccountReceivable = (req, res) => {
         let {user_ptnr_id} = Auth.user();
         let currentPage = (req.query.page) ? parseInt(req.query.page) : 1;
-        const {limit, offset} = new Page(currentPage, 20);
+        let {limit, offset} = new Page(currentPage, 20);
+        let search = (req.query.search) ? `${req.query.search}` : '';
 
         ArMstr.findAndCountAll({
             attributes: [
@@ -254,14 +255,17 @@ class AuthController {
                 ['ar_pay_amount', 'paid']
             ],
             where: {
-                ar_bill_to: user_ptnr_id
+                ar_bill_to: user_ptnr_id,
+                ar_remarks: {
+                    [Op.iLike]: `%${search}%`
+                }
             },
             order: [
                 ['ar_date', 'DESC']
             ],
             limit,
             offset,
-            // logging: false,
+            logging: false,
         })
         .then(({count, rows}) => {
             res.status(200)
