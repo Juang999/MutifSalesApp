@@ -127,6 +127,34 @@ class WishlistController {
                 })
         })
     }
+
+    destroy = (req, res) => {
+        Wishlist.destroy({
+            where: {
+                wl_oid: req.params.wishlistOid,
+                wl_user_id: Auth.user().userid
+            },
+            logging: false
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
 }
 
 module.exports = new WishlistController();
