@@ -24,6 +24,7 @@ app.use('/', require('./routes/index'));
 app.use('/users', require('./routes/users'));
 
 // routes for client
+app.use('/wishlist', require('./routes/Client/wishlist'));
 app.use('/client/sales', require('./routes/Client/sales'));
 app.use('/client/product', require('./routes/Client/product'));
 
