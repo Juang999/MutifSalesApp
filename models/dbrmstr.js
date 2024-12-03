@@ -11,10 +11,30 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      DbrMstr.hasMany(models.DbrdDet, {
+        as: 'detail_point',
+        sourceKey: 'dbr_oid',
+        foreignKey: 'dbrd_dbr_oid'
+      })
+
+      DbrMstr.hasOne(models.DbrdDet, {
+        as: 'singular_detail_point',
+        sourceKey: 'dbr_oid',
+        foreignKey: 'dbrd_dbr_oid'
+      })
+
+      DbrMstr.belongsTo(models.SlsProgram, {
+        as: 'sales_program',
+        foreignKey: 'dbr_slsprog_id',
+        targetKey: 'sls_id'
+      })
     }
   }
   DbrMstr.init({
-    dbr_oid: DataTypes.UUID,
+    dbr_oid: {
+      type: DataTypes.UUID,
+      primaryKey: true
+    },
     dbr_code: DataTypes.STRING,
     dbr_date: DataTypes.DATEONLY,
     dbr_dbgcity_id: DataTypes.INTEGER,

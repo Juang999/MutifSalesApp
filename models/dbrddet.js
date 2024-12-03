@@ -11,6 +11,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      DbrdDet.belongsTo(models.DbrMstr, {
+        as: 'master_point',
+        targetKey: 'dbr_oid',
+        foreignKey: 'dbrd_dbr_oid'
+      })
     }
   }
   DbrdDet.init({
