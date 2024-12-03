@@ -57,7 +57,7 @@ class PointController {
     } 
 
     getDetailPoint = async (ptnrId) => {
-        let data = await DbrdDet.findOne({
+        let data = await DbrdDet.findAll({
             attributes: [
                 [Sequelize.col(`"master_point->sales_program"."sls_name"`), 'sales_program'],
                 [Sequelize.literal(`CAST(SUM(dbrd_point) AS INTEGER)`), 'sum_point'],
