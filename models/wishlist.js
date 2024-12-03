@@ -48,7 +48,9 @@ module.exports = (sequelize, DataTypes) => {
     wl_invc_oid: DataTypes.UUID,
     wl_pi_id: DataTypes.INTEGER,
     wl_created_at: DataTypes.DATE,
-    wl_updated_at: DataTypes.DATE
+    wl_updated_at: DataTypes.DATE,
+    wl_sq_oid: DataTypes.UUID,
+    wl_status: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',

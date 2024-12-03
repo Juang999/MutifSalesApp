@@ -27,6 +27,7 @@ class WishlistController {
                 [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NOT NULL THEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" ELSE NULL END`), 'photo'],
                 ['wl_created_at', 'created_at'],
                 ['wl_updated_at', 'updated_at'],
+                ['wl_status', 'status']
             ],
             include: [
                 {
@@ -96,28 +97,67 @@ class WishlistController {
         })
     }
 
-    store = (req, res) => {
-        Wishlist.create({
-            wl_oid: uuidv4(),
-            wl_user_id: Auth.user().userid,
-            wl_pt_id: req.body.product_id,
-            wl_qty: req.body.quantity,
-            wl_en_id: req.body.entity_id,
-            wl_invc_oid: req.body.inventory_oid,
-            wl_pi_id: req.body.pricelist_id,
-            wl_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            wl_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
-        })
-        .then(result => {
+    store = async (req, res) => {
+        try {
+            let dataOld = await this.getDataWishlist(req.body.product_id, Auth.user().userid);
+
+            if (dataOld == null) {
+                await this.createWishlist(req.body);
+            } else {
+                let {dataValues} = dataOld;
+                await this.updateWishlist(req.body, dataValues.wl_oid, dataValues.wl_qty);
+            }
+
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'data berhasil ditambahkan',
+                    data: true,
+                    error: null
+                })
+        } catch (error) {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: error.message
+                })
+        }
+    }
+
+    destroy = async (req, res) => {
+        try {
+            let statusWishlist = await this.checkWishlistStatus(req.params.wishlistOid);
+
+            if (statusWishlist == false) {
+                res.status(300)
+                    .json({
+                        status: 'failed',
+                        message: 'produk sudah diorder!',
+                        data: null,
+                        error: null
+                    });
+
+                return;
+            }
+
+            await Wishlist.destroy({
+                where: {
+                    wl_oid: req.params.wishlistOid,
+                    wl_user_id: Auth.user().userid
+                },
+                logging: false
+            })
+
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: result,
+                    data: 1,
                     error: null
                 })
-        })
-        .catch(err => {
+        } catch (error) {
             res.status(400)
                 .json({
                     status: 'failed',
@@ -125,34 +165,66 @@ class WishlistController {
                     data: null,
                     error: err.message
                 })
-        })
+        }
     }
 
-    destroy = (req, res) => {
-        Wishlist.destroy({
+    checkWishlistStatus = async (wishlistOid) => {
+        let dataResult = await Wishlist.findOne({
+            attributes: [
+                [Sequelize.literal(`CASE WHEN wl_status != 'wishlist' THEN FALSE ELSE TRUE END`), 'wishlist_status']
+            ],
             where: {
-                wl_oid: req.params.wishlistOid,
+                wl_oid: wishlistOid,
                 wl_user_id: Auth.user().userid
             },
             logging: false
+        });
+
+        return (dataResult) ? dataResult.dataValues.wishlist_status : false;
+    }
+
+    getDataWishlist = async (productId, userId) => {
+        let data = await Wishlist.findOne({
+            attributes: [
+                'wl_oid',
+                [Sequelize.literal('CAST(wl_qty AS INTEGER)'), 'wl_qty']
+            ],
+            where: {
+                wl_pt_id: productId,
+                wl_user_id: userId,
+                wl_status: 'wishlist'
+            },
+            logging: false
         })
-        .then(result => {
-            res.status(200)
-                .json({
-                    status: 'success',
-                    message: 'ok',
-                    data: result,
-                    error: null
-                })
+
+        return data;
+    }
+
+    createWishlist = async (request) => {
+        await Wishlist.create({
+            wl_oid: uuidv4(),
+            wl_user_id: Auth.user().userid,
+            wl_pt_id: request.product_id,
+            wl_qty: request.quantity,
+            wl_en_id: request.entity_id,
+            wl_invc_oid: request.inventory_oid,
+            wl_pi_id: request.pricelist_id,
+            wl_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            wl_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            wl_status: 'wishlist'
+        }, {
+            logging: false
         })
-        .catch(err => {
-            res.status(400)
-                .json({
-                    status: 'failed',
-                    message: 'error',
-                    data: null,
-                    error: err.message
-                })
+    }
+
+    updateWishlist = async (request, wishlistOid, qtyOld) => {
+        await Wishlist.update({
+            wl_qty: qtyOld + parseInt(request.quantity)
+        }, {
+            where: {
+                wl_oid: wishlistOid
+            },
+            logging: false
         })
     }
 }
