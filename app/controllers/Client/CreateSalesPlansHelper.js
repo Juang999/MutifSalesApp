@@ -14,6 +14,17 @@ class CreateSalesPlansHelper {
         await this.inputProductSalesPlans(dataHeader, request);
     }
 
+    deleteProductSalesPlans = async (request, entityId) => {
+        let {dataValues} = await this.checkProductSalesPlan(request.product_id, entityId);
+
+        if (dataValues.plansptd_amount - parseInt(request.quantity) <= 0) {
+            await this.destroyProductSalesPlan(dataValues.plans_oid, request.product_id);
+        } else {
+            let totalAmount = dataValues.plansptd_amount - parseInt(request.quantity);
+            await this.decreaseProductSalesPlan(dataValues.plans_oid, request.product_id, totalAmount);
+        }
+    }
+
     inputHeaderSalesPlans = async (request) => {
         var result;
 
@@ -55,6 +66,7 @@ class CreateSalesPlansHelper {
         const productSalesPlan = await PlansptdDet.findOne({
             attributes: [
                 'plansptd_oid',
+                ['plansptd_plans_oid', 'plans_oid'],
                 [Sequelize.literal(`CAST(plansptd_amount AS INTEGER)`), 'plansptd_amount']
             ],
             where: {
@@ -150,6 +162,28 @@ class CreateSalesPlansHelper {
             where: {
                 plansptd_plans_oid: plansOid,
                 plansptd_pt_id: request.product_id
+            },
+            logging: false
+        })
+    }
+
+    decreaseProductSalesPlan = async (plansOid, productId, amount) => {
+        await PlansptdDet.update({
+            plansptd_amount: amount
+        }, {
+            where: {
+                plansptd_plans_oid: plansOid,
+                plansptd_pt_id: productId
+            },
+            logging: false
+        })
+    }
+
+    destroyProductSalesPlan = async (plansOid, productId) => {
+        await PlansptdDet.destroy({
+            where: {
+                plansptd_plans_oid: plansOid,
+                plansptd_pt_id: productId
             },
             logging: false
         })

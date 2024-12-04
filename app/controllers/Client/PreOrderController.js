@@ -8,7 +8,7 @@ const moment = require('moment');
 const {Op} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
-const {inputSalesPlans} = require('./CreateSalesPlansHelper');
+const {inputSalesPlans, deleteProductSalesPlans} = require('./CreateSalesPlansHelper');
 
 class PreOrderController {
     index = (req, res) => {
@@ -132,6 +132,50 @@ class PreOrderController {
         }
     }
 
+    destroy = async (req, res) => {
+        try {
+            let dataProduct = await this.findDataProduct(req.params.wishlistOid);
+
+            if (dataProduct) {
+                let {dataValues} = dataProduct;
+                await Promise.all([this.destroyDataProduct(req.params.wishlistOid, deleteProductSalesPlans(dataValues, dataValues.entity_id))]);
+            }
+
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'data berhasil dihapus',
+                    data: true,
+                    error: null
+                })
+        } catch (error) {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: error.message
+                })
+        }
+    }
+
+    findDataProduct = async (wishlistOid) => {
+        let data = await Wishlist.findOne({
+            attributes: [
+                'wl_oid',
+                ['wl_pt_id', 'product_id'],
+                ['wl_en_id', 'entity_id'],
+                [Sequelize.literal(`CAST(wl_qty AS INTEGER)`), 'quantity']
+            ],
+            where: {
+                wl_oid: wishlistOid
+            },
+            logging: false
+        });
+
+        return data;
+    }
+
     checkDataProduct = async (productId, userId) => {
         let data = await Wishlist.findOne({
             attributes: [
@@ -178,6 +222,15 @@ class PreOrderController {
             },
             logging: false
         })
+    }
+
+    destroyDataProduct = async (wishlistOid) => {
+        await Wishlist.destroy({
+            where: {
+                wl_oid: wishlistOid
+            },
+            logging: false
+        });
     }
 }
 
