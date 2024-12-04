@@ -50,7 +50,8 @@ module.exports = (sequelize, DataTypes) => {
     wl_created_at: DataTypes.DATE,
     wl_updated_at: DataTypes.DATE,
     wl_sq_oid: DataTypes.UUID,
-    wl_status: DataTypes.STRING
+    wl_status: DataTypes.STRING,
+    wl_is_po: DataTypes.BOOLEAN
   }, {
     sequelize,
     schema: 'public',

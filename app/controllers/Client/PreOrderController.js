@@ -1,16 +1,16 @@
 const {
-    PiddDet, PiMstr,
-    Wishlist, PtMstr,
-    InvcMstr, PidDet,
-    Sequelize, sequelize,
-    ProductJubelio, ProductJubelioThumbnail
+    PtMstr, PidDet,
+    Wishlist,Sequelize,
+    PiddDet, ProductJubelio,
+    ProductJubelioThumbnail, InvcMstr,
 } = require('../../../models');
-const Auth = require('../../../helper/Auth');
-const {v4: uuidv4} = require('uuid');
 const moment = require('moment');
-const {Op} = require('sequelize')
+const {Op} = require('sequelize');
+const {v4: uuidv4} = require('uuid');
+const Auth = require('../../../helper/Auth');
+const {inputSalesPlans} = require('./CreateSalesPlansHelper');
 
-class WishlistController {
+class PreOrderController {
     index = (req, res) => {
         Wishlist.findAll({
             attributes: [
@@ -74,7 +74,7 @@ class WishlistController {
                         [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = wl_pi_id)`)
                     }),
                     Sequelize.where(Sequelize.col(`wl_is_po`), {
-                        [Op.eq]: false
+                        [Op.eq]: true
                     })
                 ]
             },
@@ -90,7 +90,7 @@ class WishlistController {
                 })
         })
         .catch(err => {
-            res.status(500)
+            res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
@@ -102,18 +102,21 @@ class WishlistController {
 
     store = async (req, res) => {
         try {
-            let dataOld = await this.getDataWishlist(req.body.product_id, Auth.user().userid);
+            const {userid} = Auth.user();
+            let dataChecked = await this.checkDataProduct(req.body.product_id, userid);
 
-            if (dataOld == null) {
-                await this.createWishlist(req.body);
+            if (!dataChecked) {
+                await this.createDataPreOrder(req.body, userid);
             } else {
-                let {dataValues} = dataOld;
-                await this.updateWishlist(req.body, dataValues.wl_oid, dataValues.wl_qty);
+                const {dataValues} = dataChecked;
+                await this.updateDataPreOrder(req.body, dataValues.wl_oid, dataValues.wl_qty);
             }
+
+            await inputSalesPlans(req.body);
 
             res.status(200)
                 .json({
-                    status: 'success',
+                    status:'success',
                     message: 'data berhasil ditambahkan',
                     data: true,
                     error: null
@@ -129,64 +132,7 @@ class WishlistController {
         }
     }
 
-    destroy = async (req, res) => {
-        try {
-            let statusWishlist = await this.checkWishlistStatus(req.params.wishlistOid);
-
-            if (statusWishlist == false) {
-                res.status(300)
-                    .json({
-                        status: 'failed',
-                        message: 'produk sudah diorder!',
-                        data: null,
-                        error: null
-                    });
-
-                return;
-            }
-
-            await Wishlist.destroy({
-                where: {
-                    wl_oid: req.params.wishlistOid,
-                    wl_user_id: Auth.user().userid
-                },
-                logging: false
-            })
-
-            res.status(200)
-                .json({
-                    status: 'success',
-                    message: 'ok',
-                    data: 1,
-                    error: null
-                })
-        } catch (error) {
-            res.status(400)
-                .json({
-                    status: 'failed',
-                    message: 'error',
-                    data: null,
-                    error: err.message
-                })
-        }
-    }
-
-    checkWishlistStatus = async (wishlistOid) => {
-        let dataResult = await Wishlist.findOne({
-            attributes: [
-                [Sequelize.literal(`CASE WHEN wl_status != 'wishlist' THEN FALSE ELSE TRUE END`), 'wishlist_status']
-            ],
-            where: {
-                wl_oid: wishlistOid,
-                wl_user_id: Auth.user().userid
-            },
-            logging: false
-        });
-
-        return (dataResult) ? dataResult.dataValues.wishlist_status : false;
-    }
-
-    getDataWishlist = async (productId, userId) => {
+    checkDataProduct = async (productId, userId) => {
         let data = await Wishlist.findOne({
             attributes: [
                 'wl_oid',
@@ -195,7 +141,8 @@ class WishlistController {
             where: {
                 wl_pt_id: productId,
                 wl_user_id: userId,
-                wl_status: 'wishlist'
+                wl_is_po: true,
+                wl_status: 'pre-order'
             },
             logging: false
         })
@@ -203,33 +150,35 @@ class WishlistController {
         return data;
     }
 
-    createWishlist = async (request) => {
+    createDataPreOrder = async (request, userId) => {
         await Wishlist.create({
             wl_oid: uuidv4(),
-            wl_user_id: Auth.user().userid,
             wl_pt_id: request.product_id,
             wl_qty: request.quantity,
+            wl_user_id: userId,
             wl_en_id: request.entity_id,
             wl_invc_oid: request.inventory_oid,
             wl_pi_id: request.pricelist_id,
             wl_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             wl_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            wl_status: 'wishlist'
+            wl_status: 'pre-order',
+            wl_is_po: true,
         }, {
             logging: false
         })
     }
 
-    updateWishlist = async (request, wishlistOid, qtyOld) => {
+    updateDataPreOrder = async (request, wishlistOid, quantityOld) => {
         await Wishlist.update({
-            wl_qty: qtyOld + parseInt(request.quantity)
+            wl_qty: parseInt(quantityOld) + parseInt(request.quantity),
+            wl_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
         }, {
             where: {
-                wl_oid: wishlistOid
+                wl_oid: wishlistOid,
             },
             logging: false
         })
     }
 }
 
-module.exports = new WishlistController();
+module.exports = new PreOrderController();
