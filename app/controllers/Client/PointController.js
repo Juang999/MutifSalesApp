@@ -60,6 +60,7 @@ class PointController {
         let data = await DbrdDet.findAll({
             attributes: [
                 [Sequelize.col(`"master_point->sales_program"."sls_name"`), 'sales_program'],
+                [Sequelize.literal('CAST(0 AS INTEGER)'), 'target_point'],
                 [Sequelize.literal(`CAST(SUM(dbrd_point) AS INTEGER)`), 'sum_point'],
                 [Sequelize.literal(`CAST(SUM(dbrd_tot_point) AS INTEGER)`), 'sum_total_point'],
             ],
