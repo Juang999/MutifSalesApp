@@ -188,7 +188,7 @@ class AuthController {
                     'group_name',
                     'discount'
                 ],
-                // logging: false
+                logging: false
             });
 
             res.status(200)
