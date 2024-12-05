@@ -178,24 +178,16 @@ class AuthController {
                         model: Wishlist.scope('isWishlist'),
                         as: 'singular_wishlist',
                         attributes: [],
+                        required: false
                     }, {
                         model: Wishlist.scope('isPreOrder'),
                         as: 'singular_pre_order',
                         attributes: [],
+                        required: false
                     }
                 ],
                 where: {
-                    [Op.and]: [
-                        Sequelize.where(Sequelize.col('userid'), {
-                            [Op.eq]: userid
-                        }),
-                        Sequelize.where(Sequelize.col('"singular_wishlist"."wl_user_id"'), {
-                            [Op.eq]: userid
-                        }), 
-                        Sequelize.where(Sequelize.col('"singular_wishlist"."wl_user_id"'), {
-                            [Op.eq]: userid
-                        })
-                    ]
+                    userid,
                 },
                 group: [
                     'ptnr_id',
@@ -206,7 +198,7 @@ class AuthController {
                     'group_name',
                     'discount'
                 ],
-                logging: false
+                // logging: false
             });
 
             res.status(200)
