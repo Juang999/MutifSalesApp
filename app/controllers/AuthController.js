@@ -154,8 +154,8 @@ class AuthController {
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
                     [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' ELSE '0.30' END`), 'discount'],
                     [Sequelize.literal(`COUNT(singular_chart_sales.cs_oid)`), 'products_in_chart'],
-                    [Sequelize.literal(`COUNT(singular_wishlist.wl_oid)`), 'products_wishlist'],
-                    [Sequelize.literal(`COUNT(singular_pre_order.wl_oid)`), 'products_pre_order'],
+                    [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userid} AND wl_is_po = FALSE)`), 'products_wishlist'],
+                    [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userid} AND wl_is_po = TRUE)`), 'products_pre_order'],
                 ],
                 include: [
                     {
@@ -174,16 +174,6 @@ class AuthController {
                         model: ChartSales,
                         as: 'singular_chart_sales',
                         attributes: []
-                    }, {
-                        model: Wishlist.scope('isWishlist'),
-                        as: 'singular_wishlist',
-                        attributes: [],
-                        required: false
-                    }, {
-                        model: Wishlist.scope('isPreOrder'),
-                        as: 'singular_pre_order',
-                        attributes: [],
-                        required: false
                     }
                 ],
                 where: {
