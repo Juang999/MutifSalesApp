@@ -5,6 +5,7 @@ const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
 const {info, error: errorLog} = require('../../helper/Logging');
 const {
+    Wishlist,
     ArMstr, ArdDist,
     PtnrMstr, PtnrgGrp,
     Sequelize, ChartSales, 
@@ -153,6 +154,8 @@ class AuthController {
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
                     [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' ELSE '0.30' END`), 'discount'],
                     [Sequelize.literal(`COUNT(singular_chart_sales.cs_oid)`), 'products_in_chart'],
+                    [Sequelize.literal(`COUNT(singular_wishlist.wl_oid)`), 'products_wishlist'],
+                    [Sequelize.literal(`COUNT(singular_pre_order.wl_oid)`), 'products_pre_order'],
                 ],
                 include: [
                     {
@@ -166,14 +169,33 @@ class AuthController {
                                 attributes: []
                             }
                         ]
-                    }, {
+                    },
+                    {
                         model: ChartSales,
                         as: 'singular_chart_sales',
                         attributes: []
+                    }, {
+                        model: Wishlist.scope('isWishlist'),
+                        as: 'singular_wishlist',
+                        attributes: [],
+                    }, {
+                        model: Wishlist.scope('isPreOrder'),
+                        as: 'singular_pre_order',
+                        attributes: [],
                     }
                 ],
                 where: {
-                    userid
+                    [Op.and]: [
+                        Sequelize.where(Sequelize.col('userid'), {
+                            [Op.eq]: userid
+                        }),
+                        Sequelize.where(Sequelize.col('"singular_wishlist"."wl_user_id"'), {
+                            [Op.eq]: userid
+                        }), 
+                        Sequelize.where(Sequelize.col('"singular_wishlist"."wl_user_id"'), {
+                            [Op.eq]: userid
+                        })
+                    ]
                 },
                 group: [
                     'ptnr_id',
