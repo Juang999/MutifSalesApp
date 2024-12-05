@@ -17,8 +17,10 @@ class PointController {
                     status:'success',
                     message: 'ok',
                     data: {
-                        sum_point: master.sum_point,
-                        sum_total_point: master.sum_total_point,
+                        start_point: master.earn_point,
+                        earn_point: master.earn_point,
+                        earn_total_point: master.earn_total_point,
+                        target_point: master.target_point,
                         detail
                     },
                     error: null
@@ -38,8 +40,10 @@ class PointController {
     getTotalPoint = async (ptnrId) => {
         let data = await DbrdDet.findOne({
             attributes: [
-                [Sequelize.literal(`CAST(SUM(dbrd_point) AS INTEGER)`), 'sum_point'],
-                [Sequelize.literal(`CAST(SUM(dbrd_tot_point) AS INTEGER)`), 'sum_total_point'],
+                [Sequelize.literal('CAST(0 AS INTEGER)'), 'start_point'],
+                [Sequelize.literal(`CAST(SUM(dbrd_point) AS INTEGER)`), 'earn_point'],
+                [Sequelize.literal(`CAST(SUM(dbrd_tot_point) AS INTEGER)`), 'earn_total_point'],
+                [Sequelize.literal('CAST(0 AS INTEGER)'), 'target_point'],
             ],
             where: {
                 dbrd_dbr_oid: {
@@ -51,8 +55,10 @@ class PointController {
         })
 
         return {
-            sum_point: (data) ? data.dataValues.sum_point : null,
-            sum_total_point: (data)? data.dataValues.sum_total_point : null,
+            start_point: (data) ? data.dataValues.start_point : null, 
+            earn_point: (data) ? data.dataValues.earn_point : null,
+            earn_total_point: (data)? data.dataValues.earn_total_point : null,
+            target_point: (data) ? data.dataValues.target_point : null, 
         }
     } 
 
@@ -60,9 +66,10 @@ class PointController {
         let data = await DbrdDet.findAll({
             attributes: [
                 [Sequelize.col(`"master_point->sales_program"."sls_name"`), 'sales_program'],
+                [Sequelize.literal('CAST(0 AS INTEGER)'), 'start_point'],
+                [Sequelize.literal(`CAST(SUM(dbrd_point) AS INTEGER)`), 'earn_point'],
+                [Sequelize.literal(`CAST(SUM(dbrd_tot_point) AS INTEGER)`), 'earn_total_point'],
                 [Sequelize.literal('CAST(0 AS INTEGER)'), 'target_point'],
-                [Sequelize.literal(`CAST(SUM(dbrd_point) AS INTEGER)`), 'sum_point'],
-                [Sequelize.literal(`CAST(SUM(dbrd_tot_point) AS INTEGER)`), 'sum_total_point'],
             ],
             include: [
                 {

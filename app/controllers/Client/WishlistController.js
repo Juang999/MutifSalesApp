@@ -214,7 +214,8 @@ class WishlistController {
             wl_pi_id: request.pricelist_id,
             wl_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             wl_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            wl_status: 'wishlist'
+            wl_status: 'wishlist',
+            wl_is_po: false
         }, {
             logging: false
         })
