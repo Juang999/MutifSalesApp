@@ -58,6 +58,18 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'wishlists',
     timestamps: false,
     modelName: 'Wishlist',
+    scopes: {
+      isWishlist: {
+        where: {
+          wl_is_po: false
+        }
+      },
+      isPreOrder: {
+        where: {
+          wl_is_po: true
+        }
+      }
+    }
   });
   return Wishlist;
 };
