@@ -135,7 +135,7 @@ class ProductV2Controller {
                             as:'master_category',
                             attributes: []
                         }, {
-                            model: InvcMstr.scope('gudangBarangJadi'),
+                            model: InvcMstr.scope('gudangReguler'),
                             as: 'singular_product_quantity',
                             attributes: [],
                         }, {
@@ -157,7 +157,7 @@ class ProductV2Controller {
                         }
                     }
                 }, {
-                    model: PiMstr.scope('priceListBersukaCita'),
+                    model: PiMstr.scope('priceListDistributor'),
                     as: 'master_price_list',
                     attributes: [],
                 }, {
@@ -168,6 +168,7 @@ class ProductV2Controller {
             ],
             limit,
             offset,
+            order: [[Sequelize.col('"product"."pt_desc1"'), 'ASC']],
             logging: false
         })
 
@@ -203,7 +204,7 @@ class ProductV2Controller {
                 ],
                 include: [
                     {
-                        model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
+                        model: InvcMstr.scope('gudangReguler'),
                         as: 'singular_product_quantity',
                         attributes: [],
                     }, {
@@ -227,7 +228,7 @@ class ProductV2Controller {
                                 as: 'singular_detail_price_list',
                                 attributes: [],
                             }, {
-                                model: PiMstr.scope('priceListBersukaCita'),
+                                model: PiMstr.scope('priceListDistributor'),
                                 as: 'master_price_list',
                                 attributes: [],
                             }

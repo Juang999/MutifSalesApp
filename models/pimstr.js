@@ -56,6 +56,13 @@ module.exports = (sequelize, DataTypes) => {
             [Op.in]: [1040, 2020, 3020]
           }
         }
+      },
+      priceListDistributor: {
+        where: {
+          pi_id: {
+            [Op.in]: [103, 202, 304]
+          }
+        }
       }
     }
   });

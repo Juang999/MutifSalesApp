@@ -78,7 +78,23 @@ module.exports = (sequelize, DataTypes) => {
                 invc_en_id: 3,
                 invc_loc_id: 300018,
             }
-        ]
+          ]
+        }
+      },
+      gudangReguler: {
+        where: {
+          [Op.or]: [
+            {
+                invc_en_id: 1,
+                invc_loc_id: 1000555,
+            }, {
+                invc_en_id: 2,
+                invc_loc_id: 2000556,
+            }, {
+                invc_en_id: 3,
+                invc_loc_id: 3000557,
+            }
+          ]
         }
       }
     }
