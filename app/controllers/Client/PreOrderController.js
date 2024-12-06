@@ -60,7 +60,7 @@ class PreOrderController {
                         }
                     ]
                 }, {
-                    model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
+                    model: InvcMstr.scope('gudangReguler'),
                     as: 'inventory_product',
                     attributes: []
                 }

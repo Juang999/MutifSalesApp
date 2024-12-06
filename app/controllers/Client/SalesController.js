@@ -81,7 +81,7 @@ class SalesController {
     }
 
     getStock = async (ptId, transaction) => {
-        let data = await InvcMstr.scope('gudangSesuaiDenganEntitas').findOne({
+        let data = await InvcMstr.scope('gudangReguler').findOne({
             attributes: [
                 'invc_qty_available',
                 'invc_qty_booked'
@@ -369,7 +369,7 @@ class SalesController {
                             attributes: [],
                             include: [
                                 {
-                                    model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
+                                    model: InvcMstr.scope('gudangReguler'),
                                     as: 'singular_product_quantity',
                                     attributes: [],
                                 }, {
@@ -378,21 +378,13 @@ class SalesController {
                                     attributes: [],
                                     include: [
                                         {
-                                            model: PiMstr,
+                                            model: PiMstr.scope('priceListDistributor'),
                                             as: 'master_price_list',
                                             attributes: [],
-                                            where: {
-                                                pi_id: {
-                                                    [Op.in]: [1040, 2020, 3020]
-                                                }
-                                            }
                                         }, {
-                                            model: PiddDet,
+                                            model: PiddDet.scope('cashPaymentType'),
                                             as: 'singular_detail_price_list',
                                             attributes: [],
-                                            where: {
-                                                pidd_payment_type: 9941
-                                            }
                                         }
                                     ]
                                 }

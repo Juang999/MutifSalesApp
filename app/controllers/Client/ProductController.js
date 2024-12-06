@@ -515,7 +515,7 @@ class ProductController {
                     as: 'singular_detail_price_list',
                     attributes: []
                 }, {
-                    model: PiMstr.scope('priceListBersukaCita'),
+                    model: PiMstr.scope('priceListDistributor'),
                     as: 'master_price_list',
                     attributes: []
                 }, {

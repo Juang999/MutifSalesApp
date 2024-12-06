@@ -48,7 +48,7 @@ class SalesV2Controller {
                                 }
                             ]
                         }, {
-                            model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
+                            model: InvcMstr.scope('gudangReguler'),
                             as: 'singular_product_quantity',
                             attributes: [],
                         }, {
