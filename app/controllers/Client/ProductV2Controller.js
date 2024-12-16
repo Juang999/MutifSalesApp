@@ -1,4 +1,5 @@
-const {Op} = require('sequelize')
+const axios = require('axios');
+const {Op} = require('sequelize');
 const Page = require('../../../helper/Page');
 const {getData} = require('../../../helper/ProductUrl');
 const {error: errorLog} = require('../../../helper/Logging');
@@ -12,6 +13,7 @@ const {
     ProductJubelioThumbnail,
 } = require('../../../models');
 const {getStock, bulkGetStock} = require('../../modules/Stock/controllers/StockProductController');
+const {config} = require('../../../config/environment');
 
 class ProductV2Controller {
     getProduct = async (req, res) => {
@@ -25,12 +27,14 @@ class ProductV2Controller {
                 current_page, 
             } = await this.getDataProducts(req.query)
 
+            let result = await this.getImages(data);
+
             res.status(200)
                 .json({
                     status:'success',
                     message: 'ok',
                     data: {
-                        data, 
+                        data: result, 
                         total_data, 
                         per_page, 
                         current_page, 
@@ -53,8 +57,8 @@ class ProductV2Controller {
     }
 
     getDetailProduct = (req, res) => {
-        Promise.all([this.getDataDetailProduct(req.params.pt_code), this.getDescProduct(req.params.pt_code)])
-        .then(([{dataValues: masterData}, descProduct]) => {
+        Promise.all([this.getDataDetailProduct(req.params.pt_code), this.getDescProduct(req.params.pt_code), this.getImageSingular(req.params.pt_code)])
+        .then(([{dataValues: masterData}, descProduct, dataImage]) => {
 
             res.status(200)
                 .json({
@@ -75,7 +79,7 @@ class ProductV2Controller {
                         slug: descProduct.slug,
                         group_article: descProduct.group_article,
                         type_id: descProduct.type_id,
-                        photo: masterData.photo,
+                        photo: dataImage,
                         invc_oid: masterData.invc_oid,
                         quantity: parseInt(masterData.quantity),
                         status_product: (parseInt(masterData.quantity) == 0) ? 'barang tidak ada' : 'barang ada',
@@ -116,7 +120,7 @@ class ProductV2Controller {
                 [Sequelize.col('"product->master_category"."ptcat_desc"'), 'category'],
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_price" AS BIGINT)'), 'price'],
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_disc" AS BIGINT)'), 'discount'],
-                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'thumbnail'],
+                // [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'thumbnail'],
                 [Sequelize.literal(`CAST("product->singular_product_quantity"."invc_qty_available" AS INTEGER)`), 'qty'],
             ],
             include: [
@@ -138,17 +142,6 @@ class ProductV2Controller {
                             model: InvcMstr.scope('gudangReguler'),
                             as: 'singular_product_quantity',
                             attributes: [],
-                        }, {
-                            model: ProductJubelio,
-                            as: 'singular_product_jubelio',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: ProductJubelioThumbnail,
-                                    as: 'singular_thumbnail_product',
-                                    attributes: []
-                                }
-                            ]
                         }
                     ],
                     where: {
@@ -192,7 +185,6 @@ class ProductV2Controller {
                     'pt_en_id',
                     [Sequelize.col(`"singular_product_quantity"."invc_oid"`), 'invc_oid'],
                     [Sequelize.col(`"singular_product_quantity"."invc_qty_available"`), 'quantity'],
-                    [Sequelize.literal(`CASE WHEN "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
                     [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                     [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                     [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
@@ -207,17 +199,6 @@ class ProductV2Controller {
                         model: InvcMstr.scope('gudangReguler'),
                         as: 'singular_product_quantity',
                         attributes: [],
-                    }, {
-                        model: ProductJubelio,
-                        as: 'singular_product_jubelio',
-                        attributes: [],
-                        include: [
-                            {
-                                model: ProductJubelioThumbnail,
-                                as: 'singular_thumbnail_product',
-                                attributes: []
-                            }
-                        ]
                     }, {
                         model: PidDet,
                         as: 'singular_relation_price_list',
@@ -280,6 +261,44 @@ class ProductV2Controller {
         let {data} = await getData(`/exapro/${ptCode}/description`)
 
         return data;
+    }
+
+    getImages = async (product) => {
+        let partnumbers = product.map(({dataValues: item}) => {
+            return item.product_code
+        })
+        
+        const {parsed: configATPO} = config;
+        let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
+            partnumbers: partnumbers
+        });
+
+        let result = product.map(({dataValues: item}) => {
+            let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
+
+            return {
+                product_name: item.product_name,
+                product_code: item.product_code,
+                entity: item.entity,
+                category: item.category,
+                price: item.price,
+                thumbnail: (picture.length == 0) ? null : picture[0]['picture'],
+                discount: item.discount,
+                qty: item.qty
+            }
+        })
+
+        return result;
+    }
+
+    getImageSingular = async (productCode) => {
+        try {
+            let {data} = await axios.get(`${config.parsed.URL_ATPO}/clothes/picture/${productCode}/detail`);
+
+            return (data.data != null) ? data.data.picture : null;
+        } catch (error) {
+            console.info(error)
+        }
     }
 }
 
