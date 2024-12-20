@@ -5,82 +5,75 @@ const {
     Sequelize, sequelize,
     ProductJubelio, ProductJubelioThumbnail
 } = require('../../../models');
-const Auth = require('../../../helper/Auth');
-const {v4: uuidv4} = require('uuid');
+const axios = require('axios');
 const moment = require('moment');
-const {Op} = require('sequelize')
+const {Op} = require('sequelize');
+const {v4: uuidv4} = require('uuid');
+const Auth = require('../../../helper/Auth');
+const {config} = require('../../../config/environment');
 
 class WishlistController {
-    index = (req, res) => {
-        Wishlist.findAll({
-            attributes: [
-                'wl_oid',
-                [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
-                [Sequelize.col('"product"."pt_code"'), 'product_code'],
-                [Sequelize.literal('CAST(wl_qty AS BIGINT)'), 'wishlist_quantity'],
-                [Sequelize.literal('CAST("inventory_product"."invc_qty_available" AS BIGINT)'), 'available_quantity'],
-                [Sequelize.literal(`CASE WHEN wl_qty > "inventory_product"."invc_qty_available" THEN 'permintaan melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
-                [Sequelize.literal(`CASE WHEN wl_qty > "inventory_product"."invc_qty_available" THEN false ELSE true END`), 'can_be_sold`'],
-                [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), "unit_price"],
-                [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * wl_qty AS BIGINT)`), "total_price"],
-                [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), "discount"],
-                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NOT NULL THEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" ELSE NULL END`), 'photo'],
-                ['wl_created_at', 'created_at'],
-                ['wl_updated_at', 'updated_at'],
-                ['wl_status', 'status']
-            ],
-            include: [
-                {
-                    model: PtMstr,
-                    as: 'product',
-                    attributes: [],
-                    include: [
-                        {
-                            model: PidDet,
-                            as: 'singular_relation_price_list',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: PiddDet.scope('cashPaymentType'),
-                                    as: 'singular_detail_price_list',
-                                    attributes: []
-                                }
-                            ]
-                        }, {
-                            model: ProductJubelio,
-                            as: 'singular_product_jubelio',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: ProductJubelioThumbnail,
-                                    as: 'singular_thumbnail_product',
-                                    attributes: []
-                                }
-                            ]
-                        }
+    index = async (req, res) => {
+        try {
+            let dataProduct = await Wishlist.findAll({
+                attributes: [
+                    'wl_oid',
+                    [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
+                    [Sequelize.col('"product"."pt_code"'), 'product_code'],
+                    [Sequelize.literal('CAST(wl_qty AS BIGINT)'), 'wishlist_quantity'],
+                    [Sequelize.literal('CAST("inventory_product"."invc_qty_available" AS BIGINT)'), 'available_quantity'],
+                    [Sequelize.literal(`CASE WHEN wl_qty > "inventory_product"."invc_qty_available" THEN 'permintaan melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
+                    [Sequelize.literal(`CASE WHEN wl_qty > "inventory_product"."invc_qty_available" THEN false ELSE true END`), 'can_be_sold`'],
+                    [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), "unit_price"],
+                    [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * wl_qty AS BIGINT)`), "total_price"],
+                    [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), "discount"],
+                    ['wl_created_at', 'created_at'],
+                    ['wl_updated_at', 'updated_at'],
+                    ['wl_status', 'status']
+                ],
+                include: [
+                    {
+                        model: PtMstr,
+                        as: 'product',
+                        attributes: [],
+                        include: [
+                            {
+                                model: PidDet,
+                                as: 'singular_relation_price_list',
+                                attributes: [],
+                                include: [
+                                    {
+                                        model: PiddDet.scope('cashPaymentType'),
+                                        as: 'singular_detail_price_list',
+                                        attributes: []
+                                    }
+                                ]
+                            }
+                        ]
+                    }, {
+                        model: InvcMstr.scope('gudangReguler'),
+                        as: 'inventory_product',
+                        attributes: []
+                    }
+                ],
+                where: {
+                    [Op.and]: [
+                        Sequelize.where(Sequelize.col('wl_user_id'), {
+                            [Op.eq]: Auth.user().userid,
+                        }),
+                        Sequelize.where(Sequelize.col('"product->singular_relation_price_list"."pid_pi_oid"'), {
+                            [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = wl_pi_id)`)
+                        }),
+                        Sequelize.where(Sequelize.col(`wl_is_po`), {
+                            [Op.eq]: false
+                        })
                     ]
-                }, {
-                    model: InvcMstr.scope('gudangReguler'),
-                    as: 'inventory_product',
-                    attributes: []
-                }
-            ],
-            where: {
-                [Op.and]: [
-                    Sequelize.where(Sequelize.col('wl_user_id'), {
-                        [Op.eq]: Auth.user().userid,
-                    }),
-                    Sequelize.where(Sequelize.col('"product->singular_relation_price_list"."pid_pi_oid"'), {
-                        [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = wl_pi_id)`)
-                    }),
-                    Sequelize.where(Sequelize.col(`wl_is_po`), {
-                        [Op.eq]: false
-                    })
-                ]
-            },
-            logging: false
-        })
-        .then(result => {
+                },
+                logging: false
+            })
+
+            let result = await this.getImages(dataProduct);
+
             res.status(200)
                 .json({
                     status: 'success',
@@ -88,16 +81,15 @@ class WishlistController {
                     data: result,
                     error: null
                 })
-        })
-        .catch(err => {
+        } catch (error) {
             res.status(500)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
-        })
+        }
     }
 
     store = async (req, res) => {
@@ -231,6 +223,40 @@ class WishlistController {
             logging: false
         })
     }
+
+        getImages = async (product) => {
+            let partnumbers = product.map(({dataValues: item}) => {
+                return item.product_code
+            })
+            
+            const {parsed: configATPO} = config;
+            let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
+                partnumbers: partnumbers
+            });
+        
+            let result = product.map(({dataValues: item}) => {
+                let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
+        
+                return {
+                    wl_oid: item.wl_oid,
+                    product_name: item.product_name,
+                    product_code: item.product_code,
+                    wishlist_quantity: item.wishlist_quantity,
+                    available_quantity: item.available_quantity,
+                    sales_status: item.sales_status,
+                    can_be_sold: item.can_be_sold,
+                    unit_price: item.unit_price,
+                    total_price: item.total_price,
+                    discount: item.discount,
+                    photo: (picture.length == 0) ? null : picture[0]['picture'],
+                    created_at: item.created_at,
+                    updated_at: item.updated_at,
+                    status: item.status
+                }
+            })
+        
+            return result;
+        }
 }
 
 module.exports = new WishlistController();
