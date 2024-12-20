@@ -1,8 +1,10 @@
+const axios = require('axios');
 const moment = require('moment');
 const {Op} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {getData} = require('../../../helper/ProductUrl');
+const {config} = require('../../../config/environment');
 const {error: errorLog} = require('../../../helper/Logging');
 const {
     ChartSales, PiMstr,
@@ -546,6 +548,34 @@ class SalesController {
         })
 
         return data;
+    }
+
+    getImages = async (product) => {
+        let partnumbers = product.map(({dataValues: item}) => {
+            return item.product_code
+        })
+        
+        const {parsed: configATPO} = config;
+        let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
+            partnumbers: partnumbers
+        });
+    
+        let result = product.map(({dataValues: item}) => {
+            let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
+    
+            return {
+                product_name: item.product_name,
+                product_code: item.product_code,
+                entity: item.entity,
+                category: item.category,
+                price: item.price,
+                thumbnail: (picture.length == 0) ? null : picture[0]['picture'],
+                discount: item.discount,
+                qty: item.qty
+            }
+        })
+    
+        return result;
     }
 }
 
