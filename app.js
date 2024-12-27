@@ -26,6 +26,7 @@ app.use('/users', require('./routes/users'));
 // routes for client
 app.use('/client/sales', require('./routes/Client/sales'));
 app.use('/client/point', require('./routes/Client/point'));
+app.use('/client/partner', require('./routes/Client/partner'));
 app.use('/client/product', require('./routes/Client/product'));
 app.use('/client/wishlist', require('./routes/Client/wishlist'));
 app.use('/client/pre-order', require('./routes/Client/preorder'));
