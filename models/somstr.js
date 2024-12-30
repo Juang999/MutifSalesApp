@@ -2,6 +2,12 @@
 const {
   Model
 } = require('sequelize');
+const moment = require('moment');
+const {Op} = require('sequelize');
+
+const startMonth = moment().startOf('months').format('YYYY-MM-DD 00:00:00');
+const endMonth = moment().endOf('months').format('YYYY-MM-DD 23:59:59');
+
 module.exports = (sequelize, DataTypes) => {
   class SoMstr extends Model {
     /**
@@ -15,6 +21,24 @@ module.exports = (sequelize, DataTypes) => {
         as: 'detail_sales_order',
         sourceKey: 'so_oid',
         foreignKey: 'sod_so_oid'
+      })
+
+      SoMstr.belongsTo(models.PtnrMstr, {
+        as: 'sold_to',
+        targetKey: 'ptnr_id',
+        foreignKey: 'so_ptnr_id_sold'
+      })
+
+      SoMstr.belongsTo(models.PtnrMstr, {
+        as: 'sales_person',
+        targetKey: 'ptnr_id',
+        foreignKey: 'so_sales_person'
+      })
+
+      SoMstr.belongsTo(models.EnMstr, {
+        as: 'entity_so',
+        targetKey: 'en_id',
+        foreignKey: 'so_en_id'
       })
     }
   }
@@ -104,6 +128,15 @@ module.exports = (sequelize, DataTypes) => {
     so_wo_status: DataTypes.STRING
   }, {
     sequelize,
+    scopes: {
+      oneMonth: {
+        where: {
+          so_add_date: {
+            [Op.between]: [startMonth, endMonth]
+          }
+        }
+      }
+    },
     tableName:'so_mstr',
     timestamps: false,
     schema: 'public',
