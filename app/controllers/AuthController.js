@@ -13,6 +13,7 @@ const {
 } = require('../../models');
 const Auth = require('../../helper/Auth');
 const moment = require('moment');
+const {v4: uuidv4} = require('uuid');
 
 class AuthController {
     loginClient = async (req, res) => {
@@ -55,8 +56,7 @@ class AuthController {
                 return;
             }
 
-            let token = await this.createToken(user.dataValues);
-
+            let token = this.createToken(user.dataValues);
             await this.insertToken(user.dataValues.userid, token);
 
             info("LOGIN CLIENT", `${user.dataValues.usernama} LOGGED IN!`)
@@ -361,7 +361,8 @@ class AuthController {
                     as: 'user',
                     attributes: []
                 }
-            ]
+            ],
+            logging: false
         })
         .then(result => {
             res.status(200)
@@ -389,11 +390,12 @@ class AuthController {
 
     insertToken = async (userid, token) => {
         await TokenStorage.create({
+            token_oid: uuidv4(),
             token_user_id: userid,
             token_token: token,
             token_desc: 'mutif-sales-app'
         }, {
-            logging: () => {}
+            logging: false
         })
     }
 
