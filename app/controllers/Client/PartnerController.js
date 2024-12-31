@@ -38,8 +38,9 @@ class PartnerController {
 
     getDistributorPartner = (req, res) => {
         let ptnrId = req.params.ptnr_id;
+        let searcName = (req.query.search) ? req.query.search : '';
 
-        this.queryDistributorPartner(ptnrId)
+        this.queryDistributorPartner(ptnrId, searcName)
             .then(result => {
                 res.status(200)
                     .json({
@@ -113,10 +114,7 @@ class PartnerController {
         })
     }
 
-    queryDistributorPartner = async (ptnr_id) => {
-        let startDateInAWeek = moment().startOf('weeks').format('YYYY-MM-DD 00:00:00');
-        let endDateInAWeek = moment().endOf('weeks').format('YYYY-MM-DD 23:59:59');
-
+    queryDistributorPartner = async (ptnr_id, searchName) => {
         let data = await PtnrMstr.findAll({
                 attributes: [
                     ['ptnr_id', 'id'],
@@ -144,6 +142,9 @@ class PartnerController {
                     },
                     ptnr_ptnrg_id: {
                         [Op.notIn]: [999, 9911, 9916, 9910, 9913]
+                    },
+                    ptnr_name: {
+                        [Op.iLike]: `%${searchName}%`
                     }
                 },
                 group: [
@@ -153,7 +154,7 @@ class PartnerController {
                     'partner_name',
                     'partner_section',
                 ],
-                // logging: false
+                logging: false
             })
 
         return data;
