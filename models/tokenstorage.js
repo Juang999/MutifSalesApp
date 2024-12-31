@@ -6,6 +6,10 @@ const {
   v4: uuidv4
 } = require('uuid');
 const moment = require('moment');
+const {Op} = require('sequelize');
+
+let startOfDay = moment().format('YYYY-MM-DD 00:00:00');
+let endOfDay = moment().format('YYYY-MM-DD 23:59:59');
 
 module.exports = (sequelize, DataTypes) => {
   class TokenStorage extends Model {
@@ -16,6 +20,12 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+
+      TokenStorage.belongsTo(models.TConfUser, {
+        as: 'user',
+        targetKey: 'userid',
+        foreignKey: 'token_user_id'
+      })
     }
   }
   TokenStorage.init({
@@ -34,6 +44,20 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     schema: 'public',
+    scopes: {
+      oneDayLoggedIn: {
+        where: {
+          created_at: {
+            [Op.between]: [startOfDay, endOfDay]
+          }
+        }
+      },
+      mutifSalesAppDesc: {
+        where: {
+          token_desc: 'mutif-sales-app'
+        }
+      }
+    },
     tableName: 'token_storage',
     timestamps: false,
     modelName: 'TokenStorage',

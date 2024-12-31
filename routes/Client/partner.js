@@ -5,6 +5,6 @@ const {Middleware, Requests} = require('../../app/Kernel');
 
 router.get('/distributor', getDistributor);
 router.get('/distributor/:ptnr_id/partners', getDistributorPartner);
-router.get('/distributor/:ptnr_id/order-agent', getOrderPartner)
+router.get('/distributor/:ptnr_id/order-agent', getOrderPartner);
 
 module.exports = router;

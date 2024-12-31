@@ -12,6 +12,7 @@ const {
     TConfUser, TokenStorage,
 } = require('../../models');
 const Auth = require('../../helper/Auth');
+const moment = require('moment');
 
 class AuthController {
     loginClient = async (req, res) => {
@@ -55,6 +56,8 @@ class AuthController {
             }
 
             let token = await this.createToken(user.dataValues);
+
+            await this.insertToken(user.dataValues.userid, token);
 
             info("LOGIN CLIENT", `${user.dataValues.usernama} LOGGED IN!`)
             res.status(200)
@@ -345,11 +348,46 @@ class AuthController {
         })
     }
 
+    getLoggedinUser = (req, res) => {
+        TokenStorage.scope('oneDayLoggedIn', 'mutifSalesAppDesc').findAll({
+            attributes: [
+                [Sequelize.col('user.userid'), 'userid'],
+                [Sequelize.col('user.usernama'), 'user_name'],
+                ['created_at', 'logged_in']
+            ],
+            include: [
+                {
+                    model: TConfUser,
+                    as: 'user',
+                    attributes: []
+                }
+            ]
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
     createToken = (dataUser) => {
         return jwt.sign(dataUser, config.parsed.ACCESS_TOKEN_SECRET, {expiresIn: '24h'})
     }
 
-    inputToken = async (userid, token) => {
+    insertToken = async (userid, token) => {
         await TokenStorage.create({
             token_user_id: userid,
             token_token: token,
