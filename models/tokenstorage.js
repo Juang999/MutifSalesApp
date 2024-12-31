@@ -32,7 +32,6 @@ module.exports = (sequelize, DataTypes) => {
     token_oid: {
       type: DataTypes.UUID,
       primaryKey: true,
-      defaultValue: uuidv4()
     },
     token_user_id: DataTypes.INTEGER,
     token_token: DataTypes.STRING,
