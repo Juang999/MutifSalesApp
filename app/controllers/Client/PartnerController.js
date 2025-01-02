@@ -1,4 +1,4 @@
-const {PtnrMstr, PtnrgGrp, SqMstr, EnMstr, SoMstr, Sequelize} = require('../../../models');
+const {PtnrMstr, PtnrgGrp, PtnraAddr, SqMstr, EnMstr, SoMstr, Sequelize} = require('../../../models');
 const moment = require('moment');
 const {Op} = require('sequelize');
 
@@ -66,33 +66,47 @@ class PartnerController {
         let startDate = (req.query.start_date) ? moment(req.query.start_date).format('YYYY-MM-DD 00:00:00') : moment().startOf('months').format('YYYY-MM-DD 00:00:00');
         let endDate = (req.query.end_date) ? moment(req.query.end_date).format('YYYY-MM-DD 23:59:59') : moment().endOf('months').format('YYYY-MM-DD 23:59:59');
 
-        SoMstr.findAll({
+        PtnrMstr.findOne({
             attributes: [
-                'so_oid',
-                'so_code',
-                'so_date',
-                [Sequelize.col('entity_so.en_desc'), 'entity'],
-                [Sequelize.literal('sales_person.ptnr_name'), 'sales'],
-                [Sequelize.literal('CAST(so_total AS BIGINT)'), 'so_total']
+                'ptnr_id',
+                'ptnr_name',
+                'ptnr_code',
+                [Sequelize.literal(`(SELECT CONCAT(ptnra_line_1, ' ', ptnra_line_2, ' ', ptnra_line_3) FROM public.ptnra_addr WHERE ptnra_ptnr_oid = ptnr_oid LIMIT 1)`), 'address']
             ],
             include: [
                 {
-                    model: PtnrMstr,
-                    as: 'sales_person',
-                    attributes: []
-                }, {
-                    model: EnMstr,
-                    as: 'entity_so',
-                    attributes: []
+                    model: SoMstr,
+                    as: 'sales_order',
+                    required: false,
+                    attributes: [
+                        'so_oid',
+                        'so_code',
+                        'so_date',
+                        [Sequelize.literal('"sales_order->entity_so"."en_desc"'), 'entity'],
+                        [Sequelize.literal('"sales_order->sales_person"."ptnr_name"'), 'sales'],
+                        [Sequelize.literal('CAST(so_total AS BIGINT)'), 'so_total']
+                    ],
+                    include: [
+                        {
+                            model: PtnrMstr,
+                            as: 'sales_person',
+                            attributes: [],
+                        }, {
+                            model: EnMstr,
+                            as: 'entity_so',
+                            attributes: []
+                        }
+                    ],
+                    where: {
+                        so_add_date: {
+                            [Op.between]: [startDate, endDate]
+                        }
+                    },
                 }
             ],
             where: {
-                so_ptnr_id_sold: req.params.ptnr_id,
-                so_add_date: {
-                    [Op.between]: [startDate, endDate]
-                },
-            },
-            logging: false
+                ptnr_id: req.params.ptnr_id
+            }
         })
         .then(result => {
             res.status(200)
