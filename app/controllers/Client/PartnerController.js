@@ -1,4 +1,4 @@
-const {PtnrMstr, PtnrgGrp, PtnraAddr, SqMstr, EnMstr, SoMstr, Sequelize} = require('../../../models');
+const {PtnrMstr, PtnrgGrp, PtnraAddr, PtMstr, SqMstr, EnMstr, SoMstr, SodDet, Sequelize} = require('../../../models');
 const moment = require('moment');
 const {Op} = require('sequelize');
 
@@ -107,6 +107,68 @@ class PartnerController {
             where: {
                 ptnr_id: req.params.ptnr_id
             }
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    getDetailSalesOrder = (req, res) => {
+        SoMstr.findOne({
+            attributes: [
+                'so_oid',
+                'so_code',
+                ['so_sq_ref_code', 'sq_code'],
+                ['so_date', 'effective_date'],
+                ['so_payment_date', 'payment_date'],
+                [Sequelize.literal(`(SELECT ptnr_name FROM public.ptnr_mstr WHERE ptnr_id = so_sales_person LIMIT 1)`), 'sales'],
+                [Sequelize.literal('CAST(so_total AS BIGINT)'), 'total'],
+                ['so_trans_id', 'transaction_status'],
+                'so_terbilang'
+            ],
+            include: [
+                {
+                    model: SodDet,
+                    as: 'detail_sales_order',
+                    attributes: [
+                        'sod_pt_id',
+                        [Sequelize.literal('"detail_sales_order->product"."pt_desc1"'), 'product_name'],
+                        [Sequelize.literal(`"detail_sales_order->product->entity_product"."en_desc"`), 'entity'],
+                        [Sequelize.literal('CAST(sod_qty AS INTEGER)'), 'quantity'],
+                        [Sequelize.literal('CAST(sod_price AS BIGINT)'), 'price'],
+                        [Sequelize.literal('ROUND(sod_disc, 2)'), 'discount']
+                    ],
+                    include: [
+                        {
+                            model: PtMstr,
+                            as: 'product',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: EnMstr,
+                                    as: 'entity_product',
+                                    attributes: []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         })
         .then(result => {
             res.status(200)
