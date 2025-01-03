@@ -86,6 +86,7 @@ class PartnerController {
                         'so_oid',
                         'so_code',
                         'so_date',
+                        ['so_trans_id', 'transaction_status'],
                         [Sequelize.literal('"sales_order->entity_so"."en_desc"'), 'entity'],
                         [Sequelize.literal('"sales_order->sales_person"."ptnr_name"'), 'sales'],
                         [Sequelize.literal('CAST(so_total AS BIGINT)'), 'so_total']
