@@ -71,7 +71,10 @@ class PartnerController {
                 'ptnr_id',
                 'ptnr_name',
                 'ptnr_code',
-                [Sequelize.literal(`(SELECT CONCAT(ptnra_line_1, ' ', ptnra_line_2, ' ', ptnra_line_3) FROM public.ptnra_addr WHERE ptnra_ptnr_oid = ptnr_oid LIMIT 1)`), 'address']
+                [Sequelize.literal(`(SELECT CONCAT(ptnra_line_1, ' ', ptnra_line_2, ' ', ptnra_line_3) FROM public.ptnra_addr WHERE ptnra_ptnr_oid = ptnr_oid LIMIT 1)`), 'address'],
+                [Sequelize.literal(`(SELECT ptnra_phone_1 FROM public.ptnra_addr WHERE ptnra_ptnr_oid = ptnr_oid LIMIT 1)`), 'phone_number_1'],
+                [Sequelize.literal(`(SELECT ptnra_phone_2 FROM public.ptnra_addr WHERE ptnra_ptnr_oid = ptnr_oid LIMIT 1)`), 'phone_number_2'],
+                [Sequelize.literal(`(SELECT ptnrg_name FROM public.ptnrg_grp WHERE ptnrg_id = ptnr_ptnrg_id LIMIT 1)`), 'group name'],
             ],
             include: [
                 {
