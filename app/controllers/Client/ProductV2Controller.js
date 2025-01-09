@@ -5,6 +5,7 @@ const {getData} = require('../../../helper/ProductUrl');
 const {error: errorLog} = require('../../../helper/Logging');
 const {getData: urlGetData} = require('../../../helper/ProductStock');
 const {
+    InvcdDet,
     ProductJubelio, 
     PtMstr, EnMstr, 
     PiddDet, PiMstr,
@@ -121,7 +122,7 @@ class ProductV2Controller {
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_price" AS BIGINT)'), 'price'],
                 [Sequelize.literal('CAST("singular_detail_price_list"."pidd_disc" AS BIGINT)'), 'discount'],
                 // [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'thumbnail'],
-                [Sequelize.literal(`CAST("product->singular_product_quantity"."invc_qty_available" AS INTEGER)`), 'qty'],
+                [Sequelize.literal(`CAST(SUM("product->detail_quantity"."invcd_qty") AS INTEGER)`), 'qty'],
             ],
             include: [
                 {
@@ -139,8 +140,8 @@ class ProductV2Controller {
                             as:'master_category',
                             attributes: []
                         }, {
-                            model: InvcMstr.scope('gudangReguler'),
-                            as: 'singular_product_quantity',
+                            model: InvcdDet.scope('gudangReguler', 'isVerified'),
+                            as: 'detail_quantity',
                             attributes: [],
                         }
                     ],
@@ -162,16 +163,25 @@ class ProductV2Controller {
             limit,
             offset,
             order: [[Sequelize.col('"product"."pt_desc1"'), 'ASC']],
-            logging: false
+            logging: false,
+            group: [
+                'pid_oid',
+                Sequelize.col('"product"."pt_desc1"'),
+                Sequelize.col('"product"."pt_code"'),
+                Sequelize.col('"product->entity_product"."en_desc"'),
+                Sequelize.col('"product->master_category"."ptcat_desc"'),
+                Sequelize.col('"singular_detail_price_list"."pidd_price"'),
+                Sequelize.col('"singular_detail_price_list"."pidd_disc"'),
+            ]
         })
 
         return {
             data: rows,
-            total_data: count, 
+            total_data: count.length, 
             per_page: rows.length,
             current_page: page, 
-            last_page: Math.ceil(count/limit), 
-            total_page: Math.ceil(count/limit)
+            last_page: Math.ceil(count.length/limit), 
+            total_page: Math.ceil(count.length/limit)
         };
     }
 

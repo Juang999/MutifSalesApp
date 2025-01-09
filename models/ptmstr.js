@@ -61,6 +61,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'pt_code',
         foreignKey: 'pj_item_code'
       })
+
+      PtMstr.hasOne(models.InvcdDet, {
+        as: 'detail_quantity',
+        sourceKey: 'pt_id',
+        foreignKey: 'invcd_pt_id'
+      })
     }
   }
   PtMstr.init({
