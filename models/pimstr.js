@@ -2,6 +2,9 @@
 const {
   Model
 } = require('sequelize');
+const {
+  Op
+} = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class PiMstr extends Model {
     /**
@@ -46,6 +49,22 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
     tableName: 'pi_mstr',
     modelName: 'PiMstr',
+    scopes: {
+      priceListBersukaCita: {
+        where: {
+          pi_id: {
+            [Op.in]: [1040, 2020, 3020]
+          }
+        }
+      },
+      priceListDistributor: {
+        where: {
+          pi_id: {
+            [Op.in]: [103, 202, 304]
+          }
+        }
+      }
+    }
   });
   return PiMstr;
 };

@@ -1,19 +1,19 @@
 const {Op} = require('sequelize');
 const jwt = require('jsonwebtoken');
+const Page = require('../../helper/Page');
 const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
-const {info, error: errorLog} = require('../../helper/Logging')
+const {info, error: errorLog} = require('../../helper/Logging');
 const {
-    PiMstr,
-    PidDet, PiddDet,
-    PtMstr, InvcMstr,
+    Wishlist,
+    ArMstr, ArdDist,
     PtnrMstr, PtnrgGrp,
     Sequelize, ChartSales, 
-    PtnraAddr, PtnracCntc,
     TConfUser, TokenStorage,
-    ProductJubelio, ProductJubelioThumbnail
 } = require('../../models');
 const Auth = require('../../helper/Auth');
+const moment = require('moment');
+const {v4: uuidv4} = require('uuid');
 
 class AuthController {
     loginClient = async (req, res) => {
@@ -56,7 +56,8 @@ class AuthController {
                 return;
             }
 
-            let token = await this.createToken(user.dataValues);
+            let token = this.createToken(user.dataValues);
+            await this.insertToken(user.dataValues.userid, token);
 
             info("LOGIN CLIENT", `${user.dataValues.usernama} LOGGED IN!`)
             res.status(200)
@@ -144,17 +145,20 @@ class AuthController {
 
     getProfile = async (req, res) => {
         try {
-            let {userid, ptnrg_id} = Auth.user();
+            let {userid} = Auth.user();
 
             let dataProfile = await TConfUser.findOne({
                 attributes: [
+                    [Sequelize.col(`"detail_partner"."ptnr_id"`), 'ptnr_id'],
                     [Sequelize.col('"detail_partner"."ptnr_name"'), 'ptnr_name'],
                     ['usernama', 'username'],
                     [Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'), 'group_id'],
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
                     [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
-                    [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' WHEN "detail_partner"."ptnr_ptnrg_id" = 998 THEN '0.30' WHEN "detail_partner"."ptnr_ptnrg_id" = 357 THEN '0.30' ELSE '0' END`), 'discount'],
-                    [Sequelize.literal(`(SELECT COUNT(*) FROM public.chart_sales WHERE cs_userid = ${userid})`), 'products_in_chart']
+                    [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' ELSE '0.30' END`), 'discount'],
+                    [Sequelize.literal(`COUNT(singular_chart_sales.cs_oid)`), 'products_in_chart'],
+                    [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userid} AND wl_is_po = FALSE)`), 'products_wishlist'],
+                    [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userid} AND wl_is_po = TRUE)`), 'products_pre_order'],
                 ],
                 include: [
                     {
@@ -169,10 +173,24 @@ class AuthController {
                             }
                         ]
                     },
+                    {
+                        model: ChartSales,
+                        as: 'singular_chart_sales',
+                        attributes: []
+                    }
                 ],
                 where: {
-                    userid
+                    userid,
                 },
+                group: [
+                    'ptnr_id',
+                    'ptnr_name',
+                    'usernama',
+                    'group_id',
+                    'group_code',
+                    'group_name',
+                    'discount'
+                ],
                 logging: false
             });
 
@@ -196,17 +214,188 @@ class AuthController {
         }
     }
 
+    sumAccountReceivable = (req, res) => {
+        let {user_ptnr_id} = Auth.user();
+
+        ArMstr.findOne({
+            attributes: [
+                [Sequelize.literal(`CAST(SUM("ar_amount" - "ar_pay_amount") AS BIGINT)`), 'ar_total']
+            ],
+            where: {
+                ar_bill_to: user_ptnr_id
+            },
+            logging: false
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    getAccountReceivable = (req, res) => {
+        let {user_ptnr_id} = Auth.user();
+        let currentPage = (req.query.page) ? parseInt(req.query.page) : 1;
+        let {limit, offset} = new Page(currentPage, 20);
+        let search = (req.query.search) ? `${req.query.search}` : '';
+
+        ArMstr.findAndCountAll({
+            attributes: [
+                'ar_oid',
+                ['ar_code', 'account_receivable_code'],
+                ['ar_remarks', 'salesorder_code'],
+                ['ar_amount', 'amount'],
+                ['ar_date', 'date'],
+                ['ar_pay_amount', 'paid']
+            ],
+            where: {
+                ar_bill_to: user_ptnr_id,
+                ar_remarks: {
+                    [Op.iLike]: `%${search}%`
+                }
+            },
+            order: [
+                ['ar_date', 'DESC']
+            ],
+            limit,
+            offset,
+            logging: false,
+        })
+        .then(({count, rows}) => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: {
+                        data: rows,
+                        total_data: count,
+                        current_page: currentPage,
+                        last_page: Math.ceil(count / limit),
+                        total_page: Math.ceil(count / limit)
+                    },
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    getDetailAccountReceivable = (req, res) => {
+        ArMstr.findOne({
+            attributes: [
+                ['ar_code', 'account_receivable_code'],
+                ['ar_remarks', 'salesorder_code'],
+                ['ar_date', 'date'],
+                ['ar_eff_date', 'effective_date'],
+                ['ar_status', 'status'],
+                ['ar_amount', 'amount'],
+                ['ar_pay_amount', 'paid']
+            ],
+            include: [
+                {
+                    model: ArdDist,
+                    as: 'detail_account_receivable',
+                    attributes: [
+                        'ard_ac_id',
+                        'ard_amount',
+                        'ard_remarks'
+                    ]
+                }
+            ],
+            where: {
+                ar_oid: req.params.arOid,
+                ar_bill_to: Auth.user().user_ptnr_id
+            },
+            logging: false
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    getLoggedinUser = (req, res) => {
+        TokenStorage.scope('oneDayLoggedIn', 'mutifSalesAppDesc').findAll({
+            attributes: [
+                [Sequelize.col('user.userid'), 'userid'],
+                [Sequelize.col('user.usernama'), 'user_name'],
+                ['created_at', 'logged_in']
+            ],
+            include: [
+                {
+                    model: TConfUser,
+                    as: 'user',
+                    attributes: []
+                }
+            ],
+            logging: false
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
     createToken = (dataUser) => {
         return jwt.sign(dataUser, config.parsed.ACCESS_TOKEN_SECRET, {expiresIn: '24h'})
     }
 
-    inputToken = async (userid, token) => {
+    insertToken = async (userid, token) => {
         await TokenStorage.create({
+            token_oid: uuidv4(),
             token_user_id: userid,
             token_token: token,
             token_desc: 'mutif-sales-app'
         }, {
-            logging: () => {}
+            logging: false
         })
     }
 

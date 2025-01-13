@@ -29,6 +29,7 @@ class OrderController {
                     [Op.between]: [startDay, endDay]
                 }
             },
+            logging: false
         })
         .then(([countedData]) => {
             let baseNumber = '0000';

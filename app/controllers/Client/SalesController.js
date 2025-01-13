@@ -1,40 +1,47 @@
+const axios = require('axios');
 const moment = require('moment');
 const {Op} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {getData} = require('../../../helper/ProductUrl');
-const {info, error: errorLog} = require('../../../helper/Logging');
+const {config} = require('../../../config/environment');
+const {error: errorLog} = require('../../../helper/Logging');
 const {
-    SqdDet,
     ChartSales, PiMstr,
     PtnrMstr, InvcMstr,
     PiddDet, TConfUser,
     PtnraAddr, PtnracCntc, 
     RegKecMstr, RegKelMstr,
-    LocMstr, SogGenPtnrMstr,
+    SqMstr, SogGenPtnrMstr,
     RegPropMstr, RegCityMstr,
-    PtMstr, PidDet, Sequelize, 
-    SqMstr, sequelize, InvctTable,
+    PtMstr, PidDet, Sequelize,
+    sequelize, ProductJubelio, ProductJubelioThumbnail
 } = require('../../../models');
-const Bilangan = require('../../../helper/Bilangan');
-const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
-const {getData: urlGetData, patchData: urlPatchData, putData: urlPutData} = require('../../../helper/ProductStock');
+const {insertQuery} = require('../../../helper/InputQueryIntoSqlOut');
+const {patchData: urlPatchData} = require('../../../helper/ProductStock');
+const {
+    releaseProduct, updateStatusTransction, bulkReleaseQuantity, 
+} = require('../../modules/Stock/controllers/StockProductController');
 
 class SalesController {
     inputIntoChart = async (req, res) => {
+        const t = await sequelize.transaction();
+
         try {
-            let {userid, ptnrg_id} = Auth.user();
+            let {qty: qtyNeeded, pt_id: productId, invc_oid: inventoryOid} = req.body;
+            let {dataValues: qtyStock} = await this.getStock(productId, t);
+            let dataCart = await this.checkProductInChart(productId, Auth.user().userid);
+            let cartSalesOid = (dataCart != null) ? dataCart.dataValues.cs_oid : uuidv4();
 
-            let dataChart = await this.checkProductInChart(req.body.pt_id, Auth.user().userid);
-            let qtyProductInChart = (dataChart != null) ? dataChart.dataValues.cs_qty : 0;
-
-            let {status_normal, status_chart} = await this.checkQuantityProduct(req.body.pt_id, req.body.qty, parseInt(req.body.qty) + qtyProductInChart);
-
-            if (status_normal == true || status_chart == true) {
+            let checkQtyProduct = this.checkQuantityProduct(qtyNeeded, qtyStock);
+            
+            if (checkQtyProduct == "habis" || checkQtyProduct == "melebihi batas") {
+                await t.rollback();
+                let message = (checkQtyProduct == "habis") ? "barang habis terjual" : `jumlah barang tersisa ${qtyStock.invc_qty_available}`;
                 res.status(300)
                     .json({
                         status: 'failed',
-                        message: 'jumlah permintaan barang melebihi kuantitas!',
+                        message: message,
                         data: null,
                         error: {
                             status: false
@@ -44,11 +51,15 @@ class SalesController {
                 return;
             }
 
-            if (dataChart == null) {
-                await this.createDataChart(req.body, userid);
+            await this.decreaseQtyInventory(inventoryOid, qtyNeeded, qtyStock, t);
+
+            if (dataCart == null) {
+                await this.createDataChart(cartSalesOid, Auth.user().userid, req.body, t);
             } else {
-                await this.updateDataChart(parseInt(req.body.qty), dataChart.dataValues.cs_qty, userid, dataChart.dataValues.cs_oid);
+                await this.updateDataChart(cartSalesOid, parseInt(req.body.qty), dataCart.dataValues.cs_qty);
             }
+
+            await t.commit();
 
             res.status(200)
                 .json({
@@ -58,6 +69,7 @@ class SalesController {
                     error: null
                 })
         } catch (error) {
+            await t.rollback();
             errorLog('STORE CHART', error.message)
 
             res.status(400)
@@ -70,85 +82,138 @@ class SalesController {
         }
     }
 
-    getDataChart = async (req, res) => {
-        try {
-            let {userid} = Auth.user();
+    getStock = async (ptId, transaction) => {
+        let data = await InvcMstr.scope('gudangReguler').findOne({
+            attributes: [
+                'invc_qty_available',
+                'invc_qty_booked'
+            ],
+            where: {
+                invc_pt_id: ptId,
+            },
+            transaction,
+            logging: false
+        })
 
-            let dataChart = await ChartSales.findAll({
-                attributes: [
-                    'cs_oid',
-                    [Sequelize.col('product.pt_desc1'), 'product_name'],
-                    [Sequelize.col('product.pt_code'), 'product_code'],
-                    [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                    [Sequelize.literal('CAST("qty_location"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
-                    [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
-                    [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN false ELSE true END`), 'can_be_sold'],
-                    [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                    [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
-                    ['cs_created_at', 'created_at'],
-                    ['cs_updated_at', 'updated_at'],
-                ],
-                include: [
-                    {
-                        model: PtMstr,
-                        as: 'product',
-                        attributes: [],
-                        include: [
-                            {
-                                model: PidDet,
-                                as: 'singular_relation_price_list',
-                                attributes: [],
-                                include: [
-                                    {
-                                        model: PiMstr,
-                                        as: 'master_price_list',
-                                        attributes: []
-                                    }, {
-                                        model: PiddDet,
-                                        as: 'singular_detail_price_list',
-                                        attributes: []
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        model: InvcMstr,
-                        as: 'qty_location',
-                        attributes: []
-                    }
-                ],
-                where: {
-                    [Op.and]: [
-                        Sequelize.where(Sequelize.col('cs_userid'), {
-                            [Op.eq]: userid
-                        }),
-                        Sequelize.where(Sequelize.col('"product->singular_relation_price_list->master_price_list"."pi_id"'), {
-                            [Op.eq]: Sequelize.col('"cs_pi_id"')
-                        }),
-                        Sequelize.where(Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_payment_type"'), {
-                            [Op.eq]: 9941
-                        })
-                    ]
-                },
-                order: [
-                    ['cs_updated_at', 'desc']
-                ],
+        return data;
+    }
+
+    checkProductInChart = async (ptId, userId) => {
+        let data = await ChartSales.findOne({
+            attributes: [
+                'cs_oid',
+                [Sequelize.literal('CAST("cs_qty" AS INTEGER)'), 'cs_qty']
+            ],
+            where: {
+                cs_pt_id: ptId,
+                cs_userid: userId
+            },
+            logging: false
+        });
+
+        return data;
+    }
+
+    createDataChart = async (cartSalesOid, userid, bodyForm, transaction) => {
+
+        await ChartSales.create({
+                cs_oid: cartSalesOid,
+                cs_userid: userid,
+                cs_pt_id: bodyForm.pt_id,
+                cs_pt_en_id: bodyForm.en_id,
+                cs_invc_oid: bodyForm.invc_oid,
+                cs_qty: bodyForm.qty,
+                cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+                cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+                cs_pi_id: bodyForm.pi_id
+            }, {
+                individualHooks: true,
+                transaction,
                 logging: false
             })
+    }
 
-            if (dataChart == null) {
-                res.status(200)
-                    .json({
-                        status: 'success',
-                        message: 'ok',
-                        data: [],
-                        error: null
+    updateOrInputCart = async (cartSalesOid, userid, bodyForm, dataCart) => {
+        if (dataCart == null) {
+            await this.createDataChart(cartSalesOid, userid, bodyForm);
+        } else {
+            await this.updateDataChart(cartSalesOid, parseInt(bodyForm.qty), dataCart.dataValues.cs_qty);
+        }
+    }
+
+    getDataChart = (req, res) => {
+        ChartSales.findAll({
+            attributes: [
+                'cs_oid',
+                [Sequelize.col('product.pt_desc1'), 'product_name'],
+                [Sequelize.col('product.pt_code'), 'product_code'],
+                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
+                [Sequelize.literal('CAST("qty_location"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
+                [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
+                [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN false ELSE true END`), 'can_be_sold'],
+                [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
+                [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
+                [Sequelize.literal('CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END'), 'photo'],
+                ['cs_created_at', 'created_at'],
+                ['cs_updated_at', 'updated_at'],
+            ],
+            include: [
+                {
+                    model: PtMstr,
+                    as: 'product',
+                    attributes: [],
+                    include: [
+                        {
+                            model: PidDet,
+                            as: 'singular_relation_price_list',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PiMstr,
+                                    as: 'master_price_list',
+                                    attributes: []
+                                }, {
+                                    model: PiddDet.scope('creditPaymentType'),
+                                    as: 'singular_detail_price_list',
+                                    attributes: []
+                                }
+                            ]
+                        }, {
+                            model: ProductJubelio,
+                            as: 'singular_product_jubelio',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: ProductJubelioThumbnail,
+                                    as:'singular_thumbnail_product',
+                                    attributes: []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    model: InvcMstr,
+                    as: 'qty_location',
+                    attributes: []
+                }
+            ],
+            where: {
+                [Op.and]: [
+                    Sequelize.where(Sequelize.col('cs_userid'), {
+                        [Op.eq]: Auth.user().userid
+                    }),
+                    Sequelize.where(Sequelize.col('"product->singular_relation_price_list->master_price_list"."pi_id"'), {
+                        [Op.eq]: Sequelize.col('"cs_pi_id"')
                     })
-            }
-
-            let result = await this.getImages(dataChart);
-
+                ]
+            },
+            order: [
+                ['cs_updated_at', 'desc']
+            ],
+            logging: false
+        })
+        .then(result => {
             res.status(200)
                 .json({
                     status: 'success',
@@ -156,17 +221,18 @@ class SalesController {
                     data: result,
                     error: null
                 })
-        } catch (error) {
-            errorLog('GET CHART', error.message)
+        })
+        .catch(err => {
+            errorLog('GET CHART', err.message)
 
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: error.message
+                    error: err.message
                 })
-        }
+        })
     }
 
     updateChart = async (req, res) => {
@@ -200,9 +266,18 @@ class SalesController {
         }
     }
 
-    deleteChart = (req, res) => {
-        this.deleteDataChart(Auth.user().userid, req.params.cs_oid)
-        .then(result => {
+    deleteChart = async (req, res) => {
+        const t = await sequelize.transaction();
+
+        try {
+            let {dataValues: dataCart} = await this.getDataCart(req.params.cs_oid);
+            let {dataValues: dataStock} = await this.getStock(dataCart.cs_pt_id, t);
+
+            await this.increaseQtyInventory(dataCart.cs_invc_oid, dataCart.cs_qty, dataStock, t);
+
+            this.deleteDataChart(Auth.user().userid, req.params.cs_oid)
+
+            await t.commit();
             res.status(200)
                 .json({
                     status: 'success',
@@ -210,18 +285,18 @@ class SalesController {
                     data: null,
                     error: null
                 })
-        })
-        .catch(err => {
-            errorLog('DELETE CHART', err.message)
+        } catch (error) {
+            await t.rollback();
+            errorLog('DELETE CHART', error.message)
 
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
-        })
+        }
     }
 
     readyToCheckout = (req, res) => {
@@ -287,7 +362,7 @@ class SalesController {
                         [Sequelize.literal('CAST("chart_sales->product->singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
                         [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                         [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                        [Sequelize.literal(`CAST("chart_sales->product"."pt_weight" AS INTEGER)`), 'pt_weight']
+                        [Sequelize.literal(`CASE WHEN "chart_sales->product"."pt_weight" IS NULL THEN 600 ELSE CAST("chart_sales->product"."pt_weight" AS INTEGER) END`), 'pt_weight']
                     ],
                     include: [
                         {
@@ -296,35 +371,22 @@ class SalesController {
                             attributes: [],
                             include: [
                                 {
-                                    model: InvcMstr,
+                                    model: InvcMstr.scope('gudangReguler'),
                                     as: 'singular_product_quantity',
                                     attributes: [],
-                                    where: {
-                                        invc_loc_id: {
-                                            [Op.in]: [10001, 200010, 300018]
-                                        }
-                                    }
                                 }, {
                                     model: PidDet,
                                     as: 'singular_relation_price_list',
                                     attributes: [],
                                     include: [
                                         {
-                                            model: PiMstr,
+                                            model: PiMstr.scope('priceListDistributor'),
                                             as: 'master_price_list',
                                             attributes: [],
-                                            where: {
-                                                pi_id: {
-                                                    [Op.in]: [1040, 2020, 3020]
-                                                }
-                                            }
                                         }, {
-                                            model: PiddDet,
+                                            model: PiddDet.scope('cashPaymentType'),
                                             as: 'singular_detail_price_list',
                                             attributes: [],
-                                            where: {
-                                                pidd_payment_type: 9941
-                                            }
                                         }
                                     ]
                                 }
@@ -375,9 +437,9 @@ class SalesController {
             })
 
             if (req.body.payment_status == 'cancel' || req.body.payment_status == 'failure') {
-                await this.releaseProducts(req.params.invoice)
+                await releaseProduct(req.params.invoice)
             } else {
-                await this.updateStatusTransaction(req.params.invoice, req.body.payment_status)
+                await updateStatusTransction(req.body.payment_status, req.params.invoice)
             }
 
             res.status(200)
@@ -398,34 +460,21 @@ class SalesController {
         }
     }
 
-    updateDataChart = async (qtyInput, cartSalesQty, userid, cartSalesOid) => {
-        let {cs_pt_id, cs_qty: quantityFromCart} = await this.singularDataChart(cartSalesOid);
-        let productCode = await this.getProductCode(cs_pt_id);
-
+    updateDataChart = async (cartSalesOid, qtyInput, cartSalesQty) => {
         await ChartSales.update({
                 cs_qty: qtyInput + cartSalesQty,
                 cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
             }, {
                 where: {
-                    cs_oid: cartSalesOid,
-                    cs_userid: userid
+                    cs_oid: cartSalesOid
                 },
                 logging: false,
                 individualHooks: true
             })
-
-            if (cartSalesQty == 0 && qtyInput > parseInt(quantityFromCart)) {
-                await this.increaseQtyProduct(productCode, cartSalesOid, qtyInput - parseInt(quantityFromCart))
-            } else if (cartSalesQty != 0) {
-                await this.increaseQtyProduct(productCode, cartSalesOid, qtyInput);
-            } else if (qtyInput < quantityFromCart) {
-                await this.decreaseQtyProduct(productCode, cartSalesOid, parseInt(quantityFromCart) - qtyInput)
-            }
     } 
 
-    deleteDataChart = async (userid, cartSalesOid) => {
-        let {cs_pt_id, cs_qty: quantityFromCart} = await this.singularDataChart(cartSalesOid);
-        let productCode = await this.getProductCode(cs_pt_id);
+    deleteDataChart = async (userid, cartSalesOid, transaction) => {
+        await bulkReleaseQuantity([cartSalesOid]);
 
         await ChartSales.destroy({
             where: {
@@ -433,109 +482,18 @@ class SalesController {
                 cs_userid: userid
             },
             logging: false,
+            transaction,
             individualHooks: true
         })
-
-        await this.decreaseQtyProduct(productCode, cartSalesOid, quantityFromCart)
     }
 
-    getImages = async (dataProduct) => {
-        let result = [];
-
-        for (const {dataValues} of dataProduct) {
-            dataValues.photo = await this.getImageProduct(dataValues.product_code)
-
-            result.push(dataValues)
-        }
-
-        return result;
-    }
-
-    getImageProduct = async (productCode) => {
-        let {data: getImage} = await getData(`/exapro/${productCode}/image`)
-
-        return getImage;
-    }
-
-    getPartner = async (userPtnrId) => {
-        let result = await SogGenPtnrMstr.findOne({
-            attributes: [
-                'sog_gen_ptnr_mstr_id',
-                'sog_gen_ptnr_mstr_en_id',
-                'sog_gen_ptnr_mstr_code',
-                'sog_gen_ptnr_mstr_name',
-                'sog_gen_ptnr_mstr_addr',
-                'sog_gen_ptnr_mstr_jbl_id',
-                'sog_gen_ptnr_mstr_is_cus'
-            ],
-            where: {
-                sog_gen_ptnr_mstr_id: userPtnrId,
-            }
-        })
-
-        return result;
-    }
-
-    checkQuantityProduct = async (ptId, quantityNeed, quantityChart) => {
-        let ptCode = await this.getProductCode(ptId);
-        let data = await urlGetData(`/product/${ptCode}/detail`);
-
-        return (data == null) ? {
-            status_normal: false, 
-            status_chart: false, 
-        } : {
-            status_normal: parseInt(quantityNeed) > data.quantity,
-            status_chart: parseInt(quantityChart) > data.quantity,
-        };
-    }
-
-    checkProductInChart = async (ptId, userId) => {
-        let data = await ChartSales.findOne({
-            attributes: [
-                'cs_oid',
-                [Sequelize.literal('CAST("cs_qty" AS INTEGER)'), 'cs_qty']
-            ],
-            where: {
-                cs_pt_id: ptId,
-                cs_userid: userId
-            },
-            logging: false
-        });
-
-        return data;
-    }
-
-    createDataChart = async (body, userid) => {
-        let {dataValues} = await ChartSales.create({
-                cs_userid: userid,
-                cs_pt_id: body.pt_id,
-                cs_pt_en_id: body.en_id,
-                cs_invc_oid: body.invc_oid,
-                cs_qty: body.qty,
-                cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-                cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-                cs_pi_id: body.pi_id
-            }, {
-                individualHooks: true,
-                logging: false
-            })
-
-        let ptCode = await this.getProductCode(body.pt_id);
-        await this.increaseQtyProduct(ptCode, dataValues.cs_oid, body.qty);
-    }
-
-    getProductCode = async (ptId) => {
-        let {dataValues} = await PtMstr.findOne({
-            attributes: [
-                'pt_code'
-            ],
-            where: {
-                pt_id: ptId
-            },
-            logging: false
-        })
-
-        return dataValues.pt_code
+    checkQuantityProduct = (quantityNeed, stock) => {
+        let valueWhenStockIsZero = "habis";
+        let stockNeeded = parseInt(quantityNeed);
+        let stockAvailable = parseInt(stock.invc_qty_available);
+        let bindStock = (stockNeeded > stockAvailable) ? "melebihi batas" : "aman";
+        
+        return (stockAvailable == 0) ? valueWhenStockIsZero : bindStock;
     }
 
     increaseQtyProduct = async (ptCode, chartSalesOid, totalData) => {
@@ -545,36 +503,79 @@ class SalesController {
         })
     }
 
-    decreaseQtyProduct = async (ptCode, chartSalesOid, totalData) => {
-        await urlPatchData(`/stock/${ptCode}/remove-from-chart`, {
-            chart_sales_oid: chartSalesOid,
-            total_data: totalData
-        })
+    decreaseQtyInventory = async (invcOid, qtyNeeded, qtyInventory, transaction) => {
+        let quantityAvailable = parseInt(qtyInventory.invc_qty_available) - parseInt(qtyNeeded);
+        let quantityBooked = parseInt(qtyInventory.invc_qty_booked) + parseInt(qtyNeeded);
+
+        await this.updateQtyInventory(invcOid, quantityAvailable, quantityBooked, transaction);
     }
 
-    singularDataChart = async (csOid) => {
-        let {dataValues} = await ChartSales.findOne({
+    increaseQtyInventory = async (invcOid, qtyNeeded, qtyInventory, transaction) => {
+        let quantityAvailable = parseInt(qtyInventory.invc_qty_available) + parseInt(qtyNeeded);
+        let quantityBooked = parseInt(qtyInventory.invc_qty_booked) - parseInt(qtyNeeded);
+
+        await this.updateQtyInventory(invcOid, quantityAvailable, quantityBooked, transaction);
+    }
+
+    updateQtyInventory = async (invcOid, qtyAvailable, qtyBooked, transaction) => {
+        let result = await InvcMstr.update({
+                invc_qty_available: qtyAvailable,
+                invc_qty_booked: qtyBooked,
+                invc_qty_old: qtyAvailable
+            }, {
+                where: {
+                    invc_oid: invcOid
+                },
+                logging: async (sql, {bind}) => {
+                    await insertQuery(sql.split(':')[1], bind)
+                },
+                transaction
+            })
+    }
+
+    getDataCart = async (cartSalesOid, transaction) => {
+        let data = await ChartSales.findOne({
             attributes: [
-                'cs_pt_id',
-                'cs_qty'
+                'cs_oid',
+                'cs_invc_oid',
+                'cs_qty',
+                'cs_pt_id'
             ],
             where: {
-                cs_oid: csOid
+                cs_oid: cartSalesOid
             },
             logging: false
-        });
-
-        return dataValues;
-    }
-
-    updateStatusTransaction = async (salesQuotationNumber, statusTransaction) => {
-        await urlPatchData(`/stock/${salesQuotationNumber}/update-status-transaction`, {
-            status_transaction: statusTransaction
         })
+
+        return data;
     }
 
-    releaseProducts = async (salesQuotationNumber) => {
-        await urlPutData(`/stock/${salesQuotationNumber}/release-products`)
+    getImages = async (product) => {
+        let partnumbers = product.map(({dataValues: item}) => {
+            return item.product_code
+        })
+        
+        const {parsed: configATPO} = config;
+        let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
+            partnumbers: partnumbers
+        });
+    
+        let result = product.map(({dataValues: item}) => {
+            let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
+    
+            return {
+                product_name: item.product_name,
+                product_code: item.product_code,
+                entity: item.entity,
+                category: item.category,
+                price: item.price,
+                thumbnail: (picture.length == 0) ? null : picture[0]['picture'],
+                discount: item.discount,
+                qty: item.qty
+            }
+        })
+    
+        return result;
     }
 }
 

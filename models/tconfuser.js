@@ -22,6 +22,18 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'cs_userid'
       })
 
+      TConfUser.hasOne(models.Wishlist, {
+        as: 'singular_wishlist',
+        sourceKey: 'userid',
+        foreignKey: 'wl_user_id'
+      })
+
+      TConfUser.hasOne(models.Wishlist, {
+      as: 'singular_pre_order',
+        sourceKey: 'userid',
+        foreignKey: 'wl_user_id'
+      })
+
       TConfUser.hasMany(models.ChartSales, {
         as: 'chart_sales',
         sourceKey: 'userid',

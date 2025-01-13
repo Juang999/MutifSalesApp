@@ -45,6 +45,18 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'pidd_det',
     timestamps: false,  // false to disable createdAt and updatedAt fields
     modelName: 'PiddDet',
+    scopes: {
+      creditPaymentType: {
+        where: {
+          pidd_payment_type: 9942
+        }
+      },
+      cashPaymentType: {
+        where: {
+          pidd_payment_type: 9941
+        }
+      }
+    }
   });
   return PiddDet;
 };

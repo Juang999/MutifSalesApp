@@ -3,9 +3,6 @@ const {
   Model
 } = require('sequelize');
 const {
-  v4: uuidv4
-} = require('uuid')
-const {
   info,
   error
 } = require('../helper/Logging')
@@ -41,7 +38,6 @@ module.exports = (sequelize, DataTypes) => {
     cs_oid: {
       type: DataTypes.UUID,
       primaryKey: true,
-      defaultValue: uuidv4
     },
     cs_userid: DataTypes.BIGINT,
     cs_pt_id: DataTypes.BIGINT,

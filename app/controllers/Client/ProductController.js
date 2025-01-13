@@ -1,4 +1,11 @@
-const {PtCatMstr, SoMstr, InvcMstr, PidDet, PiddDet, SodDet, PtMstr, EnMstr, Sequelize, PiMstr} = require('../../../models');
+const {
+    PtMstr, EnMstr, 
+    PiddDet, SodDet, 
+    InvcMstr, PidDet, 
+    PtCatMstr, SoMstr, 
+    Sequelize, PiMstr, 
+    ProductJubelioThumbnail, ProductJubelio
+} = require('../../../models');
 const {info, error: errorLog} = require('../../../helper/Logging');
 const moment = require('moment');
 const {Op} = require('sequelize')
@@ -486,6 +493,66 @@ class ProductController {
         let {data: getImage} = await getData(`/exapro/${productCode}/image`)
 
         return getImage;
+    }
+
+    getProducts = async (prequisite) => {
+        let search = ('search' in prequisite) ? prequisite.search : '';
+        let categoryId = ('categoryId' in prequisite) ? prequisite.categoryId : null;
+
+        let data = PidDet.findAll({
+            attributes: [
+                [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
+                [Sequelize.col('"product"."pt_code"'), 'product_code'],
+                [Sequelize.col('"product->entity_product"."en_desc"'), 'entity'],
+                [Sequelize.col('"product->master_category"."ptcat_desc"'), 'category'],
+                [Sequelize.literal('CAST("singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
+                [Sequelize.literal('ROUND("singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
+                [Sequelize.literal(`CASE WHEN "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" IS NULL THEN NULL ELSE "product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail" END`), 'photo'],
+            ],
+            include: [
+                {
+                    model: PiddDet.scope('cashPaymentType'),
+                    as: 'singular_detail_price_list',
+                    attributes: []
+                }, {
+                    model: PiMstr.scope('priceListDistributor'),
+                    as: 'master_price_list',
+                    attributes: []
+                }, {
+                    model: PtMstr.scope([
+                        {method: ['searchProduct', search]},
+                        {method: ['findByCategory', categoryId]}
+                    ]),
+                    as: 'product',
+                    attribute: [],
+                    required: true,
+                    include: [
+                        {
+                            model: PtCatMstr,
+                            as: 'master_category',
+                            attributes: []
+                        }, {
+                            model: EnMstr,
+                            as: 'entity_product',
+                            attributes: []
+                        }, {
+                            model: ProductJubelio,
+                            as: 'singular_product_jubelio',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: ProductJubelioThumbnail,
+                                    as: 'singular_thumbnail_product',
+                                    attributes: []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        })
+
+        return data;
     }
 }
 
