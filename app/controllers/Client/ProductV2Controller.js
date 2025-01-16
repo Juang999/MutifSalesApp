@@ -26,7 +26,7 @@ class ProductV2Controller {
                 total_page,
                 total_data, 
                 current_page, 
-            } = await this.getDataProducts(req.query)
+            } = await this.getProducts(req.query)
 
             let result = await this.getImages(data);
 
@@ -187,49 +187,108 @@ class ProductV2Controller {
 
     getDataDetailProduct = async (productCode) => {
         try {
-            let result = await PtMstr.findOne({
+            // let result = await PtMstr.findOne({
+            //     attributes: [
+            //         ['pt_id', 'product_id'],
+            //         ['pt_desc1', 'product_name'],
+            //         ['pt_code', 'product_code'],
+            //         'pt_en_id',
+            //         [Sequelize.col(`"singular_product_quantity"."invc_oid"`), 'invc_oid'],
+            //         [Sequelize.literal(`SUM("detail_quantity"."invc_qty_available" AS INTEGER)`), 'quantity'],
+            //         [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+            //         [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+            //         [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
+            //         [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_id"`), 'pi_id'],
+            //         [Sequelize.literal(`CAST(pt_weight AS INTEGER)`), 'product_weight'],
+            //         [Sequelize.literal(`CAST(pt_height AS INTEGER)`), 'product_height'],
+            //         [Sequelize.literal(`CAST(pt_width AS INTEGER)`), 'product_width'],
+            //         [Sequelize.literal(`CAST(pt_length AS INTEGER)`), 'product_length'],
+            //     ],
+            //     include: [
+            //         {
+            //             model: InvcMstr.scope('gudangReguler'),
+            //             as: 'singular_product_quantity',
+            //             attributes: [],
+            //         }, {
+            //             model: InvcdDet.scope('gudangReguler', 'isVerified'),
+            //             as: 'detail_quantity',
+            //             attributes: [],
+            //         }, {
+            //             model: PidDet,
+            //             as: 'singular_relation_price_list',
+            //             attributes: [],
+            //             include: [
+            //                 {
+            //                     model: PiddDet.scope('creditPaymentType'),
+            //                     as: 'singular_detail_price_list',
+            //                     attributes: [],
+            //                 }, {
+            //                     model: PiMstr.scope('priceListDistributor'),
+            //                     as: 'master_price_list',
+            //                     attributes: [],
+            //                 }
+            //             ]
+            //         }
+            //     ],
+            //     where: {
+            //         pt_code: productCode
+            //     },
+            //     logging: false
+            // })
+
+            let result = InvcdDet.findOne({
                 attributes: [
-                    ['pt_id', 'product_id'],
-                    ['pt_desc1', 'product_name'],
-                    ['pt_code', 'product_code'],
-                    'pt_en_id',
-                    [Sequelize.col(`"singular_product_quantity"."invc_oid"`), 'invc_oid'],
-                    [Sequelize.col(`"singular_product_quantity"."invc_qty_available"`), 'quantity'],
-                    [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
-                    [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                    [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
-                    [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_id"`), 'pi_id'],
-                    [Sequelize.literal(`CAST(pt_weight AS INTEGER)`), 'product_weight'],
-                    [Sequelize.literal(`CAST(pt_height AS INTEGER)`), 'product_height'],
-                    [Sequelize.literal(`CAST(pt_width AS INTEGER)`), 'product_width'],
-                    [Sequelize.literal(`CAST(pt_length AS INTEGER)`), 'product_length'],
+                    [Sequelize.col('"detail_inventory"."pt_id"'), 'product_id'],
+                    [Sequelize.col('"detail_inventory"."pt_desc1"'), 'product_name'],
+                    [Sequelize.col('"detail_inventory"."pt_code"'), 'product_code'],
+                    [Sequelize.col(), 'pt_en_id'],
+                    [Sequelize.literal("COUNT(invcd_qty)"), 'quantity'],
                 ],
                 include: [
                     {
-                        model: InvcMstr.scope('gudangReguler'),
-                        as: 'singular_product_quantity',
-                        attributes: [],
-                    }, {
-                        model: PidDet,
-                        as: 'singular_relation_price_list',
+                        model: PtMstr,
+                        as: 'detail_inventory',
                         attributes: [],
                         include: [
                             {
-                                model: PiddDet.scope('creditPaymentType'),
-                                as: 'singular_detail_price_list',
-                                attributes: [],
+                                model: EnMstr,
+                                as: 'entity_product',
+                                attributes: []
                             }, {
-                                model: PiMstr.scope('priceListDistributor'),
-                                as: 'master_price_list',
+                                model: PidDet,
+                                as: 'singular_relation_price_list',
                                 attributes: [],
+                                include: [
+                                    {
+                                        model: PiMstr.scope('priceListDistributor'),
+                                        as: 'master_price_list',
+                                        attributes: []
+                                    }, {
+                                        model: PiddDet.scope('creditPaymentType'),
+                                        as: 'singular_detail_price_list',
+                                        attributes: []
+                                    }
+                                ]
                             }
                         ]
                     }
                 ],
-                where: {
-                    pt_code: productCode
-                },
-                logging: false
+                where: [
+                    Sequelize.where(Sequelize.col('"detail_inventory"."pt_code"'), {
+                        [Op.eq]: productCode
+                    }),
+                    Sequelize.where(Sequelize.col('"invcd_qty"'), {
+                        [Op.not]: 0
+                    }),
+                    Sequelize.where(Sequelize.col('"invcd_is_verified"'), {
+                        [Op.eq]: 'Y'
+                    }),
+                ],
+                group: [
+                    Sequelize.col('"detail_inventory"."pt_id"'),
+                    Sequelize.col('"detail_inventory"."pt_desc1"'),
+                    Sequelize.col('"detail_inventory"."pt_code"'),
+                ]
             })
 
             return result;
@@ -308,6 +367,109 @@ class ProductV2Controller {
             return (data.data != null) ? data.data.picture : null;
         } catch (error) {
             console.info(error)
+        }
+    }
+
+    getProducts = async (query) => {
+        try {
+            let currentPage = ('page' in query) ? query.page : 1;
+            let search = ('search' in query) ? query.search : '';
+            let {page, limit, offset} = new Page(currentPage, 20);
+    
+            let {count, rows} = await InvcdDet.findAndCountAll({
+                attributes: [
+                    [Sequelize.col('"detail_inventory"."pt_desc1"'), 'product_name'],
+                    [Sequelize.col('"detail_inventory"."pt_code"'), 'product_code'],
+                    [Sequelize.col('"detail_inventory->entity_product"."en_desc"'), 'entity'],
+                    [Sequelize.literal('CAST("detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)'), 'price'],
+                    [Sequelize.literal('ROUND("detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
+                    [Sequelize.col('"detail_inventory->master_category"."ptcat_desc"'), 'category'],
+                    [Sequelize.literal('CAST(COUNT(invcd_qty) AS INTEGER)'), 'qty'],
+                ],
+                include: [
+                    {
+                        model: PtMstr,
+                        as: 'detail_inventory',
+                        attributes: [],
+                        include: [
+                            {
+                                model: EnMstr,
+                                as: 'entity_product',
+                                attributes: [],
+                            }, {
+                                model: PtCatMstr,
+                                as: 'master_category',
+                                attributes: []
+                            }, {
+                                model: PidDet,
+                                as: 'singular_relation_price_list',
+                                attributes: [],
+                                include: [
+                                    {
+                                        model: PiMstr.scope('priceListDistributor'),
+                                        as: 'master_price_list',
+                                        attributes: [],
+                                    }, {
+                                        model: PiddDet.scope('creditPaymentType'),
+                                        as: 'singular_detail_price_list',
+                                        attributes: []
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                where: {
+                    [Op.and]: [
+                        Sequelize.where(Sequelize.col(`"detail_inventory"."pt_desc1"`), {
+                            [Op.iLike]: `%${search}%`
+                        }),
+                        Sequelize.where(Sequelize.col('"invcd_is_verified"'), {
+                            [Op.eq]: 'Y'
+                        }),
+                        Sequelize.where(Sequelize.col('"invcd_qty'), {
+                            [Op.not]: 0
+                        })
+                    ],
+                    [Op.or]: [
+                        {
+                            invcd_en_id: 1,
+                            invcd_loc_id: 1000555,
+                        }, {
+                            invcd_en_id: 2,
+                            invcd_loc_id: 2000556,
+                        }, {
+                            invcd_en_id: 3,
+                            invcd_loc_id: 3000557,
+                        }
+                    ]
+                },
+                group: [
+                    Sequelize.col('"detail_inventory"."pt_desc1"'),
+                    Sequelize.col('"detail_inventory"."pt_code"'),
+                    Sequelize.col('"detail_inventory->entity_product"."en_desc"'),
+                    Sequelize.col('"detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
+                    Sequelize.col('"detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
+                    Sequelize.col('"detail_inventory->master_category"."ptcat_desc"')
+                ],
+                limit,
+                offset,
+                order: [
+                    [Sequelize.col('"detail_inventory"."pt_code"'), 'ASC']
+                ],
+                logging: false
+            })
+
+            return {
+                data: rows,
+                total_data: count.length, 
+                per_page: rows.length,
+                current_page: page, 
+                last_page: Math.ceil(count.length/limit), 
+                total_page: Math.ceil(count.length/limit)
+            }
+        } catch (error) {
+            return error.message;
         }
     }
 }

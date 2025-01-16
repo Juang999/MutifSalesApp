@@ -393,6 +393,7 @@ class AuthController {
             token_oid: uuidv4(),
             token_user_id: userid,
             token_token: token,
+            created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             token_desc: 'mutif-sales-app'
         }, {
             logging: false

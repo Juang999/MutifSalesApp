@@ -46,6 +46,18 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'ptnr_id',
         foreignKey: 'ar_bill_to'
       })
+
+      PtnrMstr.hasOne(models.CashiIn, {
+        as: 'cash_in',
+        sourceKey: 'ptnr_id',
+        foreignKey: 'cashi_ptnr_id'
+      })
+
+      PtnrMstr.hasOne(models.CashiIn, {
+        as: 'deposit',
+        sourceKey: 'ptnr_id',
+        foreignKey: 'cashi_ptnr_id'
+      })
     }
   }
   PtnrMstr.init({
