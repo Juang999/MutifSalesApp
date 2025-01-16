@@ -4,7 +4,7 @@ const {
     Sequelize, sequelize
 } = require('../../../models');
 const {Op} = require('sequelize');
-const Auth = require('../../../helper/Auth');;
+const Auth = require('../../../helper/Auth');
 
 class PointController {
     getPoint = (req, res) => {
