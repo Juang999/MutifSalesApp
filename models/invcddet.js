@@ -50,7 +50,11 @@ module.exports = (sequelize, DataTypes) => {
     invcd_upd_by: DataTypes.STRING,
     invcd_qty_old: DataTypes.INTEGER,
     invcd_si_id: DataTypes.DATE,
-    invcd_is_verified: DataTypes.STRING
+    invcd_is_verified: DataTypes.STRING,
+    invcd_is_booked: DataTypes.STRING,
+    invcd_transaction_code: DataTypes.STRING,
+    invcd_alias_qrbarcode: DataTypes.STRING,
+    invcd_cs_oid: DataTypes.UUID,
   }, {
     sequelize,
     scopes: {
@@ -73,6 +77,27 @@ module.exports = (sequelize, DataTypes) => {
       isVerified: {
         where: {
           invcd_is_verified: 'Y'
+        }
+      },
+      bookedIsNull: {
+        where: {
+          invcd_is_booked: {
+            [Op.is]: null
+          }
+        }
+      },
+      isNotZero: {
+        where: {
+          invcd_qty: {
+            [Op.not]: 0
+          }
+        }
+      },
+      transactionCodeIsNull: {
+        where: {
+          invcd_transaction_code: {
+            [Op.is]: null
+          }
         }
       }
     },
