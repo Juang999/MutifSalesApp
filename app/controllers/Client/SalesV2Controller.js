@@ -36,7 +36,7 @@ class SalesV2Controller {
                         required: true,
                         include: [
                             {
-                                model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull', 'isNotZero'),
+                                model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull', 'isNotZero', 'transactionCodeIsNull'),
                                 as: 'detail_quantity',
                                 attributes: [],
                             }, {

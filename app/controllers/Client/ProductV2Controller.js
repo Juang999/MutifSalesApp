@@ -251,6 +251,9 @@ class ProductV2Controller {
                     Sequelize.where(Sequelize.col('"invcd_is_booked"'), {
                         [Op.is]: null
                     }),
+                    Sequelize.where(Sequelize.col('"invcd_transaction_code"'), {
+                        [Op.is]: null
+                    }),
                 ],
                 group: [
                     Sequelize.col('"detail_inventory"."pt_id"'),
@@ -411,7 +414,10 @@ class ProductV2Controller {
                         }),
                         Sequelize.where(Sequelize.col('"invcd_is_booked'), {
                             [Op.is]: null
-                        })
+                        }),
+                        Sequelize.where(Sequelize.col('"invcd_transaction_code'), {
+                            [Op.is]: null
+                        }),
                     ],
                     [Op.or]: [
                         {

@@ -90,7 +90,16 @@ class SalesController {
             ],
             where: {
                 invcd_pt_id: ptId,
-                invcd_is_verified: 'Y'
+                invcd_is_verified: 'Y',
+                invcd_is_booked: {
+                    [Op.is]: null
+                },
+                invcd_cs_oid: {
+                    [Op.is]: null
+                },
+                invcd_transaction_code: {
+                    [Op.is]: null
+                }
             },
             limit,
             transaction,
@@ -370,7 +379,7 @@ class SalesController {
                             attributes: [],
                             include: [
                                 {
-                                    model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull', 'isNotZero'),
+                                    model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull', 'isNotZero', 'transactionCodeIsNull'),
                                     as: 'detail_quantity',
                                     attributes: [],
                                 }, {

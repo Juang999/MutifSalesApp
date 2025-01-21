@@ -92,6 +92,13 @@ module.exports = (sequelize, DataTypes) => {
             [Op.not]: 0
           }
         }
+      },
+      transactionCodeIsNull: {
+        where: {
+          invcd_transaction_code: {
+            [Op.is]: null
+          }
+        }
       }
     },
     schema: 'public',
