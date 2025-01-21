@@ -65,6 +65,7 @@ class ProductV2Controller {
                 .json({
                     status: 'success',
                     message: 'ok',
+                    // data: masterData
                     data: {
                         product_id: masterData.product_id,
                         product_name: masterData.product_name,
@@ -187,62 +188,22 @@ class ProductV2Controller {
 
     getDataDetailProduct = async (productCode) => {
         try {
-            // let result = await PtMstr.findOne({
-            //     attributes: [
-            //         ['pt_id', 'product_id'],
-            //         ['pt_desc1', 'product_name'],
-            //         ['pt_code', 'product_code'],
-            //         'pt_en_id',
-            //         [Sequelize.col(`"singular_product_quantity"."invc_oid"`), 'invc_oid'],
-            //         [Sequelize.literal(`SUM("detail_quantity"."invc_qty_available" AS INTEGER)`), 'quantity'],
-            //         [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
-            //         [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-            //         [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
-            //         [Sequelize.col(`"singular_relation_price_list->master_price_list"."pi_id"`), 'pi_id'],
-            //         [Sequelize.literal(`CAST(pt_weight AS INTEGER)`), 'product_weight'],
-            //         [Sequelize.literal(`CAST(pt_height AS INTEGER)`), 'product_height'],
-            //         [Sequelize.literal(`CAST(pt_width AS INTEGER)`), 'product_width'],
-            //         [Sequelize.literal(`CAST(pt_length AS INTEGER)`), 'product_length'],
-            //     ],
-            //     include: [
-            //         {
-            //             model: InvcMstr.scope('gudangReguler'),
-            //             as: 'singular_product_quantity',
-            //             attributes: [],
-            //         }, {
-            //             model: InvcdDet.scope('gudangReguler', 'isVerified'),
-            //             as: 'detail_quantity',
-            //             attributes: [],
-            //         }, {
-            //             model: PidDet,
-            //             as: 'singular_relation_price_list',
-            //             attributes: [],
-            //             include: [
-            //                 {
-            //                     model: PiddDet.scope('creditPaymentType'),
-            //                     as: 'singular_detail_price_list',
-            //                     attributes: [],
-            //                 }, {
-            //                     model: PiMstr.scope('priceListDistributor'),
-            //                     as: 'master_price_list',
-            //                     attributes: [],
-            //                 }
-            //             ]
-            //         }
-            //     ],
-            //     where: {
-            //         pt_code: productCode
-            //     },
-            //     logging: false
-            // })
-
             let result = InvcdDet.findOne({
                 attributes: [
                     [Sequelize.col('"detail_inventory"."pt_id"'), 'product_id'],
                     [Sequelize.col('"detail_inventory"."pt_desc1"'), 'product_name'],
                     [Sequelize.col('"detail_inventory"."pt_code"'), 'product_code'],
-                    [Sequelize.col(), 'pt_en_id'],
+                    [Sequelize.col('"detail_inventory"."pt_en_id"'), 'pt_en_id'],
                     [Sequelize.literal("COUNT(invcd_qty)"), 'quantity'],
+                    [Sequelize.col(`"detail_inventory->singular_product_quantity"."invc_oid"`), 'invc_oid'],
+                    [Sequelize.col(`"detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_price"`), 'price'],
+                    [Sequelize.col(`"detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`), 'discount'],
+                    [Sequelize.col(`"detail_inventory->singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
+                    [Sequelize.col(`"detail_inventory->singular_relation_price_list->master_price_list"."pi_id"`), 'pi_id'],
+                    [Sequelize.literal(`CAST("detail_inventory"."pt_weight" AS INTEGER)`), 'product_weight'],
+                    [Sequelize.literal(`CAST("detail_inventory"."pt_height" AS INTEGER)`), 'product_height'],
+                    [Sequelize.literal(`CAST("detail_inventory"."pt_width" AS INTEGER)`), 'product_width'],
+                    [Sequelize.literal(`CAST("detail_inventory"."pt_length" AS INTEGER)`), 'product_length'],
                 ],
                 include: [
                     {
@@ -253,6 +214,10 @@ class ProductV2Controller {
                             {
                                 model: EnMstr,
                                 as: 'entity_product',
+                                attributes: []
+                            }, {
+                                model: InvcMstr.scope('gudangReguler'),
+                                as: 'singular_product_quantity',
                                 attributes: []
                             }, {
                                 model: PidDet,
@@ -283,16 +248,30 @@ class ProductV2Controller {
                     Sequelize.where(Sequelize.col('"invcd_is_verified"'), {
                         [Op.eq]: 'Y'
                     }),
+                    Sequelize.where(Sequelize.col('"invcd_is_booked"'), {
+                        [Op.is]: null
+                    }),
                 ],
                 group: [
                     Sequelize.col('"detail_inventory"."pt_id"'),
                     Sequelize.col('"detail_inventory"."pt_desc1"'),
                     Sequelize.col('"detail_inventory"."pt_code"'),
+                    Sequelize.col('"detail_inventory"."pt_en_id"'),
+                    Sequelize.col(`"detail_inventory->singular_product_quantity"."invc_oid"`),
+                    Sequelize.col(`"detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_price"`),
+                    Sequelize.col(`"detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`),
+                    Sequelize.col(`"detail_inventory->singular_relation_price_list->master_price_list"."pi_desc"`),
+                    Sequelize.col(`"detail_inventory->singular_relation_price_list->master_price_list"."pi_id"`),
+                    Sequelize.col(`"detail_inventory"."pt_weight"`),
+                    Sequelize.col(`"detail_inventory"."pt_height"`),
+                    Sequelize.col(`"detail_inventory"."pt_width"`),
+                    Sequelize.col(`"detail_inventory"."pt_length"`),
                 ]
             })
 
             return result;
         } catch (error) {
+            console.info(error.message)
             return error.message
         }
     }
@@ -429,6 +408,9 @@ class ProductV2Controller {
                         }),
                         Sequelize.where(Sequelize.col('"invcd_qty'), {
                             [Op.not]: 0
+                        }),
+                        Sequelize.where(Sequelize.col('"invcd_is_booked'), {
+                            [Op.is]: null
                         })
                     ],
                     [Op.or]: [

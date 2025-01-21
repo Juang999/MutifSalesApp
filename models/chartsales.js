@@ -32,6 +32,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'cs_pi_id',
         targetKey: 'pi_id'
       })
+
+      ChartSales.hasOne(models.InvcdDet, {
+        as: 'singular_serial',
+        sourceKey: 'cs_oid',
+        foreignKey: 'invcd_cs_oid'
+      })
     }
   }
   ChartSales.init({
