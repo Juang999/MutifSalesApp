@@ -163,21 +163,13 @@ class SalesV2Controller {
                             attributes: [],
                             include: [
                                 {
-                                    model: PiMstr,
+                                    model: PiMstr.scope('priceListDistributor'),
                                     as: 'master_price_list',
                                     attributes: [],
-                                    where: {
-                                        pi_id: {
-                                            [Op.in]: [1040, 2020, 3020]
-                                        }
-                                    }
                                 }, {
-                                    model: PiddDet,
+                                    model: PiddDet.scope('creditPaymentType'),
                                     as: 'singular_detail_price_list',
                                     attributes: [],
-                                    where: {
-                                        pidd_payment_type: 9942
-                                    }
                                 }
                             ]
                         }, {
@@ -220,7 +212,7 @@ class SalesV2Controller {
             WHERE
                 cs_userid = :userid
             AND
-                master_price_list.pi_id IN (1040, 2020, 3020)
+                master_price_list.pi_id IN (103, 202, 304)
             AND
                 detail_price_list.pidd_payment_type = 9942
             `, {
@@ -233,38 +225,37 @@ class SalesV2Controller {
         return subTotal;
     }
 
+    getImages = async (product) => {
+        let partnumbers = product.map(({dataValues: item}) => {
+            return item.product_code
+        })
+        
+        const {parsed: configATPO} = config;
+        let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
+            partnumbers: partnumbers
+        });
     
-            getImages = async (product) => {
-                let partnumbers = product.map(({dataValues: item}) => {
-                    return item.product_code
-                })
-                
-                const {parsed: configATPO} = config;
-                let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
-                    partnumbers: partnumbers
-                });
-        
-                let result = product.map(({dataValues: item}) => {
-                    let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
-        
-                    return {
-                        cs_oid: item.cs_oid,
-                        product_name: item.product_name,
-                        product_code: item.product_code,
-                        chart_quantity: item.chart_quantity,
-                        available_quantity: item.available_quantity,
-                        sales_status: item.sales_status,
-                        can_be_sold: item.can_be_sold,
-                        price: item.price,
-                        photo: (picture.length == 0) ? null : picture[0]['picture'],
-                        discount: item.discount,
-                        created_at: item.created_at,
-                        updated_at: item.updated_at
-                    }
-                })
-
-                return result;
+        let result = product.map(({dataValues: item}) => {
+            let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
+    
+            return {
+                cs_oid: item.cs_oid,
+                product_name: item.product_name,
+                product_code: item.product_code,
+                chart_quantity: item.chart_quantity,
+                available_quantity: item.available_quantity,
+                sales_status: item.sales_status,
+                can_be_sold: item.can_be_sold,
+                price: item.price,
+                photo: (picture.length == 0) ? null : picture[0]['picture'],
+                discount: item.discount,
+                created_at: item.created_at,
+                updated_at: item.updated_at
             }
+        })
+    
+        return result;
+    }
 }
 
 module.exports = new SalesV2Controller();
