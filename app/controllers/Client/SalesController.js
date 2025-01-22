@@ -392,7 +392,7 @@ class SalesController {
                                             as: 'master_price_list',
                                             attributes: [],
                                         }, {
-                                            model: PiddDet.scope('cashPaymentType'),
+                                            model: PiddDet.scope('creditPaymentType'),
                                             as: 'singular_detail_price_list',
                                             attributes: [],
                                         }
