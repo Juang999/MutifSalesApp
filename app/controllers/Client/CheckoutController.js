@@ -12,7 +12,7 @@ const {
 } = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
 const ServerSetting = require('../../../helper/SettingServer');
-const {insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
+const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
 
 class CheckoutController {
     checkOut = async (req, res) => {
@@ -411,6 +411,10 @@ class CheckoutController {
                 invcd_cs_oid: {
                     [Op.in]: CART_SALES_OID
                 }
+            },
+            logging: async (sqlCommand, {bind}) => {
+                let result = sqlCommand.split(': ')[1];
+                await insertQuery(result, bind);
             },
             transaction
         })

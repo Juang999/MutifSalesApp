@@ -18,10 +18,10 @@ const {
     PtMstr, PidDet, Sequelize,
     sequelize, ProductJubelio, ProductJubelioThumbnail
 } = require('../../../models');
-const {insertQuery} = require('../../../helper/InputQueryIntoSqlOut');
+const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
 const {patchData: urlPatchData} = require('../../../helper/ProductStock');
 const {
-    releaseProduct, updateStatusTransction, bulkReleaseQuantity, 
+    updateStatusTransction, bulkReleaseQuantity, 
 } = require('../../modules/Stock/controllers/StockProductController');
 
 class SalesController {
@@ -52,7 +52,7 @@ class SalesController {
                 return;
             }
 
-            await this.decreaseQtyInventory(qtyStock, cartSalesOid, qtyStock, t);
+            await this.decreaseQtyInventory(qtyStock, cartSalesOid, t);
 
             if (dataCart == null) {
                 await this.createDataChart(cartSalesOid, Auth.user().userid, req.body, t);
@@ -281,9 +281,8 @@ class SalesController {
         const t = await sequelize.transaction();
 
         try {
-            await this.increaseQtyInventory(req.params.cs_oid);
-
-            this.deleteDataChart(Auth.user().userid, req.params.cs_oid)
+            await this.increaseQtyInventory(req.params.cs_oid, t);
+            this.deleteDataChart(Auth.user().userid, req.params.cs_oid, t);
 
             await t.commit();
             res.status(200)
@@ -469,7 +468,7 @@ class SalesController {
             })
 
             if (req.body.payment_status == 'cancel' || req.body.payment_status == 'failure') {
-                await releaseProduct(req.params.invoice)
+                await this.releaseProduct(req.params.invoice)
             } else {
                 await updateStatusTransction(req.body.payment_status, req.params.invoice)
             }
@@ -550,12 +549,15 @@ class SalesController {
                     [Op.in]: batchInvcdOid
                 }
             },
-            // logging: false,
-            // transaction
+            logging: async (queryCommand, {bind}) => {
+                let result = queryCommand.split(': ')[1];
+                insertQuery(result, bind)
+            },
+            transaction
         })
     }
 
-    increaseQtyInventory = async (cartSalesOid) => {
+    increaseQtyInventory = async (cartSalesOid, transaction) => {
         await InvcdDet.update({
             invcd_is_booked: null,
             invcd_cs_oid: null
@@ -563,12 +565,12 @@ class SalesController {
             where: {
                 invcd_cs_oid: cartSalesOid
             },
-            logging: false,
-        })
-        // let quantityAvailable = parseInt(qtyInventory.invc_qty_available) + parseInt(qtyNeeded);
-        // let quantityBooked = parseInt(qtyInventory.invc_qty_booked) - parseInt(qtyNeeded);
-
-        // await this.updateQtyInventory(invcOid, quantityAvailable, quantityBooked, transaction);
+            transaction,
+            logging: (sqlCommand, {bind}) => {
+                let result = sqlCommand.split(': ');
+                insertQuery(result[1], bind);
+            },
+        });
     }
 
     updateQtyInventory = async (invcOid, qtyAvailable, qtyBooked, transaction) => {
@@ -630,6 +632,17 @@ class SalesController {
         })
     
         return result;
+    }
+
+    releaseProduct = async (invoice) => {
+        await InvcdDet.update({
+            invcd_is_booked: null,
+            invcd_transaction_code: null
+        }, {
+            where: {
+                invcd_transaction_code: invoice
+            }
+        })
     }
 }
 

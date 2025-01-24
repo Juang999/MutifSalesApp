@@ -16,7 +16,7 @@ class InputQueryIntoSqlOut {
 
     bindData = (query, values) => {
         return query.replace(/\$(\d+)/g, (match, number) => {
-            return "'"+values[number - 1]+"'";
+            return (values[number - 1] == null) ? null : "'"+values[number - 1]+"'";
         });
     }
 
