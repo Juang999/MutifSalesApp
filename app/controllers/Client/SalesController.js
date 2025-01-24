@@ -89,6 +89,7 @@ class SalesController {
                 'invcd_oid',
             ],
             where: {
+                invcd_qty: 1,
                 invcd_pt_id: ptId,
                 invcd_is_verified: 'Y',
                 invcd_is_booked: {
@@ -540,11 +541,15 @@ class SalesController {
             return data.invcd_oid
         })
 
+        console.info(batchInvcdOid);
+
         await InvcdDet.update({
             invcd_is_booked: 'Y',
             invcd_cs_oid: cartSalesOid,
         }, {
             where: {
+                invcd_qty: 1,
+                invcd_is_verified: 'Y',
                 invcd_oid: {
                     [Op.in]: batchInvcdOid
                 }
