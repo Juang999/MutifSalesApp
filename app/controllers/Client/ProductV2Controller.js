@@ -269,7 +269,8 @@ class ProductV2Controller {
                     Sequelize.col(`"detail_inventory"."pt_height"`),
                     Sequelize.col(`"detail_inventory"."pt_width"`),
                     Sequelize.col(`"detail_inventory"."pt_length"`),
-                ]
+                ],
+                logging: false
             })
 
             return result;
