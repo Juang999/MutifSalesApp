@@ -5,8 +5,8 @@ const {config} = require('../../../config/environment');
 const {getData} = require('../../../helper/ProductUrl');
 const {info, error: errorLog} = require('../../../helper/Logging');
 const {
-    Wishlist,
     ArMstr, ArdDist,
+    Wishlist, EnMstr,
     PtnrMstr, PtnrgGrp,
     Sequelize, ChartSales, 
     TConfUser, TokenStorage,
@@ -23,6 +23,14 @@ class AuthController {
             attributes: [
                 ['userid', 'user_id'],
                 ['usernama', 'username'],
+                'userpidgin',
+                ['user_ptnr_id', 'sales_id'],
+                ['usernik', 'nik'],
+                ['useremail', 'email'],
+                ['useractive', 'is_active'],
+                'last_access',
+                ['userphone', 'phone'],
+                [Sequelize.col(`"entity_default"."en_desc"`), 'entity'],
                 [Sequelize.col(`"detail_partner"."ptnr_name"`), 'partner_name'],
                 [Sequelize.col(`"detail_partner->group_partner"."ptnrg_desc"`), 'partner_group'],
             ],
@@ -38,6 +46,10 @@ class AuthController {
                             attributes: []
                         }
                     ]
+                }, {
+                    model: EnMstr,
+                    as: 'entity_default',
+                    attributes: []
                 }
             ],
             where: [

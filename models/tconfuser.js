@@ -34,6 +34,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'wl_user_id'
       })
 
+      TConfUser.belongsTo(models.EnMstr, {
+        as: 'entity_default',
+        targetKey: 'en_id',
+        foreignKey: 'en_id'
+      })
+
       TConfUser.hasMany(models.ChartSales, {
         as: 'chart_sales',
         sourceKey: 'userid',
