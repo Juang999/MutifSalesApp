@@ -1,6 +1,13 @@
-const {PtnrMstr, PtnrgGrp, PtnraAddr, PtMstr, SqMstr, EnMstr, SoMstr, SodDet, Sequelize} = require('../../../models');
+const {
+    PtnrMstr, CashiIn, 
+    PtnrgGrp, PtnraAddr, 
+    PtMstr, SqMstr, 
+    EnMstr, SoMstr, 
+    SodDet, Sequelize
+} = require('../../../models');
 const moment = require('moment');
 const {Op} = require('sequelize');
+const Auth = require('../../../helper/Auth');
 
 class PartnerController {
     getDistributor = (req, res) => {
@@ -180,6 +187,52 @@ class PartnerController {
             res.status(200)
                 .json({
                     status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    getLimitAndDeposit = (req, res) => {
+        CashiIn.findOne({
+            attributes: [
+                [Sequelize.col('"detail_partner"."ptnr_limit_credit"'), 'credit_limit'],
+                [Sequelize.literal(`CAST(SUM(cashi_amount) AS BIGINT)`), 'deposit']
+            ],
+            include: [
+                {
+                    model: PtnrMstr,
+                    as: 'detail_partner',
+                    attributes: [],
+                }
+            ],
+            where: [
+                Sequelize.where(Sequelize.col(`"detail_partner"."ptnr_id"`), {
+                    [Op.eq]: Auth.user().user_ptnr_id
+                }),
+                Sequelize.where(Sequelize.col(`"cashi_is_depo"`), {
+                    [Op.eq]: 'Y'
+                })
+            ],
+            group: [
+                Sequelize.col('"detail_partner"."ptnr_limit_credit"'),
+            ],
+            logging: false
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status:'success',
                     message: 'ok',
                     data: result,
                     error: null

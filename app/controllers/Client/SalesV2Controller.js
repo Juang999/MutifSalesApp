@@ -4,6 +4,7 @@ const Auth = require('../../../helper/Auth');
 const {config} = require('../../../config/environment');
 const {error: errorLog} = require('../../../helper/Logging');
 const {
+    InvcdDet,
     PiddDet, sequelize,
     PtMstr, PidDet, Sequelize, 
     ChartSales, PiMstr, InvcMstr,
@@ -19,9 +20,9 @@ class SalesV2Controller {
                     [Sequelize.col('product.pt_desc1'), 'product_name'],
                     [Sequelize.col('product.pt_code'), 'product_code'],
                     [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                    [Sequelize.literal(`CAST("product->singular_product_quantity"."invc_qty_available" AS INTEGER)`), 'available_quantity'],
-                    [Sequelize.literal(`CASE WHEN "product->singular_product_quantity"."invc_qty_available" - "cs_qty" <= 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
-                    [Sequelize.literal(`CASE WHEN "product->singular_product_quantity"."invc_qty_available" - "cs_qty" <= 0 THEN false ELSE true END`), 'can_be_sold'],
+                    [Sequelize.literal(`COUNT("product->detail_quantity"."invcd_oid")`), 'available_quantity'],
+                    [Sequelize.literal(`CASE WHEN COUNT("product->detail_quantity"."invcd_oid") - "cs_qty" <= 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
+                    [Sequelize.literal(`CASE WHEN COUNT("product->detail_quantity"."invcd_oid") - "cs_qty" <= 0 THEN false ELSE true END`), 'can_be_sold'],
                     [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
                     [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
                     ['cs_created_at', 'created_at'],
@@ -35,6 +36,10 @@ class SalesV2Controller {
                         required: true,
                         include: [
                             {
+                                model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull', 'isNotZero', 'transactionCodeIsNull'),
+                                as: 'detail_quantity',
+                                attributes: [],
+                            }, {
                                 model: PidDet,
                                 as: 'singular_relation_price_list',
                                 attributes: [],
@@ -50,10 +55,6 @@ class SalesV2Controller {
                                     }
                                 ]
                             }, {
-                                model: InvcMstr.scope('gudangReguler'),
-                                as: 'singular_product_quantity',
-                                attributes: [],
-                            }, {
                                 model: ProductJubelio,
                                 as: 'singular_product_jubelio',
                                 attributes: [],
@@ -66,7 +67,7 @@ class SalesV2Controller {
                                 ]
                             }
                         ]
-                    }
+                    },
                 ],
                 where: {
                     [Op.and]: [
@@ -81,10 +82,17 @@ class SalesV2Controller {
                         }),
                     ]
                 },
+                group: [
+                    'cs_oid',
+                    Sequelize.col('product.pt_desc1'),
+                    Sequelize.col('product.pt_code'),
+                    Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
+                    Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
+                ],
                 order: [
                     ['cs_updated_at', 'desc']
                 ],
-                logging: false
+                // logging: false
             })
 
             let result = await this.getImages(dataCart);
@@ -155,21 +163,13 @@ class SalesV2Controller {
                             attributes: [],
                             include: [
                                 {
-                                    model: PiMstr,
+                                    model: PiMstr.scope('priceListDistributor'),
                                     as: 'master_price_list',
                                     attributes: [],
-                                    where: {
-                                        pi_id: {
-                                            [Op.in]: [1040, 2020, 3020]
-                                        }
-                                    }
                                 }, {
-                                    model: PiddDet,
+                                    model: PiddDet.scope('creditPaymentType'),
                                     as: 'singular_detail_price_list',
                                     attributes: [],
-                                    where: {
-                                        pidd_payment_type: 9942
-                                    }
                                 }
                             ]
                         }, {
@@ -212,7 +212,7 @@ class SalesV2Controller {
             WHERE
                 cs_userid = :userid
             AND
-                master_price_list.pi_id IN (1040, 2020, 3020)
+                master_price_list.pi_id IN (103, 202, 304)
             AND
                 detail_price_list.pidd_payment_type = 9942
             `, {
@@ -225,38 +225,37 @@ class SalesV2Controller {
         return subTotal;
     }
 
+    getImages = async (product) => {
+        let partnumbers = product.map(({dataValues: item}) => {
+            return item.product_code
+        })
+        
+        const {parsed: configATPO} = config;
+        let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
+            partnumbers: partnumbers
+        });
     
-            getImages = async (product) => {
-                let partnumbers = product.map(({dataValues: item}) => {
-                    return item.product_code
-                })
-                
-                const {parsed: configATPO} = config;
-                let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
-                    partnumbers: partnumbers
-                });
-        
-                let result = product.map(({dataValues: item}) => {
-                    let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
-        
-                    return {
-                        cs_oid: item.cs_oid,
-                        product_name: item.product_name,
-                        product_code: item.product_code,
-                        chart_quantity: item.chart_quantity,
-                        available_quantity: item.available_quantity,
-                        sales_status: item.sales_status,
-                        can_be_sold: item.can_be_sold,
-                        price: item.price,
-                        photo: (picture.length == 0) ? null : picture[0]['picture'],
-                        discount: item.discount,
-                        created_at: item.created_at,
-                        updated_at: item.updated_at
-                    }
-                })
-
-                return result;
+        let result = product.map(({dataValues: item}) => {
+            let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
+    
+            return {
+                cs_oid: item.cs_oid,
+                product_name: item.product_name,
+                product_code: item.product_code,
+                chart_quantity: item.chart_quantity,
+                available_quantity: item.available_quantity,
+                sales_status: item.sales_status,
+                can_be_sold: item.can_be_sold,
+                price: item.price,
+                photo: (picture.length == 0) ? null : picture[0]['picture'],
+                discount: item.discount,
+                created_at: item.created_at,
+                updated_at: item.updated_at
             }
+        })
+    
+        return result;
+    }
 }
 
 module.exports = new SalesV2Controller();

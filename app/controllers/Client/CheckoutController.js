@@ -4,7 +4,7 @@ const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {info, error: errorLog} = require('../../../helper/Logging');
 const {
-    SqdDet,
+    SqdDet, InvcdDet,
     InvcMstr, PiddDet,
     ChartSales, PiMstr,
     PtMstr, PidDet, Sequelize, 
@@ -12,7 +12,7 @@ const {
 } = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
 const ServerSetting = require('../../../helper/SettingServer');
-const {insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
+const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
 
 class CheckoutController {
     checkOut = async (req, res) => {
@@ -45,6 +45,7 @@ class CheckoutController {
             await this.createHeaderSalesQuotation(headerSalesQuotation, t);
             this.sleep(1000)
             await this.createDetailSalesQuotation(detailSalesQuotation, t);
+            await this.updateTransactionCode(dataBodySq, req.body.invoice_number, t);
             await this.deleteDataChart(dataUser.userid, dataBodySq, t);
 
             await t.commit();
@@ -396,6 +397,26 @@ class CheckoutController {
                 await insertBulkQuery(realSql, 2)
             },
             // logging: false
+        })
+    }
+
+    updateTransactionCode = async (dataCartSales, SalesQuotationMobile, transaction) => {
+        let CART_SALES_OID = dataCartSales.map(({dataValues}) => dataValues.cs_oid);
+
+        await InvcdDet.update({
+            invcd_transaction_code: SalesQuotationMobile,
+            invcd_cs_oid: null
+        }, {
+            where: {
+                invcd_cs_oid: {
+                    [Op.in]: CART_SALES_OID
+                }
+            },
+            logging: async (sqlCommand, {bind}) => {
+                let result = sqlCommand.split(': ')[1];
+                await insertQuery(result, bind);
+            },
+            transaction
         })
     }
 

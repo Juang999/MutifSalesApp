@@ -36,10 +36,7 @@ module.exports = (sequelize, DataTypes) => {
     token_user_id: DataTypes.INTEGER,
     token_token: DataTypes.STRING,
     token_desc: DataTypes.STRING,
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: moment().format('YYYY-MM-DD HH:mm:ss')
-    }
+    created_at: DataTypes.DATE,
   }, {
     sequelize,
     schema: 'public',

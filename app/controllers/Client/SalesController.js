@@ -1,12 +1,13 @@
 const axios = require('axios');
 const moment = require('moment');
-const {Op} = require('sequelize');
+const {Op, where} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {getData} = require('../../../helper/ProductUrl');
 const {config} = require('../../../config/environment');
 const {error: errorLog} = require('../../../helper/Logging');
 const {
+    InvcdDet,
     ChartSales, PiMstr,
     PtnrMstr, InvcMstr,
     PiddDet, TConfUser,
@@ -17,10 +18,10 @@ const {
     PtMstr, PidDet, Sequelize,
     sequelize, ProductJubelio, ProductJubelioThumbnail
 } = require('../../../models');
-const {insertQuery} = require('../../../helper/InputQueryIntoSqlOut');
+const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
 const {patchData: urlPatchData} = require('../../../helper/ProductStock');
 const {
-    releaseProduct, updateStatusTransction, bulkReleaseQuantity, 
+    updateStatusTransction, bulkReleaseQuantity, 
 } = require('../../modules/Stock/controllers/StockProductController');
 
 class SalesController {
@@ -29,12 +30,12 @@ class SalesController {
 
         try {
             let {qty: qtyNeeded, pt_id: productId, invc_oid: inventoryOid} = req.body;
-            let {dataValues: qtyStock} = await this.getStock(productId, t);
+            let qtyStock = await this.getStock(productId, qtyNeeded, t);
             let dataCart = await this.checkProductInChart(productId, Auth.user().userid);
             let cartSalesOid = (dataCart != null) ? dataCart.dataValues.cs_oid : uuidv4();
 
-            let checkQtyProduct = this.checkQuantityProduct(qtyNeeded, qtyStock);
-            
+            let checkQtyProduct = this.checkQuantityProduct(qtyNeeded, dataCart, qtyStock);
+
             if (checkQtyProduct == "habis" || checkQtyProduct == "melebihi batas") {
                 await t.rollback();
                 let message = (checkQtyProduct == "habis") ? "barang habis terjual" : `jumlah barang tersisa ${qtyStock.invc_qty_available}`;
@@ -51,7 +52,7 @@ class SalesController {
                 return;
             }
 
-            await this.decreaseQtyInventory(inventoryOid, qtyNeeded, qtyStock, t);
+            await this.decreaseQtyInventory(qtyStock, cartSalesOid, t);
 
             if (dataCart == null) {
                 await this.createDataChart(cartSalesOid, Auth.user().userid, req.body, t);
@@ -82,15 +83,26 @@ class SalesController {
         }
     }
 
-    getStock = async (ptId, transaction) => {
-        let data = await InvcMstr.scope('gudangReguler').findOne({
+    getStock = async (ptId, limit, transaction) => {
+        let data = await InvcdDet.scope('gudangReguler').findAll({
             attributes: [
-                'invc_qty_available',
-                'invc_qty_booked'
+                'invcd_oid',
             ],
             where: {
-                invc_pt_id: ptId,
+                invcd_qty: 1,
+                invcd_pt_id: ptId,
+                invcd_is_verified: 'Y',
+                invcd_is_booked: {
+                    [Op.is]: null
+                },
+                invcd_cs_oid: {
+                    [Op.is]: null
+                },
+                invcd_transaction_code: {
+                    [Op.is]: null
+                }
             },
+            limit,
             transaction,
             logging: false
         })
@@ -148,7 +160,7 @@ class SalesController {
                 [Sequelize.col('product.pt_desc1'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                [Sequelize.literal('CAST("qty_location"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
+                [Sequelize.literal('COUNT("singular_serial"."invcd_oid")'), 'available_quantity'],
                 [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
                 [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
@@ -193,8 +205,8 @@ class SalesController {
                     ]
                 },
                 {
-                    model: InvcMstr,
-                    as: 'qty_location',
+                    model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull'),
+                    as: 'singular_serial',
                     attributes: []
                 }
             ],
@@ -270,12 +282,8 @@ class SalesController {
         const t = await sequelize.transaction();
 
         try {
-            let {dataValues: dataCart} = await this.getDataCart(req.params.cs_oid);
-            let {dataValues: dataStock} = await this.getStock(dataCart.cs_pt_id, t);
-
-            await this.increaseQtyInventory(dataCart.cs_invc_oid, dataCart.cs_qty, dataStock, t);
-
-            this.deleteDataChart(Auth.user().userid, req.params.cs_oid)
+            await this.increaseQtyInventory(req.params.cs_oid, t);
+            this.deleteDataChart(Auth.user().userid, req.params.cs_oid, t);
 
             await t.commit();
             res.status(200)
@@ -359,7 +367,7 @@ class SalesController {
                         [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
                         [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
                         [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                        [Sequelize.literal('CAST("chart_sales->product->singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'available_quantity'],
+                        [Sequelize.literal('COUNT("chart_sales->product->detail_quantity"."invcd_oid")'), 'available_quantity'],
                         [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                         [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                         [Sequelize.literal(`CASE WHEN "chart_sales->product"."pt_weight" IS NULL THEN 600 ELSE CAST("chart_sales->product"."pt_weight" AS INTEGER) END`), 'pt_weight']
@@ -371,8 +379,8 @@ class SalesController {
                             attributes: [],
                             include: [
                                 {
-                                    model: InvcMstr.scope('gudangReguler'),
-                                    as: 'singular_product_quantity',
+                                    model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull', 'isNotZero', 'transactionCodeIsNull'),
+                                    as: 'detail_quantity',
                                     attributes: [],
                                 }, {
                                     model: PidDet,
@@ -384,7 +392,7 @@ class SalesController {
                                             as: 'master_price_list',
                                             attributes: [],
                                         }, {
-                                            model: PiddDet.scope('cashPaymentType'),
+                                            model: PiddDet.scope('creditPaymentType'),
                                             as: 'singular_detail_price_list',
                                             attributes: [],
                                         }
@@ -398,6 +406,30 @@ class SalesController {
             where: {
                 userid: Auth.user().userid
             },
+            group: [
+                'userid',
+                Sequelize.col('"detail_partner"."ptnr_id"'),
+                Sequelize.col('"detail_partner"."ptnr_name"'),
+                Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_3"'),
+                Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_2"'),
+                Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_1"'),
+                Sequelize.col('"detail_partner->singular_partner_address->singular_contact_addr"."ptnrac_phone_1"'),
+                Sequelize.col('"detail_partner->singular_partner_address->singular_contact_addr"."ptnrac_email"'),
+                Sequelize.col('"detail_partner->singular_partner_address"."ptnra_prov_id"'),
+                Sequelize.col('"detail_partner->singular_partner_address->singular_province"."prop_name"'),
+                Sequelize.col('"detail_partner->singular_partner_address"."ptnra_city_id"'),
+                Sequelize.col(`"detail_partner->singular_partner_address->singular_city"."kota_name"`),
+                Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kec_id"'),
+                Sequelize.col(`"detail_partner->singular_partner_address->singular_kecamatan"."kec_name"`),
+                Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kel_id"'),
+                Sequelize.col(`"detail_partner->singular_partner_address->singular_kelurahan"."kel_name"`),
+                Sequelize.col('"chart_sales"."cs_oid"'),
+                Sequelize.literal('"chart_sales->product"."pt_desc1"'),
+                Sequelize.literal('"chart_sales->product"."pt_code"'),
+                Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
+                Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
+                Sequelize.literal('"chart_sales->product"."pt_weight"')
+            ],
             logging: false
         })
         .then(result => {
@@ -437,7 +469,7 @@ class SalesController {
             })
 
             if (req.body.payment_status == 'cancel' || req.body.payment_status == 'failure') {
-                await releaseProduct(req.params.invoice)
+                await this.releaseProduct(req.params.invoice)
             } else {
                 await updateStatusTransction(req.body.payment_status, req.params.invoice)
             }
@@ -487,11 +519,12 @@ class SalesController {
         })
     }
 
-    checkQuantityProduct = (quantityNeed, stock) => {
+    checkQuantityProduct = async (quantityNeed, qtyPrev, stock) => {
         let valueWhenStockIsZero = "habis";
         let stockNeeded = parseInt(quantityNeed);
-        let stockAvailable = parseInt(stock.invc_qty_available);
-        let bindStock = (stockNeeded > stockAvailable) ? "melebihi batas" : "aman";
+        let stockAvailable = stock.length;
+        let totalData = quantityNeed + qtyPrev;
+        let bindStock = (stockNeeded > stockAvailable || stockNeeded + totalData > stockAvailable) ? "melebihi batas" : "aman";
         
         return (stockAvailable == 0) ? valueWhenStockIsZero : bindStock;
     }
@@ -503,18 +536,46 @@ class SalesController {
         })
     }
 
-    decreaseQtyInventory = async (invcOid, qtyNeeded, qtyInventory, transaction) => {
-        let quantityAvailable = parseInt(qtyInventory.invc_qty_available) - parseInt(qtyNeeded);
-        let quantityBooked = parseInt(qtyInventory.invc_qty_booked) + parseInt(qtyNeeded);
+    decreaseQtyInventory = async (invcdOid, cartSalesOid, transaction) => {
+        let batchInvcdOid = invcdOid.map(({dataValues: data}) => {
+            return data.invcd_oid
+        })
 
-        await this.updateQtyInventory(invcOid, quantityAvailable, quantityBooked, transaction);
+        console.info(batchInvcdOid);
+
+        await InvcdDet.update({
+            invcd_is_booked: 'Y',
+            invcd_cs_oid: cartSalesOid,
+        }, {
+            where: {
+                invcd_qty: 1,
+                invcd_is_verified: 'Y',
+                invcd_oid: {
+                    [Op.in]: batchInvcdOid
+                }
+            },
+            logging: async (queryCommand, {bind}) => {
+                let result = queryCommand.split(': ')[1];
+                insertQuery(result, bind)
+            },
+            transaction
+        })
     }
 
-    increaseQtyInventory = async (invcOid, qtyNeeded, qtyInventory, transaction) => {
-        let quantityAvailable = parseInt(qtyInventory.invc_qty_available) + parseInt(qtyNeeded);
-        let quantityBooked = parseInt(qtyInventory.invc_qty_booked) - parseInt(qtyNeeded);
-
-        await this.updateQtyInventory(invcOid, quantityAvailable, quantityBooked, transaction);
+    increaseQtyInventory = async (cartSalesOid, transaction) => {
+        await InvcdDet.update({
+            invcd_is_booked: null,
+            invcd_cs_oid: null
+        }, {
+            where: {
+                invcd_cs_oid: cartSalesOid
+            },
+            transaction,
+            logging: (sqlCommand, {bind}) => {
+                let result = sqlCommand.split(': ');
+                insertQuery(result[1], bind);
+            },
+        });
     }
 
     updateQtyInventory = async (invcOid, qtyAvailable, qtyBooked, transaction) => {
@@ -576,6 +637,17 @@ class SalesController {
         })
     
         return result;
+    }
+
+    releaseProduct = async (invoice) => {
+        await InvcdDet.update({
+            invcd_is_booked: null,
+            invcd_transaction_code: null
+        }, {
+            where: {
+                invcd_transaction_code: invoice
+            }
+        })
     }
 }
 
