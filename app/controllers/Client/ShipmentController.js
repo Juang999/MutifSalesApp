@@ -80,17 +80,23 @@ class ShipmentController {
                 [Sequelize.literal(`(SELECT so_code FROM public.so_mstr WHERE so_oid = (SELECT soship_so_oid FROM public.soship_mstr WHERE soship_oid = '${req.params.soship_oid}'))`), 'so_number'],
                 ['soship_dt', 'date_shipment'],
                 'soship_accepted',
-                ['soship_remarks', 'remarks']
+                ['soship_remarks', 'remarks'],
+                [Sequelize.literal(`(SELECT COUNT(soshipd_oid) FROM public.soshipd_det WHERE soshipd_soship_oid = '${req.params.soship_oid}')`), 'total_articles'],
+                [Sequelize.literal(`(SELECT CAST(ABS(SUM(soshipd_qty_real)) AS INTEGER) FROM public.soshipd_det WHERE soshipd_soship_oid = '${req.params.soship_oid}')`), 'total_quantity'],
             ],
             include: [ 
                 {
+                    model: SoShipdDet,
+                    as: 'singular_detail_shipment',
+                    attributes: []
+                }, {
                     model: SoShipdDet,
                     as: 'detail_shipment',
                     attributes: [
                         [Sequelize.literal(`"detail_shipment->detail_sales_order->product"."pt_desc1"`), 'product_name'],
                         [Sequelize.literal(`"detail_shipment->detail_sales_order->product"."pt_code"`), 'product_code'],
-                        [Sequelize.literal(`"detail_shipment->detail_sales_order"."sod_qty_shipment"`), 'ordered_qty'],
-                        ['soshipd_qty_real', 'shiped_qty'],
+                        [Sequelize.literal(`CAST("detail_shipment->detail_sales_order"."sod_qty_shipment" AS INTEGER)`), 'ordered_qty'],
+                        [Sequelize.literal('CAST(ABS("detail_shipment"."soshipd_qty_real") AS INTEGER)'), 'shiped_qty'],
                     ],
                     include: [
                         {
@@ -115,7 +121,8 @@ class ShipmentController {
                 Sequelize.where(Sequelize.col(`soship_so_oid`), {
                     [Op.in]: Sequelize.literal(`(SELECT so_oid FROM public.so_mstr WHERE so_ptnr_id_bill = ${user_ptnr_id})`)
                 })
-            ]
+            ],
+            // group: ['shipment_number', 'so_number', 'date_shipment', 'soship_accepted', 'remarks']
         })
         .then(result => {
             res.status(200)
