@@ -77,6 +77,7 @@ class ShipmentController {
 
         SoShipMstr.findOne({
             attributes: [
+                'soship_oid',
                 ['soship_code', 'shipment_number'],
                 [Sequelize.literal(`(SELECT so_code FROM public.so_mstr WHERE so_oid = (SELECT soship_so_oid FROM public.soship_mstr WHERE soship_oid = '${req.params.soship_oid}'))`), 'so_number'],
                 ['soship_dt', 'date_shipment'],
@@ -123,6 +124,7 @@ class ShipmentController {
                     [Op.in]: Sequelize.literal(`(SELECT so_oid FROM public.so_mstr WHERE so_ptnr_id_bill = ${user_ptnr_id})`)
                 })
             ],
+            logging: false
             // group: ['shipment_number', 'so_number', 'date_shipment', 'soship_accepted', 'remarks']
         })
         .then(result => {
