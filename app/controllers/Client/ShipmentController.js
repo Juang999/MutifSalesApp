@@ -7,6 +7,7 @@ const {
 const moment = require('moment');
 const { Op } = require('sequelize');
 const Auth = require('../../../helper/Auth');
+const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
 
 class ShipmentController {
     index = (req, res) => {
@@ -123,6 +124,44 @@ class ShipmentController {
                 })
             ],
             // group: ['shipment_number', 'so_number', 'date_shipment', 'soship_accepted', 'remarks']
+        })
+        .then(result => {
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    update = (req, res) => {
+        const { user_ptnr_id } = Auth.user();
+
+        SoShipMstr.update({
+            soship_accepted: 'Y'
+        }, {
+            where: {
+                soship_oid: req.params.soship_oid,
+                soship_so_oid: {
+                    [Op.in]: Sequelize.literal(`(SELECT so_oid FROM public.so_mstr WHERE so_ptnr_id_bill = ${user_ptnr_id})`)
+                }
+            },
+            logging: async (query, {bind}) => {
+                let result = query.split(': ');
+
+                await insertQuery(result[1], bind)
+            }
         })
         .then(result => {
             res.status(200)
