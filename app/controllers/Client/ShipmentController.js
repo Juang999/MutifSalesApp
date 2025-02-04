@@ -1,4 +1,5 @@
 const {
+    PtMstr,
     SoMstr, SodDet,
     Sequelize, sequelize,
     SoShipMstr, SoShipdDet
@@ -77,6 +78,8 @@ class ShipmentController {
             attributes: [
                 ['soship_code', 'shipment_number'],
                 [Sequelize.literal(`(SELECT so_code FROM public.so_mstr WHERE so_oid = (SELECT soship_so_oid FROM public.soship_mstr WHERE soship_oid = '${req.params.soship_oid}'))`), 'so_number'],
+                ['soship_dt', 'date_shipment'],
+                'soship_accepted',
                 ['soship_remarks', 'remarks']
             ],
             include: [ 
@@ -84,8 +87,25 @@ class ShipmentController {
                     model: SoShipdDet,
                     as: 'detail_shipment',
                     attributes: [
-                        'soshipd_oid'
+                        [Sequelize.literal(`"detail_shipment->detail_sales_order->product"."pt_desc1"`), 'product_name'],
+                        [Sequelize.literal(`"detail_shipment->detail_sales_order->product"."pt_code"`), 'product_code'],
+                        [Sequelize.literal(`"detail_shipment->detail_sales_order"."sod_qty_shipment"`), 'ordered_qty'],
+                        ['soshipd_qty_real', 'shiped_qty'],
                     ],
+                    include: [
+                        {
+                            model: SodDet,
+                            as: 'detail_sales_order',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PtMstr,
+                                    as: 'product',
+                                    attributes: []
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             where: [
