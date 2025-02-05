@@ -11,7 +11,7 @@ const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSq
 
 class ShipmentController {
     index = (req, res) => {
-        let search = (req.query.shipment_code) ? req.query.shipment_code : '';
+        let search = (req.query.search) ? req.query.search : '';
         let startDate = (req.query.start_date) ? moment(req.query.start_date).format('YYYY-MM-DD') : moment().startOf('months').format('YYYY-MM-DD');
         let endDate = (req.query.end_date) ? moment(req.query.end_date).format('YYYY-MM-DD') : moment().endOf('months').format('YYYY-MM-DD');
         const { user_ptnr_id } = Auth.user();
