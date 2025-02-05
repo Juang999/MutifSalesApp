@@ -105,8 +105,8 @@ class OrderController {
                         attributes: [
                             [Sequelize.literal('DISTINCT(sq_midtrans_inv_number)'), 'invoice'],
                             ['sq_midtrans_inv_status', 'status'],
-                            [Sequelize.literal(`DISTINCT(sq_date)`), 'start_date'],
-                            [Sequelize.literal(`DISTINCT(sq_need_date)`), 'end_date'],
+                            [Sequelize.col(`"sq_date"`), 'start_date'],
+                            [Sequelize.col(`"sq_need_date"`), 'end_date'],
                             [Sequelize.literal(`CAST(SUM(sq_total) AS INTEGER)`), 'total_purchase'],
                         ],
                         where: {
@@ -116,13 +116,18 @@ class OrderController {
                             sq_code: {
                                 [Op.iLike]: `%${search}%`
                             },
+                            sq_midtrans_inv_number: {
+                                [Op.not]: null
+                            },
                             sq_ptnr_id_sold: Auth.user().user_ptnr_id
                         },
                         group: [
                             'sq_midtrans_inv_number',
-                            'sq_midtrans_inv_status'
+                            'sq_midtrans_inv_status',
+                            'sq_date',
+                            'sq_need_date',
                         ],
-                        logging: false
+                        // logging: false
                     })
 
             let result = await this.makeFormatInvoice(dataInvoice)
@@ -216,6 +221,8 @@ class OrderController {
             result.push({
                 invoice: dataValues.invoice,
                 status: dataValues.status,
+                start_date: dataValues.start_date,
+                end_date: dataValues.end_date,
                 total_purchase: dataValues.total_purchase,
                 date: new Date(await this.getDateInvoice(dataValues.invoice))
             })
