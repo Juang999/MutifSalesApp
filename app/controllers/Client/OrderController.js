@@ -99,16 +99,22 @@ class OrderController {
         try {
             let startDate = (req.query.start_date) ? moment(req.query.start_date).format('YYYY-MM-DD HH:mm:ss') : moment().startOf('months').format('YYYY-MM-DD HH:mm:ss')
             let endDate = (req.query.end_date) ? moment(req.query.end_date).format('YYYY-MM-DD HH:mm:ss') : moment().endOf('months').format('YYYY-MM-DD HH:mm:ss')
+            let search = (req.query.search) ? req.query.search : '';
     
             let dataInvoice = await SqMstr.findAll({
                         attributes: [
                             [Sequelize.literal('DISTINCT(sq_midtrans_inv_number)'), 'invoice'],
                             ['sq_midtrans_inv_status', 'status'],
+                            [Sequelize.literal(`DISTINCT(sq_date)`), 'start_date'],
+                            [Sequelize.literal(`DISTINCT(sq_need_date)`), 'end_date'],
                             [Sequelize.literal(`CAST(SUM(sq_total) AS INTEGER)`), 'total_purchase'],
                         ],
                         where: {
                             sq_add_date: {
                                 [Op.between]: [startDate, endDate]
+                            },
+                            sq_code: {
+                                [Op.iLike]: `%${search}%`
                             },
                             sq_ptnr_id_sold: Auth.user().user_ptnr_id
                         },
