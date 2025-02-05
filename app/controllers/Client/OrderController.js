@@ -105,22 +105,29 @@ class OrderController {
                         attributes: [
                             [Sequelize.literal('DISTINCT(sq_midtrans_inv_number)'), 'invoice'],
                             ['sq_midtrans_inv_status', 'status'],
-                            [Sequelize.literal(`DISTINCT(sq_date)`), 'start_date'],
-                            [Sequelize.literal(`DISTINCT(sq_need_date)`), 'end_date'],
+                            [Sequelize.col(`"sq_date"`), 'start_date'],
+                            [Sequelize.col(`"sq_need_date"`), 'end_date'],
                             [Sequelize.literal(`CAST(SUM(sq_total) AS INTEGER)`), 'total_purchase'],
                         ],
-                        where: {
-                            sq_add_date: {
+                        where: [
+                            Sequelize.where(Sequelize.col(`"sq_add_date"`), {
                                 [Op.between]: [startDate, endDate]
-                            },
-                            sq_code: {
+                            }),
+                            Sequelize.where(Sequelize.col(`"sq_midtrans_inv_number"`), {
                                 [Op.iLike]: `%${search}%`
-                            },
-                            sq_ptnr_id_sold: Auth.user().user_ptnr_id
-                        },
+                            }),
+                            Sequelize.where(Sequelize.col(`"sq_midtrans_inv_number"`), {
+                                [Op.not]: null
+                            }),
+                            Sequelize.where(Sequelize.col('sq_ptnr_id_sold'), {
+                                [Op.eq]: Auth.user().user_ptnr_id
+                            })
+                        ],
                         group: [
                             'sq_midtrans_inv_number',
-                            'sq_midtrans_inv_status'
+                            'sq_midtrans_inv_status',
+                            'sq_date',
+                            'sq_need_date',
                         ],
                         logging: false
                     })
@@ -216,6 +223,8 @@ class OrderController {
             result.push({
                 invoice: dataValues.invoice,
                 status: dataValues.status,
+                start_date: dataValues.start_date,
+                end_date: dataValues.end_date,
                 total_purchase: dataValues.total_purchase,
                 date: new Date(await this.getDateInvoice(dataValues.invoice))
             })
