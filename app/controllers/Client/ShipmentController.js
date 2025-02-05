@@ -41,7 +41,7 @@ class ShipmentController {
                 Sequelize.where(Sequelize.col(`"master_sales_order"."so_ptnr_id_bill"`), {
                     [Op.eq]: user_ptnr_id
                 }),
-                Sequelize.where(Sequelize.col(`"master_sales_order"."so_code"`), {
+                Sequelize.where(Sequelize.col(`soship_code`), {
                     [Op.iLike]: `%${search}%`
                 }),
                 Sequelize.where(Sequelize.col('soship_date'), {
