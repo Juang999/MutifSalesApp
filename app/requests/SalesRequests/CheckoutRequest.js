@@ -5,7 +5,8 @@ const schemaValidate = Joi.object({
     payment_method: Joi.number().required(),
     shipping_name: Joi.string().required(),
     shipping_cost: Joi.number().required(),
-    invoice_number: Joi.string().required()
+    invoice_number: Joi.string().required(),
+    is_consigment: Joi.string().required()
 })
 
 const CheckoutRequest = (req, res, next) => {

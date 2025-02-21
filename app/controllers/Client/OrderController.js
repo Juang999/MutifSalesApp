@@ -99,22 +99,35 @@ class OrderController {
         try {
             let startDate = (req.query.start_date) ? moment(req.query.start_date).format('YYYY-MM-DD HH:mm:ss') : moment().startOf('months').format('YYYY-MM-DD HH:mm:ss')
             let endDate = (req.query.end_date) ? moment(req.query.end_date).format('YYYY-MM-DD HH:mm:ss') : moment().endOf('months').format('YYYY-MM-DD HH:mm:ss')
+            let search = (req.query.search) ? req.query.search : '';
     
             let dataInvoice = await SqMstr.findAll({
                         attributes: [
                             [Sequelize.literal('DISTINCT(sq_midtrans_inv_number)'), 'invoice'],
                             ['sq_midtrans_inv_status', 'status'],
+                            [Sequelize.col(`"sq_date"`), 'start_date'],
+                            [Sequelize.col(`"sq_need_date"`), 'end_date'],
                             [Sequelize.literal(`CAST(SUM(sq_total) AS INTEGER)`), 'total_purchase'],
                         ],
-                        where: {
-                            sq_add_date: {
+                        where: [
+                            Sequelize.where(Sequelize.col(`"sq_add_date"`), {
                                 [Op.between]: [startDate, endDate]
-                            },
-                            sq_ptnr_id_sold: Auth.user().user_ptnr_id
-                        },
+                            }),
+                            Sequelize.where(Sequelize.col(`"sq_midtrans_inv_number"`), {
+                                [Op.iLike]: `%${search}%`
+                            }),
+                            Sequelize.where(Sequelize.col(`"sq_midtrans_inv_number"`), {
+                                [Op.not]: null
+                            }),
+                            Sequelize.where(Sequelize.col('sq_ptnr_id_sold'), {
+                                [Op.eq]: Auth.user().user_ptnr_id
+                            })
+                        ],
                         group: [
                             'sq_midtrans_inv_number',
-                            'sq_midtrans_inv_status'
+                            'sq_midtrans_inv_status',
+                            'sq_date',
+                            'sq_need_date',
                         ],
                         logging: false
                     })
@@ -210,6 +223,8 @@ class OrderController {
             result.push({
                 invoice: dataValues.invoice,
                 status: dataValues.status,
+                start_date: dataValues.start_date,
+                end_date: dataValues.end_date,
                 total_purchase: dataValues.total_purchase,
                 date: new Date(await this.getDateInvoice(dataValues.invoice))
             })

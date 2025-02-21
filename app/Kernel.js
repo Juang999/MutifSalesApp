@@ -4,6 +4,7 @@ class Kernel {
             Middleware: {
                 AuthMiddleware: require('./middleware/AuthMiddleware'),
                 CheckLoginMiddleware: require('./middleware/CheckLoginMiddleware'),
+                AdminMiddleware: require('./middleware/AdminMiddleware'),
             },
             Requests: {
                 SalesRequests: {

@@ -130,7 +130,7 @@ class CheckoutController {
                 sq_exc_rate: 1,
                 sq_trans_id: 'D',
                 sq_terbilang: Bilangan.parse(totalPrice),
-                sq_cons: 'N',
+                sq_cons: formBody.is_consigment,
                 sq_interval: 1,
                 sq_ar_ac_id: 13,
                 sq_ar_sb_id: 0,
