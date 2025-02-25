@@ -40,6 +40,9 @@ app.use('/client/pre-order', require('./routes/Client/preorder'));
 app.use('/V2/client/sales', require('./routes/Client/salesV2'));
 app.use('/V2/client/product', require('./routes/Client/productV2'));
 
+// for system getdesc
+app.use('/system/getdesc/stock', require('./routes/System/stock'));
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
