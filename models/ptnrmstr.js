@@ -58,6 +58,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'ptnr_id',
         foreignKey: 'cashi_ptnr_id'
       })
+
+      PtnrMstr.hasOne(models.DbgdDet, {
+        as: 'grouping_partner',
+        sourceKey: 'ptnr_id',
+        foreignKey: 'dbgd_ptnr_id'
+      })
     }
   }
   PtnrMstr.init({
