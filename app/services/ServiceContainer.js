@@ -1,8 +1,9 @@
 class ServiceContainer {
     constructor() {
         return {
+            PriceService: require('./PriceService'),
+            ProductService: require('./ProductService'),
             InventoryService: require('./InventoryService'),
-            ProductService: require('./ProductService')
         }
     }
 }

@@ -1,4 +1,5 @@
 const {
+    LocMstr,
     PtMstr, EnMstr, 
     PiddDet, SodDet, 
     InvcMstr, PidDet, 
@@ -82,59 +83,47 @@ class ProductService {
         return result;
     }
 
-    getDetailProduct = async (param, query) => {
-        try {
-            let result = await PtMstr.findOne({
-                attributes: [
-                    ['pt_id', 'product_id'],
-                    ['pt_desc1', 'product_name'],
-                    ['pt_code', 'product_code'],
-                    'pt_en_id',
-                    [Sequelize.literal(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
-                    // [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'price'],
-                    // [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                    [Sequelize.literal('CAST(pt_weight AS INTEGER)'), 'product_weight'],
-                    [Sequelize.literal('CAST(pt_height AS INTEGER)'), 'product_height'],
-                    [Sequelize.literal('CAST(pt_width AS INTEGER)'), 'product_width'],
-                    [Sequelize.literal('CAST(pt_length AS INTEGER)'), 'product_length'],
-                ],
-                include: [
-                    {
-                        model: PidDet,
-                        as: 'singular_relation_price_list',
-                        attributes: [],
-                        include: [
-                            {
-                                model: PiMstr.scope('priceListDistributor'),
-                                required: false,
-                                as: 'master_price_list',
-                                attributes: []
-                            }, 
-                            // {
-                            //     model: PiddDet.scope('creditPaymentType'),
-                            //     as: 'singular_detail_price_list',
-                            //     attributes: []
-                            // }
-                        ]
-                    }, 
-                    {
-                        model: InvcMstr.scope('FILTER_BERDASARKAN_GUDANG_BARANG_JADI_ATAU_GUDANG_REGULER'),
-                        as: 'product_quantity',
-                        attributes: [
-                            'invc_loc_id',
-                            'invc_qty_available'
-                        ]
-                    }
-                ],
-                where: {
-                    pt_code: param.product_code,
+    getDetailProduct = async (param) => {
+        let result = await PtMstr.findOne({
+            attributes: [
+                ['pt_id', 'product_id'],
+                ['pt_desc1', 'product_name'],
+                ['pt_code', 'product_code'],
+                'pt_en_id',
+                [Sequelize.literal('CAST(pt_weight AS INTEGER)'), 'product_weight'],
+                [Sequelize.literal('CAST(pt_height AS INTEGER)'), 'product_height'],
+                [Sequelize.literal('CAST(pt_width AS INTEGER)'), 'product_width'],
+                [Sequelize.literal('CAST(pt_length AS INTEGER)'), 'product_length'],
+            ],
+            include: [
+                {
+                    model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
+                    as: 'product_quantity',
+                    attributes: [
+                        [Sequelize.literal(`"product_quantity->location"."loc_desc"`), 'data_location'],
+                        [Sequelize.literal(`"product_quantity->entity_inventory"."en_desc"`), 'entity'],
+                        'invc_loc_id',
+                        [Sequelize.literal('CAST(invc_qty_available AS INTEGER)'), 'qty_available'],
+                    ],
+                    include: [
+                        {
+                            model: LocMstr,
+                            as: 'location',
+                            attributes: []
+                        }, {
+                            model: EnMstr,
+                            as: 'entity_inventory',
+                            attributes: []
+                        }
+                    ]
                 }
-            })
-    
-            return result
-        } catch (error) {
-            throw new Error(error.message)
-        }
+            ],
+            where: {
+                pt_code: param.product_code,
+            }
+        })
+
+        return result
     }
 
     responseDataProduct = (data) => {
