@@ -45,6 +45,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'userid',
         foreignKey: 'cs_userid'
       })
+
+      TConfUser.hasOne(models.DbgdDet, {
+        as: 'grouping_partner',
+        sourceKey: 'user_ptnr_id',
+        foreignKey: 'dbgd_ptnr_id'
+      })
     }
   }
   TConfUser.init({
