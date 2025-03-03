@@ -90,7 +90,7 @@ class ProductService {
                     ['pt_desc1', 'product_name'],
                     ['pt_code', 'product_code'],
                     'pt_en_id',
-                    // [Sequelize.literal(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
+                    [Sequelize.literal(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
                     // [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'price'],
                     // [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                     [Sequelize.literal('CAST(pt_weight AS INTEGER)'), 'product_weight'],
@@ -104,12 +104,12 @@ class ProductService {
                         as: 'singular_relation_price_list',
                         attributes: [],
                         include: [
-                            // {
-                            //     model: PiMstr.scope('priceListDistributor'),
-                            //     required: false,
-                            //     as: 'master_price_list',
-                            //     attributes: []
-                            // }, 
+                            {
+                                model: PiMstr.scope('priceListDistributor'),
+                                required: false,
+                                as: 'master_price_list',
+                                attributes: []
+                            }, 
                             // {
                             //     model: PiddDet.scope('creditPaymentType'),
                             //     as: 'singular_detail_price_list',
@@ -147,7 +147,7 @@ class ProductService {
             category: dataValues.category,
             price: dataValues.price,
             discount: dataValues.discount,
-            thumbnail: `https://cdn.mutif.biz.id/thumbnail/${dataValues.product_code}`,
+            thumbnail: `https://cdn.mutif.biz.id/thumbnail/${dataValues.product_code}.jpg`,
             qty: dataValues.qty
             }
         })
