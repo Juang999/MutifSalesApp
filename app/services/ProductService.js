@@ -17,7 +17,7 @@ class ProductService {
     getProduct = async (query) => {
         let productName = (query.search) ? query.search : '';
 
-        let result = await InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified').findAll({
+        let raw = await InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified').findAll({
             attributes: [
                 [Sequelize.col(`product_knowledge.pt_id`), 'product_id'],
                 [Sequelize.col(`product_knowledge.pt_desc1`), 'product_name'],
@@ -77,6 +77,8 @@ class ProductService {
             ],
         })
 
+        let result = this.responseDataProduct(raw);
+
         return result;
     }
 
@@ -133,6 +135,22 @@ class ProductService {
         } catch (error) {
             throw new Error(error.message)
         }
+    }
+
+    responseDataProduct = (data) => {
+        return data.map(({dataValues}) => {
+            return {
+            product_id: dataValues.product_id,
+            product_name: dataValues.product_name,
+            product_code: dataValues.product_code,
+            entity: dataValues.entity,
+            category: dataValues.category,
+            price: dataValues.price,
+            discount: dataValues.discount,
+            thumbnail: `https://cdn.mutif.biz.id/thumbnail/${dataValues.product_code}`,
+            qty: dataValues.qty
+            }
+        })
     }
 }
 
