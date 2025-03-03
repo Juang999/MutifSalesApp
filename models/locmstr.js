@@ -10,7 +10,11 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      LocMstr.belongsTo(models.PtnrMstr, {
+        as: 'detail_partner',
+        targetKey: 'ptnr_id',
+        foreignKey: 'loc_ptnr_id'
+      })
     }
   }
   LocMstr.init({
