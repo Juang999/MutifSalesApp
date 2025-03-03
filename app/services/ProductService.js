@@ -16,11 +16,8 @@ const {info, error: errorLog} = require('../../helper/Logging');
 class ProductService {
     getProduct = async (query) => {
         let productName = (query.search) ? query.search : '';
-        // let {ptnrg_id} = Auth.user();
-        let currentPage = (query.page) ? query.page : 1;
-        let {page, limit, offset} = new Page(currentPage, 15);
 
-        let result = await InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified').findAndCountAll({
+        let result = await InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified').findAll({
             attributes: [
                 [Sequelize.col(`product_knowledge.pt_id`), 'product_id'],
                 [Sequelize.col(`product_knowledge.pt_desc1`), 'product_name'],
@@ -78,14 +75,64 @@ class ProductService {
             order: [
                 ['qty', 'DESC']
             ],
-            limit,
-            offset
         })
 
-        return {
-            count: result.count.length, 
-            rows: result.rows
-        };
+        return result;
+    }
+
+    getDetailProduct = async (param, query) => {
+        try {
+            let result = await PtMstr.findOne({
+                attributes: [
+                    ['pt_id', 'product_id'],
+                    ['pt_desc1', 'product_name'],
+                    ['pt_code', 'product_code'],
+                    'pt_en_id',
+                    // [Sequelize.literal(`"singular_relation_price_list->master_price_list"."pi_desc"`), 'pricelist_name'],
+                    // [Sequelize.literal(`CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'price'],
+                    // [Sequelize.literal(`ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                    [Sequelize.literal('CAST(pt_weight AS INTEGER)'), 'product_weight'],
+                    [Sequelize.literal('CAST(pt_height AS INTEGER)'), 'product_height'],
+                    [Sequelize.literal('CAST(pt_width AS INTEGER)'), 'product_width'],
+                    [Sequelize.literal('CAST(pt_length AS INTEGER)'), 'product_length'],
+                ],
+                include: [
+                    {
+                        model: PidDet,
+                        as: 'singular_relation_price_list',
+                        attributes: [],
+                        include: [
+                            // {
+                            //     model: PiMstr.scope('priceListDistributor'),
+                            //     required: false,
+                            //     as: 'master_price_list',
+                            //     attributes: []
+                            // }, 
+                            // {
+                            //     model: PiddDet.scope('creditPaymentType'),
+                            //     as: 'singular_detail_price_list',
+                            //     attributes: []
+                            // }
+                        ]
+                    }, 
+                    {
+                        model: InvcMstr.scope('FILTER_BERDASARKAN_GUDANG_BARANG_JADI_ATAU_GUDANG_REGULER'),
+                        as: 'product_quantity',
+                        attributes: [
+                            'invc_loc_id',
+                            'invc_qty_available'
+                        ]
+                    }
+                ],
+                where: {
+                    pt_code: param.product_code,
+                }
+            })
+    
+            return result
+        } catch (error) {
+            throw new Error(error.message)
+        }
     }
 }
 

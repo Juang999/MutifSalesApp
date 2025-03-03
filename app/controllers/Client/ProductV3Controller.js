@@ -11,19 +11,12 @@ class ProductV3Controller {
         let {page, limit} = new Page(currentPage, 15);
 
         ProductService.getProduct(req)
-        .then(({count, rows}) => {
+        .then(result => {
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: {
-                        data: rows,
-                        total_data: count,
-                        per_page: rows.length,
-                        current_page: page,
-                        last_page: Math.ceil(count / limit),
-                        total_page: Math.ceil(count / limit)
-                    },
+                    data: result,
                     error: null
                 })
         })
