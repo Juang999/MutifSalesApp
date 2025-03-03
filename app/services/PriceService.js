@@ -7,6 +7,7 @@ class PriceService {
     getPrice = async (productId, entityId) => {
         const result = await PidDet.findOne({
             attributes: [
+                [Sequelize.literal(`master_price_list.pi_id`), 'pi_id'],
                 [Sequelize.col(`master_price_list.pi_desc`), 'pricelist_name'],
                 [Sequelize.literal(`CAST("singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("singular_detail_price_list"."pidd_disc", 2)`), 'discount'],

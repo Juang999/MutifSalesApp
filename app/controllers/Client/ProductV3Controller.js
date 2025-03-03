@@ -44,6 +44,7 @@ class ProductV3Controller {
                 product_code: dataProduct.product_code,
                 pt_en_id: dataProduct.pt_en_id,
                 pricelist_name: dataPrice.pricelist_name,
+                pi_id: dataPrice.pi_id,
                 price: dataPrice.price,
                 discount: dataPrice.discount,
                 photo: `https://cdn.mutif.biz.id/detail/${dataProduct.product_code}.jpg`,
