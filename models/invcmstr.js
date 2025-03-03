@@ -26,6 +26,12 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: 'pt_id',
         foreignKey: 'invc_pt_id'
       })
+
+      InvcMstr.belongsTo(models.EnMstr, {
+        as: 'entity_inventory',
+        targetKey: 'en_id',
+        foreignKey: 'invc_en_id'
+      })
     }
   }
   InvcMstr.init({
@@ -114,6 +120,26 @@ module.exports = (sequelize, DataTypes) => {
             }
           ]
         }
+      },
+      FILTER_BERDASARKAN_GUDANG_BARANG_JADI_ATAU_GUDANG_REGULER: {
+        [Op.or]: [
+          {
+              invc_en_id: 1,
+              invc_loc_id: {
+                [Op.in]: [10001, 1000555]
+              },
+          }, {
+              invc_en_id: 2,
+              invc_loc_id: {
+                [Op.in]: [200010, 2000556]
+              },
+          }, {
+              invc_en_id: 3,
+              invc_loc_id: {
+                [Op.in]: [300018, 3000557]
+              },
+          }
+        ]
       }
     }
   });
