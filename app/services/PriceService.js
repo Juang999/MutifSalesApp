@@ -30,7 +30,8 @@ class PriceService {
                 Sequelize.where(Sequelize.literal(`"master_price_list"."pi_en_id"`), {
                     [Op.eq]: entityId
                 })
-            ]
+            ],
+            logging: false
         })
 
         return result;

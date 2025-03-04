@@ -127,6 +127,68 @@ class InventoryService {
 
         return result;
     }
+
+    getDataInventory = async (inventoryOid, transaction) => {
+        let result = await InvcMstr.findOne({
+            attributes: [
+                'invc_oid',
+                [Sequelize.literal('CAST(invc_qty_available AS INTEGER)'), 'qty_available'],
+                [Sequelize.literal('CAST(invc_qty_booked AS INTEGER)'), 'qty_booked'],
+            ],
+            transaction: transaction,
+            where: {
+                invc_oid: inventoryOid
+            },
+        })
+
+        return result;
+    }
+
+    bookProductQuantity = async (inventoryOid, quantity, transaction) => {
+        let result = await InvcMstr.update({
+            invc_qty_available: quantity.quantityAvailable,
+            invc_qty_booked: quantity.quantityBooked
+        }, {
+            where: {
+                invc_oid: inventoryOid
+            },
+            transaction,
+            logging: async (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1]
+
+                await insertQuery(realSql, bind, 1);
+            }
+        })
+
+        return result;
+    }
+
+    getStockBySerial = async (productId, limit, transaction) => {
+        let data = await InvcdDet.scope('gudangReguler').findAll({
+            attributes: [
+                'invcd_oid',
+            ],
+            where: {
+                invcd_qty: 1,
+                invcd_pt_id: productId,
+                invcd_is_verified: 'Y',
+                invcd_is_booked: {
+                    [Op.is]: null
+                },
+                invcd_cs_oid: {
+                    [Op.is]: null
+                },
+                invcd_transaction_code: {
+                    [Op.is]: null
+                }
+            },
+            limit,
+            transaction,
+            logging: false
+        })
+
+        return data;
+    }
 }
 
 module.exports = new InventoryService();

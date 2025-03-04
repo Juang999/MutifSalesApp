@@ -12,93 +12,23 @@ const {Op} = require('sequelize')
 const Auth = require('../../../helper/Auth');
 const {getData} = require('../../../helper/ProductUrl');
 const Page = require('../../../helper/Page');
+const {ProductService} = require('../../services/ServiceContainer');
 
 class ProductController {
     index = async (req, res) => {
         try {
-            let categoriesId = (req.query.categories) ? req.query.categories.split(',') : [4, 1, 5, 3, 0, 2, 7, 8, 9, 10, 11];
-            let productName = (req.query.search) ? req.query.search : '';
             let {ptnrg_id} = Auth.user();
             let currentPage = (req.query.page) ? req.query.page : 1;
             let {page, limit, offset} = new Page(currentPage, 15);
-            let priceList = this.getPriceListUser(ptnrg_id);
-    
-            let {count, rows} = await PtMstr.findAndCountAll({
-                    attributes: [
-                        ['pt_desc1', 'product_name'],
-                        ['pt_code', 'product_code'],
-                        [Sequelize.col('entity_product.en_desc'), 'entity'],
-                        [Sequelize.col('master_category.ptcat_desc'), 'category'],
-                        [Sequelize.literal('CAST("singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                        [Sequelize.literal('ROUND("singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
-                        [Sequelize.literal('CAST("singular_product_quantity"."invc_qty_available" AS INTEGER)'), 'qty']
-                    ],
-                    include: [
-                        {
-                            model: PtCatMstr,
-                            as: 'master_category',
-                            attributes: []
-                        },
-                        {
-                            model: InvcMstr,
-                            as: 'singular_product_quantity',
-                            attributes: [],
-                            where: {
-                                invc_loc_id: {
-                                    [Op.in]: [10001, 200010, 30008]
-                                },
-                                invc_qty_available: {
-                                    [Op.not]: 0
-                                }
-                            }
-                        },
-                        {
-                            model: PidDet,
-                            as: 'singular_relation_price_list',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: PiddDet,
-                                    as: 'singular_detail_price_list',
-                                    attributes: [],
-                                    where: {
-                                        pidd_payment_type: 9941
-                                    }
-                                }
-                            ],
-                            where: {
-                                pid_pi_oid: {
-                                    [Op.in]: priceList
-                                }
-                            }
-                        },
-                        {
-                            model: EnMstr,
-                            as: 'entity_product',
-                            attributes: []
-                        }
-                    ],
-                    where: {
-                        pt_cat_id: {
-                            [Op.in]: categoriesId
-                        },
-                        pt_desc1: {
-                            [Op.iLike]: `%${productName}%`
-                        }
-                    },
-                    limit,
-                    offset,
-                    logging: false
-                })
 
-            let result = await this.getImages(rows);
+            let {count, rows} = await ProductService.getProduct(req.query);
 
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
                     data: {
-                        data: result,
+                        data: rows,
                         total_data: count,
                         per_page: rows.length,
                         current_page: page,
