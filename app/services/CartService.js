@@ -1,0 +1,364 @@
+const {
+    InvcdDet,
+    SqMstr, sequelize,
+    PiddDet, TConfUser,
+    ChartSales, PiMstr,
+    PtnrMstr, InvcMstr,
+    PtnraAddr, PtnracCntc, 
+    RegKecMstr, RegKelMstr,
+    RegPropMstr, RegCityMstr,
+    PtMstr, PidDet, Sequelize,
+} = require('../../models');
+const {v4: uuidv4} = require('uuid');
+const moment = require('moment');
+const {Op} = require('sequelize')
+
+class CartService {
+    retrieveDataCart = async (userId) => {
+        let result = await ChartSales.findAll({
+                    attributes: [
+                        'cs_oid',
+                        ['cs_invc_oid', 'inventory_oid'],
+                        [Sequelize.col('product.pt_id'), 'product_id'],
+                        [Sequelize.col('product.pt_desc1'), 'product_name'],
+                        [Sequelize.col('product.pt_code'), 'product_code'],
+                        [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
+                        [Sequelize.col('"qty_location"."invc_qty_available"'), 'available_quantity'],
+                        [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
+                        [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN false ELSE true END`), 'can_be_sold'],
+                        [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
+                        [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
+                        [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
+                        ['cs_created_at', 'created_at'],
+                        ['cs_updated_at', 'updated_at'],
+                    ],
+                    include: [
+                        {
+                            model: PtMstr,
+                            as: 'product',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PidDet,
+                                    as: 'singular_relation_price_list',
+                                    attributes: [],
+                                    include: [
+                                        {
+                                            model: PiMstr,
+                                            as: 'master_price_list',
+                                            attributes: []
+                                        }, {
+                                            model: PiddDet.scope('creditPaymentType'),
+                                            as: 'singular_detail_price_list',
+                                            attributes: []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            model: InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified'),
+                            as: 'qty_location',
+                            attributes: []
+                        }
+                    ],
+                    where: {
+                        [Op.and]: [
+                            Sequelize.where(Sequelize.col('cs_userid'), {
+                                [Op.eq]: userId
+                            }),
+                            Sequelize.where(Sequelize.col('"product->singular_relation_price_list->master_price_list"."pi_id"'), {
+                                [Op.eq]: Sequelize.col('"cs_pi_id"')
+                            })
+                        ]
+                    },
+                    order: [
+                        ['cs_updated_at', 'desc']
+                    ],
+                    logging: false
+                })
+
+        return result;
+    }
+
+    retrieveDataToCheckout = async (userId) => {
+        let result = await TConfUser.findOne({
+                    attributes: [
+                        [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
+                        [Sequelize.literal('"detail_partner"."ptnr_name"'), 'ptnr_name'],
+                        [Sequelize.literal(`CONCAT("detail_partner->singular_partner_address"."ptnra_line_3", ', ', "detail_partner->singular_partner_address"."ptnra_line_2", ', ', "detail_partner->singular_partner_address"."ptnra_line_1")`), 'ptnr_address'],
+                        [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_phone_1"`), 'phone'],
+                        [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_email"`), 'email'],
+                        [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_prov_id"'), 'prop_id'],
+                        [Sequelize.col('"detail_partner->singular_partner_address->singular_province"."prop_name"'), 'prop_name'],
+                        [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_city_id"'), 'kota_id'],
+                        [Sequelize.col(`"detail_partner->singular_partner_address->singular_city"."kota_name"`), 'kota_name'],
+                        [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kec_id"'), 'kec_id'],
+                        [Sequelize.col(`"detail_partner->singular_partner_address->singular_kecamatan"."kec_name"`), 'kec_name'],
+                        [Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kel_id"'), 'kel_id'],
+                        [Sequelize.col(`"detail_partner->singular_partner_address->singular_kelurahan"."kel_name"`), 'kel_name']
+                    ],
+                    include: [
+                        {
+                            model: PtnrMstr,
+                            as: 'detail_partner',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PtnraAddr,
+                                    as: 'singular_partner_address',
+                                    attributes: [],
+                                    include: [
+                                        {
+                                            model: PtnracCntc,
+                                            as: 'singular_contact_address',
+                                            attributes: []
+                                        }, {
+                                            model: RegPropMstr,
+                                            as: 'singular_province',
+                                            attributes: []
+                                        }, {
+                                            model: RegCityMstr,
+                                            as: 'singular_city',
+                                            attributes: []
+                                        }, {
+                                            model: RegKecMstr,
+                                            as: 'singular_kecamatan',
+                                            attributes: []
+                                        }, {
+                                            model: RegKelMstr,
+                                            as: 'singular_kelurahan',
+                                            attributes: []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }, {
+                            model: ChartSales,
+                            as: 'chart_sales',
+                            attributes: [
+                                'cs_oid',
+                                [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
+                                [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
+                                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
+                                [Sequelize.literal('CAST(SUM("chart_sales->qty_location"."invc_qty_available") AS INTEGER)'), 'available_quantity'],
+                                [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+                                [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                                [Sequelize.literal(`CASE WHEN "chart_sales->product"."pt_weight" IS NULL THEN 600 ELSE CAST("chart_sales->product"."pt_weight" AS INTEGER) END`), 'pt_weight']
+                            ],
+                            include: [
+                                {
+                                    model: PtMstr,
+                                    as: 'product',
+                                    attributes: [],
+                                    include: [
+                                        {
+                                            model: PidDet,
+                                            as: 'singular_relation_price_list',
+                                            attributes: [],
+                                            include: [
+                                                {
+                                                    model: PiMstr.scope('priceListDistributor'),
+                                                    as: 'master_price_list',
+                                                    attributes: [],
+                                                }, {
+                                                    model: PiddDet.scope('creditPaymentType'),
+                                                    as: 'singular_detail_price_list',
+                                                    attributes: [],
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                }, {
+                                    model: InvcMstr.scope(`gudangSesuaiDenganEntitas`, 'isVerified'),
+                                    as: 'qty_location',
+                                    attributes: [],
+                                }
+                            ]
+                        }
+                    ],
+                    where: {
+                        userid: userId
+                    },
+                    group: [
+                        'userid',
+                        Sequelize.col('"detail_partner"."ptnr_id"'),
+                        Sequelize.col('"detail_partner"."ptnr_name"'),
+                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_3"'),
+                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_2"'),
+                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_1"'),
+                        Sequelize.col('"detail_partner->singular_partner_address->singular_contact_addr"."ptnrac_phone_1"'),
+                        Sequelize.col('"detail_partner->singular_partner_address->singular_contact_addr"."ptnrac_email"'),
+                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_prov_id"'),
+                        Sequelize.col('"detail_partner->singular_partner_address->singular_province"."prop_name"'),
+                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_city_id"'),
+                        Sequelize.col(`"detail_partner->singular_partner_address->singular_city"."kota_name"`),
+                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kec_id"'),
+                        Sequelize.col(`"detail_partner->singular_partner_address->singular_kecamatan"."kec_name"`),
+                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kel_id"'),
+                        Sequelize.col(`"detail_partner->singular_partner_address->singular_kelurahan"."kel_name"`),
+                        Sequelize.col('"chart_sales"."cs_oid"'),
+                        Sequelize.literal('"chart_sales->product"."pt_desc1"'),
+                        Sequelize.literal('"chart_sales->product"."pt_code"'),
+                        Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
+                        Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
+                        Sequelize.literal('"chart_sales->product"."pt_weight"')
+                    ],
+                    logging: false
+                })
+
+        return result;
+    }
+
+    retrieveLimitedDataCart = async (userid) => {
+        let result = await ChartSales.findAll({
+            attributes: [
+                'cs_oid',
+                [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
+                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'quantity'],
+                [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+                [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
+            ],
+            include: [
+                {
+                    model: PtMstr,
+                    as: 'product',
+                    attributes: [],
+                    include: [
+                        {
+                            model: PidDet,
+                            as: 'singular_relation_price_list',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PiMstr.scope('priceListDistributor'),
+                                    as: 'master_price_list',
+                                    attributes: [],
+                                }, {
+                                    model: PiddDet.scope('creditPaymentType'),
+                                    as: 'singular_detail_price_list',
+                                    attributes: [],
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            where: {
+                cs_userid: userid
+            },
+            order: [
+                ['cs_qty', 'DESC']
+            ],
+            limit: 15,
+            logging: false
+        })
+
+        return result;
+    }
+
+    getSubTotalPriceCart = async (userid) => {
+        let [subTotal] = await sequelize.query(`
+            SELECT 
+                CAST(SUM("cs_qty" * ("detail_price_list"."pidd_price" - ("detail_price_list"."pidd_price" * "detail_price_list"."pidd_disc"))) AS BIGINT) 
+            FROM public.chart_sales CS
+            LEFT JOIN public.pt_mstr AS product ON product.pt_id = CS.cs_pt_id
+            LEFT JOIN public.pid_det AS relation_price_list ON relation_price_list.pid_pt_id = product.pt_id
+            LEFT JOIN public.pi_mstr AS master_price_list ON master_price_list.pi_oid = relation_price_list.pid_pi_oid
+            LEFT JOIN public.pidd_det AS detail_price_list ON detail_price_list.pidd_pid_oid = relation_price_list.pid_oid
+            WHERE
+                cs_userid = :userid
+            AND
+                master_price_list.pi_id IN (103, 202, 304)
+            AND
+                detail_price_list.pidd_payment_type = 9942
+            `, {
+                replacements: {
+                    userid
+                },
+                logging: false
+            })
+
+        return subTotal;
+    }
+
+    findDataCart = async (productId, userId) => {
+
+        let result = await ChartSales.findOne({
+            attributes: [
+                'cs_oid',
+                'cs_qty'
+            ],
+            where: {
+                cs_pt_id: productId,
+                cs_userid: userId
+            }
+        })
+
+        return result;
+    }
+
+    findDataCartByOid = async (cartSalesOid, userId) => {
+        let result = await ChartSales.findOne({
+            attributes: [
+                'cs_oid',
+                'cs_invc_oid',
+                'cs_qty',
+            ],
+            where: {
+                cs_oid: cartSalesOid,
+                cs_userid: userId
+            }
+        })
+
+        return result;
+    }
+
+    inputIntoCart = async (body, userid, transaction) => {
+        let result = await ChartSales.create({
+            cs_oid: uuidv4(),
+            cs_userid: userid,
+            cs_pt_id: body.productId,
+            cs_pt_en_id: body.entityId,
+            cs_invc_oid: body.inventoryOid,
+            cs_qty: body.quantity,
+            cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_pi_id: body.priceListId
+        }, {
+            transaction
+        })
+
+        return result;
+    }
+
+    updateCart = async (cartSalesOid, quantity, transaction) => {
+        let result = await ChartSales.update({
+            cs_qty: quantity,
+            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
+        }, {
+            where: {
+                cs_oid: cartSalesOid
+            },
+            transaction,
+            logging: false
+        })
+
+        return result;
+    }
+
+    deleteDataCart = async (cartSalesOid, userId, transaction) => {
+        await ChartSales.destroy({
+            where: {
+                cs_oid: cartSalesOid,
+                cs_userid: userId
+            },
+            logging: false,
+            transaction,
+            individualHooks: true
+        })
+    }
+}
+
+module.exports = new CartService();

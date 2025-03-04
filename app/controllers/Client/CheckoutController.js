@@ -4,6 +4,7 @@ const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {info, error: errorLog} = require('../../../helper/Logging');
 const {
+    DbgdDet, LocMstr,
     SqdDet, InvcdDet,
     InvcMstr, PiddDet,
     ChartSales, PiMstr,
@@ -204,6 +205,10 @@ class CheckoutController {
                     model: InvcMstr,
                     as: 'qty_location',
                     attributes: []
+                }, {
+                    model: DbgdDet,
+                    as: 'grouping_parter',
+                    attributes: []
                 }
             ],
             where: {
@@ -212,7 +217,7 @@ class CheckoutController {
             order: [
                 ['cs_pt_en_id', 'ASC']
             ],
-            logging: false,
+            // logging: false,
         })
 
         return dataSalesQuotation;

@@ -7,22 +7,18 @@ const {
     Sequelize, PiMstr, 
     ProductJubelioThumbnail, ProductJubelio
 } = require('../../models');
-const moment = require('moment');
-const {Op} = require('sequelize')
-const Auth = require('../../helper/Auth');
-const Page = require('../../helper/Page');
-const {getData} = require('../../helper/ProductUrl');
-const {info, error: errorLog} = require('../../helper/Logging');
+const {Op} = require('sequelize');
 
 class ProductService {
     getProduct = async (query) => {
         let productName = (query.search) ? query.search : '';
 
-        let raw = await InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified').findAll({
+        let result = await InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified').findAll({
             attributes: [
                 [Sequelize.col(`product_knowledge.pt_id`), 'product_id'],
                 [Sequelize.col(`product_knowledge.pt_desc1`), 'product_name'],
                 [Sequelize.col(`product_knowledge.pt_code`), 'product_code'],
+                [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/thumbnail/', "product_knowledge"."pt_code", '.jpg')`), 'thumbnail'],
                 [Sequelize.literal(`"product_knowledge->entity_product"."en_desc"`), 'entity'],
                 [Sequelize.literal('"product_knowledge->master_category"."ptcat_desc"'), 'category'],
                 [Sequelize.literal(`CAST("product_knowledge->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
@@ -58,11 +54,35 @@ class ProductService {
                     ]
                 }
             ],
-            where: [
-                Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_desc1"`), {
-                    [Op.iLike]: `%${productName}%`
-                })
-            ],
+            where: {
+                [Op.and]: [
+                    Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_desc1"`), {
+                        [Op.iLike]: `%${productName}%`
+                    }),
+                    Sequelize.where(Sequelize.col(`invc_is_verified`), {
+                        [Op.eq]: 'Y'
+                    }),
+                ],
+                [Op.or]: [
+                    {
+                        invc_en_id: 1,
+                        invc_loc_id: {
+                            [Op.in]: [10001, 1000555]
+                        },
+                    }, 
+                    {
+                        invc_en_id: 2,
+                        invc_loc_id: {
+                            [Op.in]: [200010, 2000556]
+                        },
+                    }, {
+                        invc_en_id: 3,
+                        invc_loc_id: {
+                            [Op.in]: [300018, 3000557]
+                        },
+                    }
+                ]
+            },
             group: [
                 'invc_en_id',
                 Sequelize.col(`product_knowledge.pt_id`),
@@ -76,9 +96,8 @@ class ProductService {
             order: [
                 ['qty', 'DESC']
             ],
+            logging: false
         })
-
-        let result = this.responseDataProduct(raw);
 
         return result;
     }
@@ -100,10 +119,11 @@ class ProductService {
                     model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
                     as: 'product_quantity',
                     attributes: [
+                        'invc_oid',
                         [Sequelize.literal(`"product_quantity->location"."loc_desc"`), 'data_location'],
                         [Sequelize.literal(`"product_quantity->entity_inventory"."en_desc"`), 'entity'],
                         'invc_loc_id',
-                        [Sequelize.literal('CAST(invc_qty_available AS INTEGER)'), 'qty_available'],
+                        [Sequelize.literal('CAST(invc_qty_available AS INTEGER)'), 'quantity'],
                     ],
                     include: [
                         {
@@ -120,26 +140,11 @@ class ProductService {
             ],
             where: {
                 pt_code: param.product_code,
-            }
+            },
+            logging: false
         })
 
         return result
-    }
-
-    responseDataProduct = (data) => {
-        return data.map(({dataValues}) => {
-            return {
-            product_id: dataValues.product_id,
-            product_name: dataValues.product_name,
-            product_code: dataValues.product_code,
-            entity: dataValues.entity,
-            category: dataValues.category,
-            price: dataValues.price,
-            discount: dataValues.discount,
-            thumbnail: `https://cdn.mutif.biz.id/thumbnail/${dataValues.product_code}.jpg`,
-            qty: dataValues.qty
-            }
-        })
     }
 }
 
