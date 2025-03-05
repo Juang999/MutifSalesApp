@@ -10,7 +10,7 @@ class ProductV3Controller {
         let currentPage = (req.query.page) ? req.query.page : 1;
         let {page, limit} = new Page(currentPage, 15);
 
-        ProductService.getProduct(req)
+        ProductService.getProduct(req.query)
         .then(result => {
             res.status(200)
                 .json({
