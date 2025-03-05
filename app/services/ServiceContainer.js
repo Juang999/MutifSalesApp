@@ -5,6 +5,7 @@ class ServiceContainer {
             PriceService: require('./PriceService'),
             ProductService: require('./ProductService'),
             InventoryService: require('./InventoryService'),
+            SalesQuotationService: require('./SalesQuotationService')
         }
     }
 }

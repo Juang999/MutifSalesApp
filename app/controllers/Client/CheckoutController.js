@@ -1,66 +1,60 @@
 const moment = require('moment');
-const {Op} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {info, error: errorLog} = require('../../../helper/Logging');
-const {
-    DbgdDet, LocMstr,
-    SqdDet, InvcdDet,
-    InvcMstr, PiddDet,
-    ChartSales, PiMstr,
-    PtMstr, PidDet, Sequelize, 
-    SqMstr, sequelize, InvctTable,
-} = require('../../../models');
+const {sequelize} = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
 const ServerSetting = require('../../../helper/SettingServer');
-const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
+const {InventoryService, CartService, SalesQuotationService} = require('../../services/ServiceContainer');
 
 class CheckoutController {
     checkOut = async (req, res) => {
         const dataUser = Auth.user();
 
-        const t = await sequelize.transaction();
-
         try {
-            let RAW_DATA_HEADER_SQ = this.getDataHeaderSalesQuotation(dataUser.userid);
-            let RAW_DATA_BODY_SQ = this.getDataDetailSalesQuotation(dataUser);
+            let RAW_DATA_HEADER_SQ = CartService.getDataHeaderSalesQuotation(dataUser.userid);
+            let RAW_DATA_BODY_SQ = CartService.getDataDetailSalesQuotation(dataUser.userid);
 
             let [dataHeaderSq, dataBodySq] = await Promise.all([RAW_DATA_HEADER_SQ, RAW_DATA_BODY_SQ])
 
-            if (dataHeaderSq.length == 0) {
-                res.status(300)
-                    .json({
-                        status: 'failed',
-                        message: 'tidak ada barang pesanan',
-                        data: null,
+            let transaction = await sequelize.transaction(async t => {
+                if (dataHeaderSq.length == 0) {
+                    return {
+                        statusCode: 300,
+                        json: {
+                            status: 'failed',
+                            message: 'tidak ada barang pesanan',
+                            data: null,
+                            error: null
+                        }
+                    }
+                }
+
+                let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataUser);
+                let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
+                headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
+    
+                await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
+                this.sleep(1000)
+                await SalesQuotationService.bulkInsertDetailSalesQuotation(detailSalesQuotation, t);
+                await CartService.bulkDeleteDataCart(dataBodySq, dataUser.userid, t);
+
+                return {
+                    statusCode: 200,
+                    json: {
+                        status:'success',
+                        message: 'ok',
+                        data: true,
                         error: null
-                    })
+                    }
+                }
+            })
 
-                return;
-            }
+            info('CHECKOUT PRODUCTS', `${Auth.user().usernama} HAS CHECKED OUT!`, true);
 
-            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataUser);
-            let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
-            headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
-
-            await this.createHeaderSalesQuotation(headerSalesQuotation, t);
-            this.sleep(1000)
-            await this.createDetailSalesQuotation(detailSalesQuotation, t);
-            await this.updateTransactionCode(dataBodySq, req.body.invoice_number, t);
-            await this.deleteDataChart(dataUser.userid, dataBodySq, t);
-
-            await t.commit();
-            info('CHECKOUT SALES QUOTATION', `${Auth.user().usernama} HAS CHECKED OUT!`, true);
-
-            res.status(200)
-                .json({
-                    status: 'success',
-                    message: 'ok',
-                    data: true,
-                    error: null
-                })
+            res.status(transaction.statusCode)
+                .json(transaction.json)
         } catch (error) {
-            await t.rollback();
             errorLog('CHECKOUT PRODUCTS', error.message);
 
             res.status(400)
@@ -73,13 +67,9 @@ class CheckoutController {
         }
     }
 
-    /**
-     * functions for generating HEADER SALES QUOTATION
-     * start AREA HEADER SALES QUOTATION FUNCTIONS
-    */
     generateHeaderSalesQuotation = async (dataHeader, formBody, user) => {
         let SEQUENCE_NUMBER = 0;
-        let TOTAL_SQ_THIS_MONTH = await this.countDataSalesQuotation();
+        let TOTAL_SQ_THIS_MONTH = await SalesQuotationService.countDataSalesQuotation();
         let {dataValues: dataServer} = await ServerSetting.get(['serv_code']);
 
         let {serv_code: SERVER_CODE} = dataServer;
@@ -89,6 +79,7 @@ class CheckoutController {
                 discount,
                 loc_id: locationId,
                 cs_pi_id: priceListId,
+                loc_git: locationGit,
                 total_price: totalPrice,
                 cs_pt_en_id: productEntityId,
             } = dataValues;
@@ -146,7 +137,7 @@ class CheckoutController {
                 sq_shipping_charges: 0,
                 sq_ptsfr_loc_id: locationId, 
                 sq_ptsfr_loc_to_id: locationId,
-                sq_ptsfr_loc_git: locationId,
+                sq_ptsfr_loc_git: locationGit,
                 sq_en_to_id: 0,
                 sq_dropshipper: 'N',
                 sq_pi_area_id: 1,
@@ -161,68 +152,6 @@ class CheckoutController {
         return dataHeadersSalesQuotation;
     }
 
-    getDataHeaderSalesQuotation = async (userid) => {
-        let dataSalesQuotation = await ChartSales.findAll({
-            attributes: [
-                'cs_pt_en_id',
-                'cs_pi_id',
-                [Sequelize.col(`"qty_location"."invc_loc_id"`), 'loc_id'],
-                [Sequelize.literal(`ROUND(AVG("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"), 2)`), 'discount'],
-                [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'cs_qty'],
-                [Sequelize.literal('CASE WHEN "product"."pt_weight" IS NULL THEN CAST(SUM(cs_qty * 600) AS INTEGER) ELSE CAST(SUM(cs_qty * "product"."pt_weight") AS INTEGER) END'), 'total_weight_package'],
-                [Sequelize.literal(`CAST(SUM((cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - (cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2))) AS INTEGER)`), 'total_price']
-            ],
-            group: [
-                'cs_pt_en_id', 
-                'cs_pi_id',
-                Sequelize.col(`"product"."pt_weight"`),
-                Sequelize.col(`"qty_location"."invc_loc_id"`)
-            ],
-            include: [
-                {
-                    model: PtMstr,
-                    as: 'product',
-                    attributes: [],
-                    include: [
-                        {
-                            model: PidDet,
-                            as: 'singular_relation_price_list',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: PiddDet.scope('creditPaymentType'),
-                                    as: 'singular_detail_price_list',
-                                    attributes: [],
-                                }, {
-                                    model: PiMstr.scope('priceListDistributor'),
-                                    as: 'master_price_list',
-                                    attributes: [],
-                                }
-                            ],
-                        }
-                    ]
-                }, {
-                    model: InvcMstr,
-                    as: 'qty_location',
-                    attributes: []
-                }, {
-                    model: DbgdDet,
-                    as: 'grouping_parter',
-                    attributes: []
-                }
-            ],
-            where: {
-                cs_userid: userid
-            },
-            order: [
-                ['cs_pt_en_id', 'ASC']
-            ],
-            // logging: false,
-        })
-
-        return dataSalesQuotation;
-    }
-
     generateSalesQuotationNumber = (dataSq, totalSq, serverCode) => {
         let sqCode = 'SQ';
         let montlyId = '000';
@@ -234,34 +163,6 @@ class CheckoutController {
 
         return sqCode + entityCode + yearPlusMonth + serverCode + montlyId + sequence;
     }
-
-    countDataSalesQuotation = async () => {
-        let startOfMonth = moment().startOf('months').format('YYYY-MM-DD');
-        let endOfMonth = moment().endOf('months').format('YYYY-MM-DD');
-
-        let result = await SqMstr.count({
-            where: {
-                [Op.and]: [
-                    Sequelize.where(Sequelize.literal('DATE(sq_add_date)'), {
-                        [Op.between]: [startOfMonth, endOfMonth]
-                    })
-                ],
-            },
-            logging: false,
-        });
-
-        return result;
-    }
-
-    /**
-     * functions for generating HEADER SALES QUOTATION
-     * end AREA HEADER SALES QUOTATION FUNCTIONS
-    */
-
-    /**
-     * functions for generating BODY SALES QUOTATION
-     * start AREA BODY SALES QUOTATION FUNCTIONS
-    */
 
     generateDetailSalesQuotation = (dataBody, headerSalesQuotation, dataUser) => {
         let createdAt = moment().format('YYYY-MM-DD HH:mm:ss')
@@ -313,132 +214,6 @@ class CheckoutController {
         })
 
         return result;
-    }
-
-    getDataDetailSalesQuotation = async (dataUser) => {
-        try {
-            let dataProducts = await ChartSales.findAll({
-                attributes: [
-                    'cs_oid',
-                    'cs_pt_id',
-                    ['cs_pt_en_id', 'en_id'],
-                    [Sequelize.literal(`"cs_qty" * "product->singular_table_cost"."invct_cost"`), 'total_cost'],
-                    [Sequelize.literal(`("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - ("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_disc")`), 'total_price'],
-                    [Sequelize.literal(`"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`), 'discount'],
-                    'cs_qty',
-                    'cs_invc_oid',
-                    [Sequelize.literal(`"qty_location"."invc_loc_id"`), 'location_id'],
-                ],
-                include: [
-                    {
-                        model: InvcMstr,
-                        as: 'qty_location',
-                        attributes: []
-                    }, {
-                        model: PtMstr,
-                        as: 'product',
-                        attributes: [],
-                        include: [
-                            {
-                                model: PidDet,
-                                as: 'singular_relation_price_list',
-                                attributes: [],
-                                include: [
-                                    {
-                                        model: PiddDet.scope('creditPaymentType'),
-                                        as: 'singular_detail_price_list',
-                                        attributes: [],
-                                    }, {
-                                        model: PiMstr.scope('priceListDistributor'),
-                                        as: 'master_price_list',
-                                        attributes: []
-                                    }
-                                ]
-                            }, {
-                                model: InvctTable,
-                                as: 'singular_table_cost',
-                                attributes: []
-                            }
-                        ]
-                    }
-                ],
-                where: {
-                    cs_userid: dataUser.userid,
-                },
-                logging: false
-            })
-
-            return dataProducts;
-        } catch (error) {
-            return error.message
-        }
-    }
-
-    /**
-     * functions for generating BODY SALES QUOTATION
-     * end AREA BODY SALES QUOTATION FUNCTIONS
-    */
-
-    createHeaderSalesQuotation = async (dataHeaderSalesQuotation, transaction) => {
-        await SqMstr.bulkCreate(dataHeaderSalesQuotation, {
-            transaction,
-            logging: async (sql) => {
-                const regexPattern = /Executing \([a-f0-9-]+\):/;
-                const realSql = sql.replace(regexPattern, "");
-
-                await insertBulkQuery(realSql, 1)
-            }
-            // logging: false,
-        })
-    }
-
-    createDetailSalesQuotation = async (dataDetailSalesQuotation, transaction) => {
-        await SqdDet.bulkCreate(dataDetailSalesQuotation, {
-            transaction,
-            logging: async (sql) => {
-                const regexPattern = /Executing \([a-f0-9-]+\):/;
-                const realSql = sql.replace(regexPattern, "");
-
-                await insertBulkQuery(realSql, 2)
-            },
-            // logging: false
-        })
-    }
-
-    updateTransactionCode = async (dataCartSales, SalesQuotationMobile, transaction) => {
-        let CART_SALES_OID = dataCartSales.map(({dataValues}) => dataValues.cs_oid);
-
-        await InvcdDet.update({
-            invcd_transaction_code: SalesQuotationMobile,
-            invcd_cs_oid: null
-        }, {
-            where: {
-                invcd_cs_oid: {
-                    [Op.in]: CART_SALES_OID
-                }
-            },
-            logging: async (sqlCommand, {bind}) => {
-                let result = sqlCommand.split(': ')[1];
-                await insertQuery(result, bind);
-            },
-            transaction
-        })
-    }
-
-    deleteDataChart = async (userid, dataCartSales, trans) => {
-        let CART_SALES_OID = dataCartSales.map(({dataValues}) => dataValues.cs_oid);
-
-        await ChartSales.destroy({
-            where: {
-                cs_oid: {
-                    [Op.in]: CART_SALES_OID
-                },
-                cs_userid: userid
-            },
-            logging: false,
-            transaction: trans,
-            individualHooks: true
-        })
     }
 
     sleep = (milliseconds) => {
