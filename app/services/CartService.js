@@ -1,9 +1,9 @@
 const {
-    InvctTable,
     PiddDet, TConfUser,
     ChartSales, PiMstr,
     PtnrMstr, InvcMstr,
     PtnraAddr, PtnracCntc, 
+    InvctTable, sequelize,
     RegKecMstr, RegKelMstr,
     RegPropMstr, RegCityMstr,
     PtMstr, PidDet, Sequelize,
