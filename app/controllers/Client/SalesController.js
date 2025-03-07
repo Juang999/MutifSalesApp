@@ -1,7 +1,7 @@
 const moment = require('moment');
 const Auth = require('../../../helper/Auth');
 const {sequelize,} = require('../../../models');
-const {error: errorLog} = require('../../../helper/Logging');
+const {errorV2: errorLog} = require('../../../helper/Logging');
 const {InventoryService, CartService, SalesQuotationService} = require('../../services/ServiceContainer');
 
 class SalesController {
@@ -93,86 +93,86 @@ class SalesController {
         })
     }
 
-    updateChart = async (req, res) => {
-        try {
-            let {userid} = Auth.user();
-            let {cart_oid} = req.params;
-            let {qty} = req.body;
+    updateChart = (req, res) => {
+        let {userid} = Auth.user();
+        let {cart_oid} = req.params;
+        let {qty} = req.body;
 
-            let transaction = await sequelize.transaction(async t => {
-                let {dataValues: dataCart} = await CartService.findDataCartByOid(cart_oid, userid);
-                let {dataValues: dataInventory} = await InventoryService.getDataInventory(dataCart.cs_invc_oid, t)
+        sequelize.transaction(async t => {
+            let {dataValues: dataCart} = await CartService.findDataCartByOid(cart_oid, userid);
+            let {dataValues: dataInventory} = await InventoryService.getDataInventory(dataCart.cs_invc_oid, t)
 
-                if (parseInt(qty) > parseInt(dataCart.cs_qty)) {
-                    console.info(qty)
-                    await this.increaseQtyCart(dataCart, dataInventory, qty, t);
-                } else if (parseInt(qty) < parseInt(dataCart.cs_qty) && parseInt(qty) != 0) {
-                    await this.decreaseDataCart(dataCart, dataInventory, qty, t);
-                } else if (parseInt(qty) == 0) {
-                    await this.deleteDataChart(dataCart, dataInventory, userid, t);
+            if (parseInt(qty) > parseInt(dataCart.cs_qty)) {
+                console.info(qty)
+                await this.increaseQtyCart(dataCart, dataInventory, qty, t);
+            } else if (parseInt(qty) < parseInt(dataCart.cs_qty) && parseInt(qty) != 0) {
+                await this.decreaseDataCart(dataCart, dataInventory, qty, t);
+            } else if (parseInt(qty) == 0) {
+                await this.deleteDataChart(dataCart, dataInventory, userid, t);
+            }
+
+            return {
+                statusCode: 200,
+                json: {
+                    status:'success',
+                    message: 'updated!',
+                    data: null,
+                    error: null
                 }
-
-                return {
-                    statusCode: 200,
-                    json: {
-                        status:'success',
-                        message: 'updated!',
-                        data: null,
-                        error: null
-                    }
-                }
-            })
-
-            res.status(transaction.statusCode)
-                    .json(transaction.json);
-        } catch (error) {
-            errorLog('UPDATE CHART', error.message)
+            }
+        })
+        .then(result => {
+            res.status(result.statusCode)
+                    .json(result.json);
+        })
+        .catch(err => {
+            errorLog('UPDATE CHART', err.message)
 
                 res.status(400)
                     .json({
                         status: 'failed',
                         message: 'error',
                         data: null,
-                        error: error.message
+                        error: err.message
                     })
-        }
+        })
     }
 
     deleteChart = async (req, res) => {
-        try {
-            let {cart_oid} = req.params;
-            let {userid} = Auth.user();
+        let {cart_oid} = req.params;
+        let {userid} = Auth.user();
 
-            const transaction = await sequelize.transaction(async t => {
-                let {dataValues: dataCart} = await CartService.findDataCartByOid(cart_oid, userid);
-                let {dataValues: dataInventory} = await InventoryService.getDataInventory(dataCart.cs_invc_oid, t);
+        sequelize.transaction(async t => {
+            let {dataValues: dataCart} = await CartService.findDataCartByOid(cart_oid, userid);
+            let {dataValues: dataInventory} = await InventoryService.getDataInventory(dataCart.cs_invc_oid, t);
 
-                await this.deleteDataChart(dataCart, dataInventory, userid, t);
+            await this.deleteDataChart(dataCart, dataInventory, userid, t);
 
-                return {
-                    statusCode: 200,
-                    json: {
-                        status:'success',
-                        message: 'deleted!',
-                        data: null,
-                        error: null
-                    }
+            return {
+                statusCode: 200,
+                json: {
+                    status:'success',
+                    message: 'deleted!',
+                    data: null,
+                    error: null
                 }
-            })
-
-            res.status(transaction.statusCode)
-                .json(transaction.json);
-        } catch (error) {
-            errorLog('DELETE DATA CART', error.message);
+            }
+        })
+        .then(result => {
+            res.status(result.statusCode)
+                .json(result.json);
+        })
+        .catch(err => {
+            errorLog('DELETE DATA CART', err.message);
 
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: error.message
+                    error: err.message
                 })
-        }
+        })
     }
 
     readyToCheckout = (req, res) => {
