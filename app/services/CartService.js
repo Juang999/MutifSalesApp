@@ -277,6 +277,22 @@ class CartService {
         return result;
     }
 
+    retrieveDataCartByProductId = async (productId, userId) => {
+        let result = await ChartSales.findAll({
+            attributes: [
+                'cs_oid',
+                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'cs_qty'],
+                'cs_invc_oid'
+            ],
+            where: {
+                cs_pt_id: productId,
+                cs_userid: userId
+            }
+        })
+
+        return result;
+    }
+
     getSubTotalPriceCart = async (userid) => {
         let [subTotal] = await sequelize.query(`
             SELECT 

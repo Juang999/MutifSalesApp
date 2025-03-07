@@ -139,14 +139,18 @@ class SalesController {
     }
 
     deleteChart = async (req, res) => {
-        let {cart_oid} = req.params;
+        let {product_id} = req.params;
         let {userid} = Auth.user();
 
         sequelize.transaction(async t => {
-            let {dataValues: dataCart} = await CartService.findDataCartByOid(cart_oid, userid);
-            let {dataValues: dataInventory} = await InventoryService.getDataInventory(dataCart.cs_invc_oid, t);
+            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userid);
+            console.info(dataCart)
+            
+            for (const {dataValues: singularDataCart} of dataCart) {
+                let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularDataCart.cs_invc_oid, t);
 
-            await this.deleteDataChart(dataCart, dataInventory, userid, t);
+                await this.deleteDataChart(singularDataCart, dataInventory, userid, t);
+            }
 
             return {
                 statusCode: 200,
