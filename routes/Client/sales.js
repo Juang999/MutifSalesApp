@@ -2,8 +2,13 @@ const {Router} = require('express');
 const router = Router();
 const {Middleware, Requests} = require('../../app/Kernel')
 const {checkOut} = require('../../app/controllers/Client/CheckoutController');
-const {invoiceNumberSequence, getDetailInvoiceNumber, getInvoiceNumber} = require('../../app/controllers/Client/OrderController');
-const {inputIntoChart, getDataChart, updateChart, deleteChart, readyToCheckout, updatePaymentStatus} = require('../../app/controllers/Client/SalesController');
+const {
+    invoiceNumberSequence, 
+    updateChart, deleteChart, 
+    inputIntoChart, getDataChart, 
+    readyToCheckout, updatePaymentStatus,
+    getDetailInvoiceNumber, getInvoiceNumber,
+} = require('../../app/controllers/Client/SalesController');
 
 /**
  * customer section

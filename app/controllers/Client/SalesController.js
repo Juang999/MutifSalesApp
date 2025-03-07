@@ -1,17 +1,8 @@
-const axios = require('axios');
+const moment = require('moment');
 const Auth = require('../../../helper/Auth');
-const {config} = require('../../../config/environment');
+const {sequelize,} = require('../../../models');
 const {error: errorLog} = require('../../../helper/Logging');
-const {
-    InvcdDet,
-    SqMstr, sequelize,
-    ChartSales, InvcMstr,
-} = require('../../../models');
-const {insertQuery, insertBulkQuery} = require('../../../helper/InputQueryIntoSqlOut');
-const {
-    updateStatusTransction, bulkReleaseQuantity, 
-} = require('../../modules/Stock/controllers/StockProductController');
-const {InventoryService, CartService} = require('../../services/ServiceContainer');
+const {InventoryService, CartService, SalesQuotationService} = require('../../services/ServiceContainer');
 
 class SalesController {
     inputIntoChart = async (req, res) => {
@@ -211,33 +202,43 @@ class SalesController {
     }
 
     updatePaymentStatus = async (req, res) => {
-        try {
-            await SqMstr.update({
-                sq_midtrans_inv_status: req.body.payment_status
-            }, {
-                where: {
-                    sq_midtrans_inv_number: req.params.invoice,
-                    sq_ptnr_id_sold: Auth.user().user_ptnr_id
-                },
-                logging: async (sql, {bind}) => {
-                    await insertQuery(sql, bind);
-                }
-            })
+        let {invoice} = req.params;
+        let {payment_status} = req.body;
+        let {user_ptnr_id} = Auth.user();
 
-            if (req.body.payment_status == 'cancel' || req.body.payment_status == 'failure') {
-                await this.releaseProduct(req.params.invoice)
-            } else {
-                await updateStatusTransction(req.body.payment_status, req.params.invoice)
+        sequelize.transaction(async t => {
+            await SalesQuotationService.updatePaymentStatus(invoice, payment_status, user_ptnr_id, t);
+
+            let dataProducts = await SalesQuotationService.getBookedProductByInvoiceNumber(invoice);
+
+            if (payment_status == 'cancel' || payment_status == 'failure') {
+                for (const {dataValues: singular} of dataProducts) {
+                    let {dataValues: dataInventory} = await InventoryService.getDataInventory(singular.sqd_invc_oid, t);
+
+                    await InventoryService.bookProductQuantity(singular.sqd_invc_oid, {
+                        quantityAvailable: parseInt(dataInventory.qty_available) + parseInt(singular.sqd_qty_real),
+                        quantityBooked: parseInt(dataInventory.qty_booked) - parseInt(singular.sqd_qty_real)
+                    }, t)
+                }
             }
 
-            res.status(200)
-                .json({
-                    status: 'success',
+            return {
+                statusCode: 200,
+                json: {
+                    status:'success',
                     message: 'updated!',
                     data: null,
                     error: null
-                })
-        } catch (error) {
+                }
+            }
+        })
+        .then(result => {
+            res.status(result.statusCode)
+                .json(result.json)
+        })
+        .catch(err => {
+            errorLog('UPDATE PAYMENT STATUS', err.message);
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -245,7 +246,106 @@ class SalesController {
                     data: null,
                     error: err.message
                 })
-        }
+        })
+    }
+
+    getInvoiceNumber = (req, res) => {
+        let startDate = (req.query.start_date) ? moment(req.query.start_date).format('YYYY-MM-DD HH:mm:ss') : moment().startOf('months').format('YYYY-MM-DD HH:mm:ss')
+        let endDate = (req.query.end_date) ? moment(req.query.end_date).format('YYYY-MM-DD HH:mm:ss') : moment().endOf('months').format('YYYY-MM-DD HH:mm:ss')
+        let search = (req.query.search) ? req.query.search : '';
+        let {user_ptnr_id} = Auth.user()
+
+        SalesQuotationService.retrieveDataInvoice({startDate, endDate}, search, user_ptnr_id)
+        .then(result => {
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            errorLog('GET INVOICE NUMBER', err.message)
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    getDetailInvoiceNumber = (req, res) => {
+        let {user_ptnr_id} = Auth.user();
+
+        Promise.all([
+            SalesQuotationService.getHeaderInvoice(req.params.invoice, user_ptnr_id), 
+            SalesQuotationService.getDetailInvoice(req.params.invoice, user_ptnr_id)
+        ]).then(([headerInvoice, detailInvoice]) => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: {
+                        invoice: headerInvoice.invoice,
+                        date: headerInvoice.date,
+                        partner_name: headerInvoice.partner_name,
+                        partner_address: headerInvoice.partner_address,
+                        partner_phone: headerInvoice.partner_phone,
+                        partner_email: headerInvoice.partner_email,
+                        sales_person: headerInvoice.sales_person,
+                        payment_type: headerInvoice.payment_type,
+                        shipping_name: headerInvoice.shipping_name,
+                        shipping_service: headerInvoice.shipping_service,
+                        shipping_charges: headerInvoice.shipping_charges,
+                        status: headerInvoice.status,
+                        products: detailInvoice
+                    },
+                    error: null
+                })
+        }).catch(err => {
+            errorLog('GET DETAIL INVOICE NUMBER', err.message)
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    invoiceNumberSequence = (req, res) => {
+        let startDay = moment().format('YYYY-MM-DD 00:00:00');
+        let endDay = moment().format('YYYY-MM-DD 23:59:59');
+
+        SalesQuotationService.getSequenceInvoiceNumber({startDay, endDay})
+        .then(([countedData]) => {
+            let baseNumber = '0000';
+            let dataSequence = countedData.dataValues.invoice_number;
+            let invoiceNumber = baseNumber.slice(0, -dataSequence.toString().length) + dataSequence;
+
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: {invoice_number: invoiceNumber},
+                    error: null
+                }) 
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
     }
 
     deleteDataChart = async (dataCartSales, dataInventory, userId, transaction) => {
@@ -277,66 +377,6 @@ class SalesController {
         }, transaction)
 
         await CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction);
-    }
-
-    increaseQtyInventory = async (cartSalesOid, transaction) => {
-        await InvcdDet.update({
-            invcd_is_booked: null,
-            invcd_cs_oid: null
-        }, {
-            where: {
-                invcd_cs_oid: cartSalesOid
-            },
-            transaction,
-            logging: (sqlCommand, {bind}) => {
-                let result = sqlCommand.split(': ');
-                insertQuery(result[1], bind);
-            },
-        });
-    }
-
-    updateQtyInventory = async (invcOid, qtyAvailable, qtyBooked, transaction) => {
-        let result = await InvcMstr.update({
-                invc_qty_available: qtyAvailable,
-                invc_qty_booked: qtyBooked,
-                invc_qty_old: qtyAvailable
-            }, {
-                where: {
-                    invc_oid: invcOid
-                },
-                logging: async (sql, {bind}) => {
-                    await insertQuery(sql.split(':')[1], bind)
-                },
-                transaction
-            })
-    }
-
-    getDataCart = async (cartSalesOid, transaction) => {
-        let data = await ChartSales.findOne({
-            attributes: [
-                'cs_oid',
-                'cs_invc_oid',
-                'cs_qty',
-                'cs_pt_id'
-            ],
-            where: {
-                cs_oid: cartSalesOid
-            },
-            logging: false
-        })
-
-        return data;
-    }
-
-    releaseProduct = async (invoice) => {
-        await InvcdDet.update({
-            invcd_is_booked: null,
-            invcd_transaction_code: null
-        }, {
-            where: {
-                invcd_transaction_code: invoice
-            }
-        })
     }
 }
 

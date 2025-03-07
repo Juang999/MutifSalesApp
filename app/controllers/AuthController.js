@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const Page = require('../../helper/Page');
 const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
-const {info, error: errorLog} = require('../../helper/Logging');
+const {info, errorV2: errorLog} = require('../../helper/Logging');
 const {
     Wishlist,
     ArMstr, ArdDist,
@@ -14,6 +14,7 @@ const {
 const Auth = require('../../helper/Auth');
 const moment = require('moment');
 const {v4: uuidv4} = require('uuid');
+const {messageSend} = require('../../helper/TelegramBot');
 
 class AuthController {
     loginClient = async (req, res) => {
@@ -68,7 +69,7 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
-            errorLog("LOGIN CLIENT", error.message)
+            await errorLog("LOGIN CLIENT", error.message)
 
             res.status(400)
                 .json({
@@ -130,7 +131,7 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
-            errorLog("LOGIN ADMIN", error.message)
+            await errorLog("LOGIN ADMIN", error.message)
 
             res.status(400)
                 .json({
@@ -202,7 +203,7 @@ class AuthController {
                     error: null
                 })
         } catch (error) {
-            errorLog({feature: "PROFILE USER", message: error.message})
+            await errorLog("PROFILE USER", error.message);
     
             res.status(400)
                 .json({
@@ -235,7 +236,9 @@ class AuthController {
                     error: null
                 })
         })
-        .catch(err => {
+        .catch(async err => {
+            await errorLog('SUM ACCOUNT RECEIVABLE', err.message);
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -289,7 +292,9 @@ class AuthController {
                     error: null
                 })
         })
-        .catch(err => {
+        .catch(async err => {
+            await errorLog('GET ACCOUNT RECEIVABLE', err.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -337,7 +342,9 @@ class AuthController {
                     error: null
                 })
         })
-        .catch(err => {
+        .catch(async err => {
+            await errorLog('SUM ACCOUNT RECEIVABLE', err.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -373,7 +380,9 @@ class AuthController {
                     error: null
                 })
         })
-        .catch(err => {
+        .catch(async err => {
+            await errorLog(`GET LOGGED IN USER`, err.message)
+
             res.status(400)
                 .json({
                     status: 'failed',

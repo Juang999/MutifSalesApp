@@ -1,60 +1,60 @@
 const moment = require('moment');
 const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
-const {info, error: errorLog} = require('../../../helper/Logging');
 const {sequelize} = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
 const ServerSetting = require('../../../helper/SettingServer');
-const {InventoryService, CartService, SalesQuotationService} = require('../../services/ServiceContainer');
+const {info, errorV2: errorLog} = require('../../../helper/Logging');
+const {CartService, SalesQuotationService} = require('../../services/ServiceContainer');
 
 class CheckoutController {
-    checkOut = async (req, res) => {
+    checkOut = (req, res) => {
         const dataUser = Auth.user();
 
-        try {
+        sequelize.transaction(async t => {
             let RAW_DATA_HEADER_SQ = CartService.getDataHeaderSalesQuotation(dataUser.userid);
             let RAW_DATA_BODY_SQ = CartService.getDataDetailSalesQuotation(dataUser.userid);
 
             let [dataHeaderSq, dataBodySq] = await Promise.all([RAW_DATA_HEADER_SQ, RAW_DATA_BODY_SQ])
 
-            let transaction = await sequelize.transaction(async t => {
-                if (dataHeaderSq.length == 0) {
-                    return {
-                        statusCode: 300,
-                        json: {
-                            status: 'failed',
-                            message: 'tidak ada barang pesanan',
-                            data: null,
-                            error: null
-                        }
-                    }
-                }
-
-                let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataUser);
-                let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
-                headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
-    
-                await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
-                this.sleep(1000)
-                await SalesQuotationService.bulkInsertDetailSalesQuotation(detailSalesQuotation, t);
-                await CartService.bulkDeleteDataCart(dataBodySq, dataUser.userid, t);
-
+            if (dataHeaderSq.length == 0) {
                 return {
-                    statusCode: 200,
+                    statusCode: 300,
                     json: {
-                        status:'success',
-                        message: 'ok',
-                        data: true,
+                        status: 'failed',
+                        message: 'tidak ada barang pesanan',
+                        data: null,
                         error: null
                     }
                 }
-            })
+            }
 
+            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataUser);
+            let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
+            headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
+
+            await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
+            this.sleep(1000)
+            await SalesQuotationService.bulkInsertDetailSalesQuotation(detailSalesQuotation, t);
+            await CartService.bulkDeleteDataCart(dataBodySq, dataUser.userid, t);
+
+            return {
+                statusCode: 200,
+                json: {
+                    status:'success',
+                    message: 'ok',
+                    data: true,
+                    error: null
+                }
+            }
+        })
+        .then(result => {
             info('CHECKOUT PRODUCTS', `${Auth.user().usernama} HAS CHECKED OUT!`, true);
 
             res.status(transaction.statusCode)
                 .json(transaction.json)
-        } catch (error) {
+        })
+        .catch(err => {
             errorLog('CHECKOUT PRODUCTS', error.message);
 
             res.status(400)
@@ -62,9 +62,9 @@ class CheckoutController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: error.message
+                    error: err.message
                 });
-        }
+        })
     }
 
     generateHeaderSalesQuotation = async (dataHeader, formBody, user) => {

@@ -1,10 +1,8 @@
 'use strict';
 const {
-  Model
+  Model, Op
 } = require('sequelize');
-const {
-  Op
-} = require('sequelize');
+const {info} = require('../helper/Logging');
 module.exports = (sequelize, DataTypes) => {
   class InvcMstr extends Model {
     /**
@@ -140,6 +138,17 @@ module.exports = (sequelize, DataTypes) => {
               },
           }
         ]
+      }
+    },
+    hooks: {
+      afterCreate: ({dataValues}) => {
+        info('INVENTORY', 'CREATED', dataValues)
+      },
+      afterUpdate: ({dataValues}) => {
+        info('INVENTORY', 'UPDATED', dataValues)
+      },
+      afterDestroy: ({dataValues}) => {
+        info('INVENTORY', 'DELETED!', dataValues)
       }
     }
   });
