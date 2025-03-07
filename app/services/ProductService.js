@@ -69,6 +69,9 @@ class ProductService {
                         invc_loc_id: {
                             [Op.in]: [10001, 1000555]
                         },
+                        invc_qty_available: {
+                            [Op.gte]: 0
+                        }
                     }, 
                     {
                         invc_en_id: 2,
