@@ -13,7 +13,7 @@ class ProductService {
     getProduct = async (query) => {
         let productName = (query.search) ? query.search : '';
 
-        let result = await InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified').findAll({
+        let result = await InvcMstr.findAll({
             attributes: [
                 [Sequelize.col(`product_knowledge.pt_id`), 'product_id'],
                 [Sequelize.col(`product_knowledge.pt_desc1`), 'product_name'],
@@ -59,8 +59,8 @@ class ProductService {
                     Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_desc1"`), {
                         [Op.iLike]: `%${productName}%`
                     }),
-                    Sequelize.where(Sequelize.col(`invc_is_verified`), {
-                        [Op.eq]: 'Y'
+                    Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_shown"`), {
+                        [Op.eq]: `Y`
                     }),
                 ],
                 [Op.or]: [
@@ -140,6 +140,7 @@ class ProductService {
             ],
             where: {
                 pt_code: param.product_code,
+                pt_shown: 'Y'
             },
             logging: false
         })
