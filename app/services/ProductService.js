@@ -1,11 +1,8 @@
 const {
-    LocMstr,
     PtMstr, EnMstr, 
-    PiddDet, SodDet, 
+    LocMstr,PiddDet, 
     InvcMstr, PidDet, 
-    PtCatMstr, SoMstr, 
-    Sequelize, PiMstr, 
-    ProductJubelioThumbnail, ProductJubelio
+    PtCatMstr, Sequelize,
 } = require('../../models');
 const {Op} = require('sequelize');
 
@@ -137,7 +134,7 @@ class ProductService {
             ],
             include: [
                 {
-                    model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
+                    model: InvcMstr,
                     as: 'product_quantity',
                     attributes: [
                         'invc_oid',
@@ -156,7 +153,49 @@ class ProductService {
                             as: 'entity_inventory',
                             attributes: []
                         }
-                    ]
+                    ],
+                    where: {
+                        [Op.or]: [
+                            {
+                                [Op.and]: [
+                                    Sequelize.where(Sequelize.col(`invc_en_id`), {
+                                        [Op.eq]: Sequelize.literal(`"pt_en_id"`)
+                                    }),
+                                    Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                                        [Op.in]: [10001, 1000555]
+                                    }),
+                                    Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                                        [Op.gte]: 0
+                                    })
+                                ],
+                            }, 
+                            {
+                                [Op.and]: [
+                                    Sequelize.where(Sequelize.col(`invc_en_id`), {
+                                        [Op.eq]: Sequelize.literal(`"pt_en_id"`)
+                                    }),
+                                    Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                                        [Op.in]: [200010, 2000556]
+                                    }),
+                                    Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                                        [Op.gte]: 0
+                                    })
+                                ],
+                            }, {
+                                [Op.and]: [
+                                    Sequelize.where(Sequelize.col(`invc_en_id`), {
+                                        [Op.eq]: Sequelize.literal(`"pt_en_id"`)
+                                    }),
+                                    Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                                        [Op.in]: [300018, 3000557]
+                                    }),
+                                    Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                                        [Op.gte]: 0
+                                    })
+                                ],
+                            }
+                        ]
+                    }
                 }
             ],
             where: {

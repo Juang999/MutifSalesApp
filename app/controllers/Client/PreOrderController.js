@@ -1,8 +1,7 @@
 const {
     PtMstr, PidDet,
+    PiddDet, InvcMstr,
     Wishlist,Sequelize,
-    PiddDet, ProductJubelio,
-    ProductJubelioThumbnail, InvcMstr,
 } = require('../../../models');
 const axios = require('axios');
 const moment = require('moment');

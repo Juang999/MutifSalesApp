@@ -16,7 +16,7 @@ class SalesController {
             } = body;
         
             let transaction = await sequelize.transaction(async t => {
-                let dataCart = await CartService.findDataCart(productId, userid);
+                let dataCart = await CartService.findDataCart(productId, inventoryOid, userid);
                 let dataQtyProduct = await InventoryService.getDataInventory(inventoryOid, t);
 
                 if (parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity) < 0) {
