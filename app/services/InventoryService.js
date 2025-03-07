@@ -152,6 +152,7 @@ class InventoryService {
             where: {
                 invc_oid: inventoryOid
             },
+            individualHooks: true,
             transaction,
             logging: async (sqlCommand, {bind}) => {
                 let realSql = sqlCommand.split(': ')[1]

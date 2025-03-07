@@ -3,9 +3,7 @@ const {
   Model,
   STRING
 } = require('sequelize');
-const {
-  v4: uuidv4
-} = require('uuid');
+const {info} = require('../helper/Logging');
 module.exports = (sequelize, DataTypes) => {
   class SqMstr extends Model {
     /**
@@ -49,8 +47,7 @@ module.exports = (sequelize, DataTypes) => {
   SqMstr.init({
     sq_oid: {
       type: DataTypes.UUID,
-      primaryKey: true,
-      defaultValue: uuidv4()
+      primaryKey: true
     },
     sq_dom_id: DataTypes.INTEGER,
     sq_en_id: DataTypes.INTEGER,
@@ -151,6 +148,17 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
     tableName:'sq_mstr',
     modelName: 'SqMstr',
+    hooks: {
+      afterCreate: ({dataValues}) => {
+        info('HEADER SALES QUOTATION', 'CREATED', dataValues)
+      },
+      afterUpdate: ({dataValues}) => {
+        info('HEADER SALES QUOTATION', 'UPDATED', dataValues)
+      },
+      afterDestroy: ({dataValues}) => {
+        info('HEADER SALES QUOTATION', 'DELETED!', dataValues)
+      }
+    }
   });
   return SqMstr;
 };

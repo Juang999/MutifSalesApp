@@ -446,6 +446,7 @@ class CartService {
             cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             cs_pi_id: body.priceListId
         }, {
+            individualHooks: true,
             transaction
         })
 
@@ -461,6 +462,7 @@ class CartService {
                 cs_oid: cartSalesOid
             },
             transaction,
+            individualHooks: true,
             logging: false
         })
 

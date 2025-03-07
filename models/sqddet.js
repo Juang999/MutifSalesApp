@@ -2,9 +2,7 @@
 const {
   Model
 } = require('sequelize');
-const {
-  v4: uuidv4
-} = require('uuid')
+const {info} = require('../helper/Logging')
 module.exports = (sequelize, DataTypes) => {
   class SqdDet extends Model {
     /**
@@ -24,8 +22,7 @@ module.exports = (sequelize, DataTypes) => {
   SqdDet.init({
     sqd_oid: {
       type: DataTypes.UUID,
-      primaryKey: true,
-      defaultValue: uuidv4()
+      primaryKey: true
     },
     sqd_dom_id: DataTypes.INTEGER,
     sqd_en_id: DataTypes.INTEGER,
@@ -98,6 +95,17 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false,
     tableName:'sqd_det',
     modelName: 'SqdDet',
+    hooks: {
+      afterCreate: ({dataValues}) => {
+        info('HEADER SALES QUOTATION', 'CREATED', dataValues)
+      },
+      afterUpdate: ({dataValues}) => {
+        info('HEADER SALES QUOTATION', 'UPDATED', dataValues)
+      },
+      afterDestroy: ({dataValues}) => {
+        info('HEADER SALES QUOTATION', 'DELETED!', dataValues)
+      }
+    }
   });
   return SqdDet;
 };

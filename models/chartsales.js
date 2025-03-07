@@ -2,10 +2,7 @@
 const {
   Model
 } = require('sequelize');
-const {
-  info,
-  error
-} = require('../helper/Logging')
+const {info} = require('../helper/Logging')
 module.exports = (sequelize, DataTypes) => {
   class ChartSales extends Model {
     /**
