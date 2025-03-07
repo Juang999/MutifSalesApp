@@ -19,7 +19,7 @@ class SalesController {
                 let dataCart = await CartService.findDataCart(productId, userid);
                 let dataQtyProduct = await InventoryService.getDataInventory(inventoryOid, t);
 
-                if (dataQtyProduct.dataValues.qty_available - parseInt(quantity) <= 0) {
+                if (parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity) < 0) {
                     return {
                         statusCode: 409,
                         json: {
