@@ -53,10 +53,13 @@ class CartService {
                                         }
                                     ]
                                 }
-                            ]
+                            ],
+                            where: {
+                                pt_shown: 'Y'
+                            }
                         },
                         {
-                            model: InvcMstr.scope('gudangSesuaiDenganEntitas', 'isVerified'),
+                            model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
                             as: 'qty_location',
                             attributes: []
                         }
@@ -168,8 +171,11 @@ class CartService {
                                             ]
                                         }
                                     ],
+                                    where: {
+                                        pt_shown: 'Y'
+                                    }
                                 }, {
-                                    model: InvcMstr.scope(`gudangSesuaiDenganEntitas`, 'isVerified'),
+                                    model: InvcMstr.scope(`gudangSesuaiDenganEntitas`),
                                     as: 'qty_location',
                                     attributes: [],
                                 }
