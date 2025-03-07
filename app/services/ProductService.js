@@ -78,11 +78,17 @@ class ProductService {
                         invc_loc_id: {
                             [Op.in]: [200010, 2000556]
                         },
+                        invc_qty_available: {
+                            [Op.gte]: 0
+                        }
                     }, {
                         invc_en_id: 3,
                         invc_loc_id: {
                             [Op.in]: [300018, 3000557]
                         },
+                        invc_qty_available: {
+                            [Op.gte]: 0
+                        }
                     }
                 ]
             },
