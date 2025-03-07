@@ -5,15 +5,22 @@ const {checkOut} = require('../../app/controllers/Client/CheckoutController');
 const {invoiceNumberSequence, getDetailInvoiceNumber, getInvoiceNumber} = require('../../app/controllers/Client/OrderController');
 const {inputIntoChart, getDataChart, updateChart, deleteChart, readyToCheckout, updatePaymentStatus} = require('../../app/controllers/Client/SalesController');
 
+/**
+ * customer section
+*/
+router.post('/chart/input', [Middleware.AuthMiddleware, Requests.SalesRequests.InputChartRequest], inputIntoChart);
 router.get('/chart/', [Middleware.AuthMiddleware], getDataChart);
-router.get('/invoice-number', [Middleware.AuthMiddleware], getInvoiceNumber);
 router.get('/ready-to-checkout', [Middleware.AuthMiddleware], readyToCheckout);
-router.delete('/chart/:cs_oid/delete', [Middleware.AuthMiddleware], deleteChart);
+router.post('/checkout', [Middleware.AuthMiddleware, Requests.SalesRequests.CheckoutRequest], checkOut);
+
+/**
+ * payment-system section
+*/
+router.get('/invoice-number', [Middleware.AuthMiddleware], getInvoiceNumber);
+router.delete('/chart/:cart_oid/delete', [Middleware.AuthMiddleware], deleteChart);
 router.get('/invoice-number-sequence', [Middleware.AuthMiddleware], invoiceNumberSequence);
 router.get('/invoice-number/:invoice/detail', [Middleware.AuthMiddleware], getDetailInvoiceNumber);
-router.post('/checkout', [Middleware.AuthMiddleware, Requests.SalesRequests.CheckoutRequest], checkOut);
-router.post('/chart/input', [Middleware.AuthMiddleware, Requests.SalesRequests.InputChartRequest], inputIntoChart);
-router.patch('/chart/update', [Middleware.AuthMiddleware, Requests.SalesRequests.UpdateChartRequest], updateChart);
+router.patch('/chart/:cart_oid/update', [Middleware.AuthMiddleware, Requests.SalesRequests.UpdateChartRequest], updateChart);
 router.patch('/payment-status/:invoice/update', [Middleware.AuthMiddleware, Requests.SalesRequests.UpdatePaymentStatusRequest], updatePaymentStatus);
 
 module.exports = router;

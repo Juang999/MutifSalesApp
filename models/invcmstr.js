@@ -20,6 +20,18 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'invc_loc_id',
         targetKey: 'loc_id'
       })
+
+      InvcMstr.belongsTo(models.PtMstr, {
+        as: 'product_knowledge',
+        targetKey: 'pt_id',
+        foreignKey: 'invc_pt_id'
+      })
+
+      InvcMstr.belongsTo(models.EnMstr, {
+        as: 'entity_inventory',
+        targetKey: 'en_id',
+        foreignKey: 'invc_en_id'
+      })
     }
   }
   InvcMstr.init({
@@ -43,7 +55,8 @@ module.exports = (sequelize, DataTypes) => {
     invc_last_booked: DataTypes.DATEONLY,
     invc_total: DataTypes.INTEGER,
     invc_qty_booking: DataTypes.INTEGER,
-    invc_shwn_id: DataTypes.INTEGER
+    invc_shwn_id: DataTypes.INTEGER,
+    invc_is_verified: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',
@@ -70,15 +83,26 @@ module.exports = (sequelize, DataTypes) => {
           [Op.or]: [
             {
                 invc_en_id: 1,
-                invc_loc_id: 10001,
+                invc_loc_id: {
+                  [Op.in]: [10001, 1000555]
+                },
             }, {
                 invc_en_id: 2,
-                invc_loc_id: 200010,
+                invc_loc_id: {
+                  [Op.in]: [200010, 2000556]
+                },
             }, {
                 invc_en_id: 3,
-                invc_loc_id: 300018,
+                invc_loc_id: {
+                  [Op.in]: [300018, 3000557]
+                },
             }
           ]
+        }
+      },
+      isVerified: {
+        where: {
+          invc_is_verified: 'Y'
         }
       },
       gudangReguler: {
@@ -96,6 +120,26 @@ module.exports = (sequelize, DataTypes) => {
             }
           ]
         }
+      },
+      FILTER_BERDASARKAN_GUDANG_BARANG_JADI_ATAU_GUDANG_REGULER: {
+        [Op.or]: [
+          {
+              invc_en_id: 1,
+              invc_loc_id: {
+                [Op.in]: [10001, 1000555]
+              },
+          }, {
+              invc_en_id: 2,
+              invc_loc_id: {
+                [Op.in]: [200010, 2000556]
+              },
+          }, {
+              invc_en_id: 3,
+              invc_loc_id: {
+                [Op.in]: [300018, 3000557]
+              },
+          }
+        ]
       }
     }
   });

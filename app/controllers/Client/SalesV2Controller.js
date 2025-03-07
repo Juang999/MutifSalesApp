@@ -2,7 +2,7 @@ const axios = require('axios');
 const {Op} = require('sequelize');
 const Auth = require('../../../helper/Auth');
 const {config} = require('../../../config/environment');
-const {error: errorLog} = require('../../../helper/Logging');
+const {info, error: errorLog} = require('../../../helper/Logging');
 const {
     InvcdDet,
     PiddDet, sequelize,
@@ -10,93 +10,14 @@ const {
     ChartSales, PiMstr, InvcMstr,
     ProductJubelio, ProductJubelioThumbnail
 } = require('../../../models');
+const {InventoryService, CartService} = require('../../services/ServiceContainer');
 
 class SalesV2Controller {
     getChart = async (req, res) => {
-        try {
-            let dataCart = await ChartSales.findAll({
-                attributes: [
-                    'cs_oid',
-                    [Sequelize.col('product.pt_desc1'), 'product_name'],
-                    [Sequelize.col('product.pt_code'), 'product_code'],
-                    [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                    [Sequelize.literal(`COUNT("product->detail_quantity"."invcd_oid")`), 'available_quantity'],
-                    [Sequelize.literal(`CASE WHEN COUNT("product->detail_quantity"."invcd_oid") - "cs_qty" <= 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
-                    [Sequelize.literal(`CASE WHEN COUNT("product->detail_quantity"."invcd_oid") - "cs_qty" <= 0 THEN false ELSE true END`), 'can_be_sold'],
-                    [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                    [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
-                    ['cs_created_at', 'created_at'],
-                    ['cs_updated_at', 'updated_at'],
-                ],
-                include: [
-                    {
-                        model: PtMstr,
-                        as: 'product',
-                        attributes: [],
-                        required: true,
-                        include: [
-                            {
-                                model: InvcdDet.scope('gudangReguler', 'isVerified', 'bookedIsNull', 'isNotZero', 'transactionCodeIsNull'),
-                                as: 'detail_quantity',
-                                attributes: [],
-                            }, {
-                                model: PidDet,
-                                as: 'singular_relation_price_list',
-                                attributes: [],
-                                include: [
-                                    {
-                                        model: PiMstr,
-                                        as: 'master_price_list',
-                                        attributes: [],
-                                    }, {
-                                        model: PiddDet,
-                                        as: 'singular_detail_price_list',
-                                        attributes: [],
-                                    }
-                                ]
-                            }, {
-                                model: ProductJubelio,
-                                as: 'singular_product_jubelio',
-                                attributes: [],
-                                include: [
-                                    {
-                                        model: ProductJubelioThumbnail,
-                                        as: 'singular_thumbnail_product',
-                                        attributes: []
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                ],
-                where: {
-                    [Op.and]: [
-                        Sequelize.where(Sequelize.col('cs_userid'), {
-                            [Op.eq]: Auth.user().userid
-                        }),
-                        Sequelize.where(Sequelize.col('"product->singular_relation_price_list->master_price_list"."pi_id"'), {
-                            [Op.eq]: Sequelize.col('"cs_pi_id"')
-                        }),
-                        Sequelize.where(Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_payment_type"'), {
-                            [Op.eq]: 9942
-                        }),
-                    ]
-                },
-                group: [
-                    'cs_oid',
-                    Sequelize.col('product.pt_desc1'),
-                    Sequelize.col('product.pt_code'),
-                    Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
-                    Sequelize.col('"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
-                ],
-                order: [
-                    ['cs_updated_at', 'desc']
-                ],
-                // logging: false
-            })
+        let {userid} = Auth.user();
 
-            let result = await this.getImages(dataCart);
-
+        CartService.retrieveDataCart(userid)
+        .then(result => {
             res.status(200)
                 .json({
                     status: 'success',
@@ -104,19 +25,24 @@ class SalesV2Controller {
                     data: result,
                     error: null
                 })
-        } catch (error) {
+        })
+        .catch(err => {
+            errorLog('GET DATA CART V2', err.message);
+
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: error.message
+                    error: err.message
                 })
-        }
+        })
     }
 
     getLimitedCart = (req, res) => {
-        Promise.all([this.getSubTotalPriceCart(Auth.user().userid), this.limitedDataCart(Auth.user().userid)])
+        let {userid} = Auth.user();
+
+        Promise.all([CartService.getSubTotalPriceCart(userid), CartService.retrieveLimitedDataCart(userid)])
         .then(([subTotalPrice, dataCart]) => {
 
             res.status(200)
@@ -139,122 +65,6 @@ class SalesV2Controller {
                     error: err.message
                 })
         })
-    }
-
-    limitedDataCart = async (userid) => {
-        let dataCart = await ChartSales.findAll({
-            attributes: [
-                'cs_oid',
-                [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
-                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'quantity'],
-                [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
-                [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                [Sequelize.col(`"product->singular_product_jubelio->singular_thumbnail_product"."pjt_thumbnail"`), 'photo']
-            ],
-            include: [
-                {
-                    model: PtMstr,
-                    as: 'product',
-                    attributes: [],
-                    include: [
-                        {
-                            model: PidDet,
-                            as: 'singular_relation_price_list',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: PiMstr.scope('priceListDistributor'),
-                                    as: 'master_price_list',
-                                    attributes: [],
-                                }, {
-                                    model: PiddDet.scope('creditPaymentType'),
-                                    as: 'singular_detail_price_list',
-                                    attributes: [],
-                                }
-                            ]
-                        }, {
-                            model: ProductJubelio,
-                            as: 'singular_product_jubelio',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: ProductJubelioThumbnail,
-                                    as: 'singular_thumbnail_product',
-                                    attributes: []
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            where: {
-                cs_userid: userid
-            },
-            order: [
-                ['cs_qty', 'DESC']
-            ],
-            limit: 15,
-            logging: false
-        })
-
-        return dataCart;
-    }
-
-    getSubTotalPriceCart = async (userid) => {
-        let [subTotal] = await sequelize.query(`
-            SELECT 
-                CAST(SUM("cs_qty" * ("detail_price_list"."pidd_price" - ("detail_price_list"."pidd_price" * "detail_price_list"."pidd_disc"))) AS BIGINT) 
-            FROM public.chart_sales CS
-            LEFT JOIN public.pt_mstr AS product ON product.pt_id = CS.cs_pt_id
-            LEFT JOIN public.pid_det AS relation_price_list ON relation_price_list.pid_pt_id = product.pt_id
-            LEFT JOIN public.pi_mstr AS master_price_list ON master_price_list.pi_oid = relation_price_list.pid_pi_oid
-            LEFT JOIN public.pidd_det AS detail_price_list ON detail_price_list.pidd_pid_oid = relation_price_list.pid_oid
-            WHERE
-                cs_userid = :userid
-            AND
-                master_price_list.pi_id IN (103, 202, 304)
-            AND
-                detail_price_list.pidd_payment_type = 9942
-            `, {
-                replacements: {
-                    userid
-                },
-                logging: false
-            })
-
-        return subTotal;
-    }
-
-    getImages = async (product) => {
-        let partnumbers = product.map(({dataValues: item}) => {
-            return item.product_code
-        })
-        
-        const {parsed: configATPO} = config;
-        let {data} = await axios.post(`${configATPO.URL_ATPO}/clothes/picture/bulk`, {
-            partnumbers: partnumbers
-        });
-    
-        let result = product.map(({dataValues: item}) => {
-            let picture = data.data.filter((itemPicture) => itemPicture.partnumber == item.product_code)
-    
-            return {
-                cs_oid: item.cs_oid,
-                product_name: item.product_name,
-                product_code: item.product_code,
-                chart_quantity: item.chart_quantity,
-                available_quantity: item.available_quantity,
-                sales_status: item.sales_status,
-                can_be_sold: item.can_be_sold,
-                price: item.price,
-                photo: (picture.length == 0) ? null : picture[0]['picture'],
-                discount: item.discount,
-                created_at: item.created_at,
-                updated_at: item.updated_at
-            }
-        })
-    
-        return result;
     }
 }
 

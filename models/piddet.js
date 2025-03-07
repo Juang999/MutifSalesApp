@@ -1,6 +1,6 @@
 'use strict';
 const {
-  Model
+  Model, Op
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class PidDet extends Model {
@@ -56,6 +56,19 @@ module.exports = (sequelize, DataTypes) => {
     schema: 'public',
     tableName: 'pid_det',
     timestamps: false,
+    scopes: {
+      priceListDistributor: {
+        where: {
+          pid_pi_oid: {
+            [Op.in]: [
+              '75606dee-e498-4a5e-9858-568dfb1fb117', // => pricelist distributor mutif
+              '83415091-54cc-4fd1-8e10-0dac3561fb9c', // => pricelist distributor damoza
+              '80c389eb-dd3a-409c-81b3-c236e98f2c32' // => pricelist distributor upmore
+            ]
+          }
+        }
+      }
+    },
     modelName: 'PidDet',
   });
   return PidDet;

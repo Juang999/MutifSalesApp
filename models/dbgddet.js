@@ -1,6 +1,8 @@
 'use strict';
 const {
-  Model
+  Op,
+  Model,
+  Sequelize,
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class DbgdDet extends Model {
@@ -29,6 +31,17 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'dbgd_det',
     timestamps: false,
     modelName: 'DbgdDet',
+    scopes: {
+      filterGroup(partnerId) {
+        return {
+          where: {
+            dbgd_dbg_oid: {
+              [Op.eq]: Sequelize.literal(`(SELECT dbgd_dbg_oid FROM public.dbgd_det WHERE dbgd_ptnr_id = ${partnerId})`)
+            }
+          }
+        }
+      }
+    }
   });
   return DbgdDet;
 };

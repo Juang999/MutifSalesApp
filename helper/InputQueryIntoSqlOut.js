@@ -3,10 +3,10 @@ const {v4: uuidv4} = require('uuid');
 const moment = require('moment');
 
 class InputQueryIntoSqlOut {
-    insertQuery = async (sql, bind) => {
+    insertQuery = async (sql, bind, sequence) => {
         const resultQuery = this.bindData(sql, bind);
 
-        await this.createData(resultQuery)
+        await this.createData(resultQuery, sequence)
     }
 
     insertBulkQuery = async (sql, sequential) => {
