@@ -1,7 +1,7 @@
 const moment = require('moment');
 const Auth = require('../../../helper/Auth');
 const Page = require('../../../helper/Page');
-const {info, error: errorLog, errorV2: errorLogV2} = require('../../../helper/Logging');
+const {info, errorV2: errorLog} = require('../../../helper/Logging');
 const {ProductService, PriceService} = require('../../services/ServiceContainer');
 
 class ProductV3Controller {
@@ -63,7 +63,7 @@ class ProductV3Controller {
                     error: null
                 })
         } catch (error) {
-            await errorLogV2('GET DETAIL PRODUCT', error.message)
+            await errorLog('GET DETAIL PRODUCT', error.message)
 
             res.status(400)
                 .json({
