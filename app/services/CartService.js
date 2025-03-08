@@ -232,9 +232,9 @@ class CartService {
     retrieveLimitedDataCart = async (userid) => {
         let result = await ChartSales.findAll({
             attributes: [
-                'cs_oid',
+                ['cs_pt_id', 'product_id'],
                 [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
-                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'quantity'],
+                [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'quantity'],
                 [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
@@ -267,8 +267,12 @@ class CartService {
             where: {
                 cs_userid: userid
             },
-            order: [
-                ['cs_qty', 'DESC']
+            group: [
+                'product_id',
+                'product_name',
+                'price',
+                'discount',
+                'photo',
             ],
             limit: 15,
             logging: false

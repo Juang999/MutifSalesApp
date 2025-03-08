@@ -2,7 +2,7 @@ const axios = require('axios');
 const {Op} = require('sequelize');
 const Auth = require('../../../helper/Auth');
 const {config} = require('../../../config/environment');
-const {info, error: errorLog} = require('../../../helper/Logging');
+const {info, errorV2: errorLog} = require('../../../helper/Logging');
 const {
     InvcdDet,
     PiddDet, sequelize,
@@ -57,6 +57,8 @@ class SalesV2Controller {
                 })
         })
         .catch(err => {
+            errorLog(`GET LIMITED DATA CART`, err.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
