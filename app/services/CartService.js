@@ -374,25 +374,21 @@ class CartService {
     }
 
     getDataHeaderSalesQuotation = async (userId) => {
-        let dataSalesQuotation = await ChartSales.findAll({
+        let result = await ChartSales.findAll({
             attributes: [
                 'cs_pt_en_id',
                 'cs_pi_id',
-                [Sequelize.col(`"qty_location"."invc_loc_id"`), 'loc_id'],
-                [Sequelize.literal(`ROUND(AVG("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"), 2)`), 'discount'],
-                [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'cs_qty'],
+                [Sequelize.literal(`"qty_location"."invc_loc_id"`), 'loc_id'],
                 [Sequelize.literal(`CASE WHEN cs_pt_en_id = 1 THEN 10004 WHEN cs_pt_en_id = 2 THEN 20009 WHEN cs_pt_en_id = 3 THEN 300017 END`), 'loc_git'],
-                [Sequelize.literal('CASE WHEN "product"."pt_weight" IS NULL THEN CAST(SUM(cs_qty * 600) AS INTEGER) ELSE CAST(SUM(cs_qty * "product"."pt_weight") AS INTEGER) END'), 'total_weight_package'],
+                [Sequelize.literal(`ROUND(MAX("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"), 2)`), 'discount'],
                 [Sequelize.literal(`CAST(SUM((cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - (cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2))) AS INTEGER)`), 'total_price']
-            ],
-            group: [
-                'cs_pt_en_id', 
-                'cs_pi_id',
-                Sequelize.col(`"product"."pt_weight"`),
-                Sequelize.col(`"qty_location"."invc_loc_id"`)
             ],
             include: [
                 {
+                    model: InvcMstr,
+                    as: 'qty_location',
+                    attributes: []
+                }, {
                     model: PtMstr,
                     as: 'product',
                     attributes: [],
@@ -403,33 +399,35 @@ class CartService {
                             attributes: [],
                             include: [
                                 {
-                                    model: PiddDet.scope('creditPaymentType'),
+                                    model: PiddDet.scope(`creditPaymentType`),
                                     as: 'singular_detail_price_list',
-                                    attributes: [],
-                                }, {
-                                    model: PiMstr.scope('priceListDistributor'),
-                                    as: 'master_price_list',
-                                    attributes: [],
+                                    attributes: []
                                 }
                             ],
                         }
                     ]
-                }, {
-                    model: InvcMstr,
-                    as: 'qty_location',
-                    attributes: []
                 }
             ],
             where: {
-                cs_userid: userId
+                [Op.and]: [
+                    Sequelize.where(Sequelize.col('cs_userid'), {
+                        [Op.eq]: userId
+                    }),
+                    Sequelize.where(Sequelize.col(`"product->singular_relation_price_list"."pid_pi_oid"`), {
+                        [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = cs_pi_id)`)
+                    })
+                ]
             },
-            order: [
-                ['cs_pt_en_id', 'ASC']
+            group: [
+                'loc_id',
+                'loc_git',
+                'cs_pi_id',
+                'cs_pt_en_id',
             ],
-            logging: false,
+            logging: false
         })
 
-        return dataSalesQuotation;
+        return result;
     }
 
     getDataDetailSalesQuotation = async (userId) => {
@@ -438,10 +436,10 @@ class CartService {
                 'cs_oid',
                 'cs_pt_id',
                 ['cs_pt_en_id', 'en_id'],
-                [Sequelize.literal(`"cs_qty" * "product->singular_table_cost"."invct_cost"`), 'total_cost'],
-                [Sequelize.literal(`("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - ("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_disc")`), 'total_price'],
-                [Sequelize.literal(`"product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`), 'discount'],
-                'cs_qty',
+                [Sequelize.literal(`CAST("cs_qty" * "product->singular_table_cost"."invct_cost" AS BIGINT)`), 'total_cost'],
+                [Sequelize.literal(`CAST(("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - ("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_disc") AS BIGINT)`), 'total_price'],
+                [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                [Sequelize.literal('CAST(cs_qty AS BIGINT)'), 'cs_qty'],
                 'cs_invc_oid',
                 [Sequelize.literal(`"qty_location"."invc_loc_id"`), 'location_id'],
             ],
