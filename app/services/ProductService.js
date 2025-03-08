@@ -114,7 +114,7 @@ class ProductService {
             order: [
                 ['qty', 'DESC']
             ],
-            logging: false
+            // logging: false
         })
 
         return result;

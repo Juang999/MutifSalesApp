@@ -21,7 +21,7 @@ class ProductV3Controller {
                 })
         })
         .catch(err => {
-            errorLog('GET PRODUCT', err.message);
+            errorLogV2('GET PRODUCT', err.message);
 
             res.status(400)
                 .json({
