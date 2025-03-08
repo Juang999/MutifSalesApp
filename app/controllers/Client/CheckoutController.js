@@ -51,11 +51,11 @@ class CheckoutController {
         .then(result => {
             info('CHECKOUT PRODUCTS', `${Auth.user().usernama} HAS CHECKED OUT!`, true);
 
-            res.status(transaction.statusCode)
-                .json(transaction.json)
+            res.status(result.statusCode)
+                .json(result.json)
         })
         .catch(err => {
-            errorLog('CHECKOUT PRODUCTS', error.message);
+            errorLog('CHECKOUT PRODUCTS', err.message);
 
             res.status(400)
                 .json({
@@ -68,38 +68,27 @@ class CheckoutController {
     }
 
     generateHeaderSalesQuotation = async (dataHeader, formBody, user) => {
-        let SEQUENCE_NUMBER = 0;
-        let TOTAL_SQ_THIS_MONTH = await SalesQuotationService.countDataSalesQuotation();
+        let sequenceNumber = 0;
+        let totalSQofTheMonth = await SalesQuotationService.countDataSalesQuotation();
         let {dataValues: dataServer} = await ServerSetting.get(['serv_code']);
 
-        let {serv_code: SERVER_CODE} = dataServer;
-
         let dataHeadersSalesQuotation = dataHeader.map(({dataValues}) => {
-            let {
-                discount,
-                loc_id: locationId,
-                cs_pi_id: priceListId,
-                loc_git: locationGit,
-                total_price: totalPrice,
-                cs_pt_en_id: productEntityId,
-            } = dataValues;
-            SEQUENCE_NUMBER += 1;
-
-            let REQUIREMENT_DATA_FOR_SQ_NUMBER = {
-                entity_id: productEntityId,
-                sq_sequence: TOTAL_SQ_THIS_MONTH
-            }
+            sequenceNumber += 1;
 
             let [shippingName, shippingService] = formBody.shipping_name.split('-'); 
-            let sqCode = this.generateSalesQuotationNumber(REQUIREMENT_DATA_FOR_SQ_NUMBER, SEQUENCE_NUMBER, SERVER_CODE);
+
+            let salesQuotationCode = this.generateSalesQuotationNumber({
+                entity_id: dataValues.cs_pt_en_id,
+                sq_sequence: totalSQofTheMonth
+            }, sequenceNumber, dataServer.serv_code);
 
             return {
                 sq_oid: uuidv4(),
                 sq_dom_id: 1,
-                sq_en_id: productEntityId,
+                sq_en_id: dataValues.cs_pt_en_id,
                 sq_add_by: user.usernama,
                 sq_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
-                sq_code: sqCode,
+                sq_code: salesQuotationCode,
                 sq_ptnr_id_sold: user.user_ptnr_id,
                 sq_ptnr_id_bill: user.user_ptnr_id,
                 sq_date: moment().format('YYYY-MM-DD HH:mm:ss'),
@@ -107,12 +96,12 @@ class CheckoutController {
                 sq_si_id: 992,
                 sq_type: 'R',
                 sq_sales_person: user.user_ptnr_id,
-                sq_pi_id: priceListId,
+                sq_pi_id: dataValues.cs_pi_id,
                 sq_pay_type: formBody.payment_type,
                 sq_pay_method: formBody.payment_method,
                 sq_dp: 0,
-                sq_disc_header: discount,
-                sq_total: totalPrice,
+                sq_disc_header: dataValues.discount,
+                sq_total: dataValues.total_price,
                 sq_close_date: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_dt: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_cu_id: 1,
@@ -121,7 +110,7 @@ class CheckoutController {
                 sq_payment: 0,
                 sq_exc_rate: 1,
                 sq_trans_id: 'D',
-                sq_terbilang: Bilangan.parse(totalPrice),
+                sq_terbilang: Bilangan.parse(dataValues.total_price),
                 sq_cons: formBody.is_consigment,
                 sq_interval: 1,
                 sq_ar_ac_id: 13,
@@ -135,9 +124,9 @@ class CheckoutController {
                 sq_book_end_date: moment().add(1, 'days').format('YYYY-MM-DD'),
                 sq_alocated: 'N',
                 sq_shipping_charges: 0,
-                sq_ptsfr_loc_id: locationId, 
-                sq_ptsfr_loc_to_id: locationId,
-                sq_ptsfr_loc_git: locationGit,
+                sq_ptsfr_loc_id: dataValues.loc_id, 
+                sq_ptsfr_loc_to_id: dataValues.loc_id,
+                sq_ptsfr_loc_git: dataValues.loc_git,
                 sq_en_to_id: 0,
                 sq_dropshipper: 'N',
                 sq_pi_area_id: 1,
@@ -168,31 +157,33 @@ class CheckoutController {
         let createdAt = moment().format('YYYY-MM-DD HH:mm:ss')
         let baseSequence = 1;
 
-        let result = dataBody.map(body => {
-            let [dataHeaderSalesQuotation] = headerSalesQuotation.filter(item => item.sq_en_id == body.dataValues.en_id)
+        let result = dataBody.map(({dataValues: dataDetail}) => {
+            let [dataHeaderSalesQuotation] = headerSalesQuotation.filter(item => {
+                return item.sq_en_id == dataDetail.en_id && item.sq_ptsfr_loc_id == dataDetail.location_id
+            })
 
             let data = {
                 sqd_oid: uuidv4(),
                 sqd_dom_id: 1,
-                sqd_en_id: body.dataValues.en_id,
+                sqd_en_id: dataDetail.en_id,
                 sqd_add_by: dataUser.usernama,
                 sqd_add_date: createdAt,
                 sqd_sq_oid: dataHeaderSalesQuotation.sq_oid,
                 sqd_seq: baseSequence,
                 sqd_si_id: 992,
-                sqd_pt_id: body.dataValues.cs_pt_id,
-                sqd_qty: body.dataValues.cs_qty,
+                sqd_pt_id: dataDetail.cs_pt_id,
+                sqd_qty: dataDetail.cs_qty,
                 sqd_qty_allocated: 0,
                 sqd_is_additional_charge: 'N',
                 sqd_um: 9964,
-                sqd_cost: body.dataValues.total_cost,
-                sqd_price: body.dataValues.total_price,
-                sqd_disc: body.dataValues.discount,
+                sqd_cost: dataDetail.total_cost,
+                sqd_price: dataDetail.total_price,
+                sqd_disc: dataDetail.discount,
                 sqd_sales_ac_id: 13,
                 sqd_sales_sb_id: 0,
                 sqd_sales_cc_id: 0,
                 sqd_um_conv: 1,
-                sqd_qty_real: body.dataValues.cs_qty,
+                sqd_qty_real: dataDetail.cs_qty,
                 sqd_taxable: 'N',
                 sqd_tax_inc: 'N',
                 sqd_tax_class: 9949,
@@ -200,12 +191,12 @@ class CheckoutController {
                 sqd_payment: 0,
                 sqd_dp: 0,
                 sqd_sales_unit: 0,
-                sqd_loc_id: body.dataValues.location_id,
+                sqd_loc_id: dataDetail.location_id,
                 sqd_ppn_type: 'E',
-                sqd_invc_oid: body.dataValues.cs_invc_oid,
-                sqd_invc_loc_id: body.dataValues.location_id,
+                sqd_invc_oid: dataDetail.cs_invc_oid,
+                sqd_invc_loc_id: dataDetail.location_id,
                 sqd_need_date: createdAt,
-                sqd_qty_booking: body.dataValues.cs_qty,
+                sqd_qty_booking: dataDetail.cs_qty,
                 sqd_qty_outs: 0,
             };
 
