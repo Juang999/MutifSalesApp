@@ -1,4 +1,5 @@
 const {
+    TransStatus,
     PiddDet, TConfUser,
     ChartSales, PiMstr,
     PtnrMstr, InvcMstr,
@@ -13,7 +14,7 @@ const moment = require('moment');
 const {Op} = require('sequelize')
 
 class CartService {
-    retrieveDataCart = async (userId) => {
+    retrieveDataCart = async (userId, transId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -27,6 +28,7 @@ class CartService {
                 [Sequelize.literal(`(SELECT DISTINCT(ROUND(pidd_disc, 2)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'discount'],
                 [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
+                [Sequelize.col(`"status_transaction"."trans_desc"`), 'transaction_status'],
             ],
             include: [
                 {
@@ -37,10 +39,16 @@ class CartService {
                     model: InvcMstr,
                     as: 'qty_location',
                     attributes: [],
+                }, {
+                    model: TransStatus,
+                    as: 'status_transaction',
+                    attributes: []
                 }
             ],
             where: {
                 cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: transId,
                 [Op.or]: [
                     {
 =======
@@ -105,8 +113,7 @@ class CartService {
                                 [Op.gte]: 0
                             })
                         ],
-                    }, 
-                    {
+                    }, {
                         [Op.and]: [
                             Sequelize.where(Sequelize.col(`invc_en_id`), {
                                 [Op.eq]: Sequelize.literal(`"product"."pt_en_id"`)
@@ -138,17 +145,19 @@ class CartService {
                 'product_name',
                 'product_code',
                 'photo',
-                'entity_id'
+                'entity_id',
+                'transaction_status'
                 // 'price'
                 // 'created_at',
                 // 'updated_at'
-            ]
+            ],
+            logging: false
         })
 
         return result;
     }
 
-    retrieveDataToCheckout = async (userId) => {
+    retrieveDataToCheckout = async (userId, transId, preOrder) => {
         let result = await TConfUser.findOne({
                     attributes: [
                         [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
@@ -244,7 +253,11 @@ class CartService {
                                     as: 'qty_location',
                                     attributes: [],
                                 }
-                            ]
+                            ],
+                            where: {
+                                cs_preorder: preOrder,
+                                cs_trans_id: transId,
+                            }
                         }
                     ],
                     where: {
@@ -280,7 +293,7 @@ class CartService {
         return result;
     }
 
-    retrieveLimitedDataCart = async (userid) => {
+    retrieveLimitedDataCart = async (userid, transId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -316,7 +329,9 @@ class CartService {
                 }
             ],
             where: {
-                cs_userid: userid
+                cs_userid: userid,
+                cs_preorder: preOrder,
+                cs_trans_id: transId,
             },
             group: [
                 'product_id',
@@ -332,7 +347,7 @@ class CartService {
         return result;
     }
 
-    retrieveDataCartByProductId = async (productId, userId) => {
+    retrieveDataCartByProductId = async (productId, userId, transId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -341,14 +356,16 @@ class CartService {
             ],
             where: {
                 cs_pt_id: productId,
-                cs_userid: userId
+                cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: transId,
             }
         })
 
         return result;
     }
 
-    getSubTotalPriceCart = async (userid) => {
+    getSubTotalPriceCart = async (userid, transId, preOrder) => {
         let [subTotal] = await sequelize.query(`
             SELECT 
                 CAST(SUM("cs_qty" * ("detail_price_list"."pidd_price" - ("detail_price_list"."pidd_price" * "detail_price_list"."pidd_disc"))) AS BIGINT) 
@@ -357,15 +374,16 @@ class CartService {
             LEFT JOIN public.pid_det AS relation_price_list ON relation_price_list.pid_pt_id = product.pt_id
             LEFT JOIN public.pi_mstr AS master_price_list ON master_price_list.pi_oid = relation_price_list.pid_pi_oid
             LEFT JOIN public.pidd_det AS detail_price_list ON detail_price_list.pidd_pid_oid = relation_price_list.pid_oid
-            WHERE
-                cs_userid = :userid
-            AND
-                master_price_list.pi_id IN (103, 202, 304)
-            AND
-                detail_price_list.pidd_payment_type = 9942
+            WHERE cs_userid = :userid
+            AND master_price_list.pi_id IN (103, 202, 304)
+            AND detail_price_list.pidd_payment_type = 9942
+            AND cs_trans_id = :transId
+            AND cs_preorder = :preOrder
             `, {
                 replacements: {
-                    userid
+                    userid,
+                    transId,
+                    preOrder
                 },
                 logging: false
             })
@@ -373,7 +391,7 @@ class CartService {
         return subTotal;
     }
 
-    getDataHeaderSalesQuotation = async (userId) => {
+    getDataHeaderSalesQuotation = async (userId, transId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 'cs_pt_en_id',
@@ -413,6 +431,12 @@ class CartService {
                     Sequelize.where(Sequelize.col('cs_userid'), {
                         [Op.eq]: userId
                     }),
+                    Sequelize.where(Sequelize.col('cs_trans_id'), {
+                        [Op.eq]: transId
+                    }),
+                    Sequelize.where(Sequelize.col('cs_preorder'), {
+                        [Op.eq]: preOrder
+                    }),
                     Sequelize.where(Sequelize.col(`"product->singular_relation_price_list"."pid_pi_oid"`), {
                         [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = cs_pi_id)`)
                     })
@@ -430,7 +454,7 @@ class CartService {
         return result;
     }
 
-    getDataDetailSalesQuotation = async (userId) => {
+    getDataDetailSalesQuotation = async (userId, transId, preOrder) => {
         let dataProducts = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -478,6 +502,8 @@ class CartService {
             ],
             where: {
                 cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: transId,
             },
             logging: false
         })
@@ -495,14 +521,16 @@ class CartService {
             where: {
                 cs_pt_id: productId,
                 cs_invc_oid: inventoryOid,
-                cs_userid: userId
+                cs_userid: userId,
+                cs_preorder: 'N',
+                cs_trans_id: 'D',
             }
         })
 
         return result;
     }
 
-    findDataCartByOid = async (cartSalesOid, userId) => {
+    findDataCartByOid = async (cartSalesOid, transId, preOrder, userId) => {
         let result = await ChartSales.findOne({
             attributes: [
                 'cs_oid',
@@ -511,27 +539,34 @@ class CartService {
             ],
             where: {
                 cs_oid: cartSalesOid,
-                cs_userid: userId
+                cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: transId,
             }
         })
 
         return result;
     }
 
-    inputIntoCart = async (body, userid, transaction) => {
+    inputIntoCart = async (body, dataUser, preOrder, transaction) => {
         let result = await ChartSales.create({
             cs_oid: uuidv4(),
-            cs_userid: userid,
+            cs_userid: dataUser.userid,
             cs_pt_id: body.productId,
             cs_pt_en_id: body.entityId,
             cs_invc_oid: body.inventoryOid,
             cs_qty: body.quantity,
             cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            cs_pi_id: body.priceListId
+            cs_pi_id: body.priceListId,
+            cs_created_by: dataUser.username,
+            cs_updated_by: dataUser.username,
+            cs_trans_id: 'D',
+            cs_preorder: preOrder
         }, {
             individualHooks: true,
-            transaction
+            transaction,
+            logging: false
         })
 
         return result;

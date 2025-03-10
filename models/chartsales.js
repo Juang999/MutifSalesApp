@@ -35,6 +35,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'cs_oid',
         foreignKey: 'invcd_cs_oid'
       })
+
+      ChartSales.belongsTo(models.TransStatus, {
+        as: 'status_transaction',
+        targetKey: 'trans_id',
+        foreignKey: 'cs_trans_id'
+      })
     }
   }
   ChartSales.init({
@@ -49,7 +55,11 @@ module.exports = (sequelize, DataTypes) => {
     cs_qty: DataTypes.INTEGER,
     cs_created_at: DataTypes.DATE,
     cs_updated_at: DataTypes.DATE,
-    cs_pi_id: DataTypes.BIGINT
+    cs_pi_id: DataTypes.BIGINT,
+    cs_trans_id: DataTypes.STRING,
+    cs_created_by: DataTypes.STRING,
+    cs_updated_by: DataTypes.STRING,
+    cs_preorder: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',
