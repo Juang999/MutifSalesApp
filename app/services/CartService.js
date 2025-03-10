@@ -30,6 +30,7 @@ class CartService {
                 [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
                 [Sequelize.col(`"status_transaction"."trans_desc"`), 'transaction_status'],
+                [Sequelize.literal('MAX(cs_created_at)'), 'created_at'],
             ],
             include: [
                 {
@@ -97,9 +98,6 @@ class CartService {
                 'photo',
                 'entity_id',
                 'transaction_status',
-                // 'price'
-                // 'created_at',
-                // 'updated_at'
             ],
             logging: false
         })

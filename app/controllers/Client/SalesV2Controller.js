@@ -16,10 +16,11 @@ class SalesV2Controller {
     getChart = async (req, res) => {
         try {
             let {userid} = Auth.user();
+            let transId = (req.query.expired == 'Y') ? 'E' : 'D';
 
             await this.expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'D', 'N')
+            let result = await CartService.retrieveDataCart(userid, transId, 'N')
             res.status(200)
                 .json({
                     status: 'success',
