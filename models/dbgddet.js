@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      DbgdDet.hasOne(models.LocMstr, {
+        as: 'singular_relation_partner_location',
+        sourceKey: 'dbgd_ptnr_id',
+        foreignKey: 'loc_ptnr_id'
+      })
     }
   }
   DbgdDet.init({
