@@ -131,8 +131,8 @@ class SalesQuotationService {
                 [Sequelize.col('product.pt_desc1'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
                 [Sequelize.col('product.pt_weight'), 'weight'],
-                [Sequelize.literal('CAST(sqd_qty AS INTEGER)'), 'qty_product'],
-                [Sequelize.literal('CAST(sqd_price AS INTEGER)'), 'price'],
+                [Sequelize.literal('CAST(SUM(sqd_qty) AS INTEGER)'), 'qty_product'],
+                [Sequelize.literal('CAST(SUM(sqd_price) AS INTEGER)'), 'price'],
                 [Sequelize.literal('ROUND(sqd_disc, 2)'), 'discount'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/thumbnail/', "product"."pt_code", '.jpg')`), 'image'],
             ],
@@ -148,6 +148,13 @@ class SalesQuotationService {
                     [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = '${invoiceNumber}' AND sq_ptnr_id_sold = ${ptnrId})`)
                 }
             },
+            group: [
+                'product_name',
+                'product_code',
+                'weight',
+                'discount',
+                'image'
+            ],
             logging: false
         })
 

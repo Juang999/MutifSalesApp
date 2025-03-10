@@ -12,10 +12,10 @@ class CheckoutController {
         const dataUser = Auth.user();
 
         sequelize.transaction(async t => {
-            let RAW_DATA_HEADER_SQ = CartService.getDataHeaderSalesQuotation(dataUser.userid);
-            let RAW_DATA_BODY_SQ = CartService.getDataDetailSalesQuotation(dataUser.userid);
-
-            let [dataHeaderSq, dataBodySq] = await Promise.all([RAW_DATA_HEADER_SQ, RAW_DATA_BODY_SQ])
+            let [dataHeaderSq, dataBodySq] = await Promise.all([
+                CartService.getDataHeaderSalesQuotation(dataUser.userid, 'D', 'N'), 
+                CartService.getDataDetailSalesQuotation(dataUser.userid, 'D', 'N')
+            ])
 
             if (dataHeaderSq.length == 0) {
                 return {

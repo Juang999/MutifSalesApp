@@ -139,6 +139,7 @@ class InventoryService {
             where: {
                 invc_oid: inventoryOid
             },
+            logging: false
         })
 
         return result;

@@ -16,7 +16,7 @@ class SalesV2Controller {
     getChart = async (req, res) => {
         let {userid} = Auth.user();
 
-        CartService.retrieveDataCart(userid)
+        CartService.retrieveDataCart(userid, 'D', 'N')
         .then(result => {
             res.status(200)
                 .json({
@@ -39,10 +39,36 @@ class SalesV2Controller {
         })
     }
 
+    getExpiredDataChart = (req, res) => {
+        let {userid} = Auth.user();
+
+        CartService.retrieveDataCart(userid, 'E', 'N')
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            errorLog('GET EXPIRED DATA CART', err.message);
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        });
+    }
+
     getLimitedCart = (req, res) => {
         let {userid} = Auth.user();
 
-        Promise.all([CartService.getSubTotalPriceCart(userid), CartService.retrieveLimitedDataCart(userid)])
+        Promise.all([CartService.getSubTotalPriceCart(userid, 'D', 'N'), CartService.retrieveLimitedDataCart(userid, 'D', 'N')])
         .then(([subTotalPrice, dataCart]) => {
 
             res.status(200)
