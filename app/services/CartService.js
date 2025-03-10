@@ -51,57 +51,6 @@ class CartService {
                 cs_trans_id: transId,
                 [Op.or]: [
                     {
-=======
-                    attributes: [
-                        'cs_oid',
-                        ['cs_invc_oid', 'inventory_oid'],
-                        [Sequelize.col('product.pt_id'), 'product_id'],
-                        [Sequelize.col('product.pt_desc1'), 'product_name'],
-                        [Sequelize.col('product.pt_code'), 'product_code'],
-                        [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                        [Sequelize.col('"qty_location"."invc_qty_available"'), 'available_quantity'],
-                        [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN 'melebihi stok' ELSE 'bisa dibeli' END`), 'sales_status'],
-                        [Sequelize.literal(`CASE WHEN "qty_location"."invc_qty_available" - cs_qty < 0 THEN false ELSE true END`), 'can_be_sold'],
-                        [Sequelize.literal('CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)'), 'price'],
-                        [Sequelize.literal('ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)'), 'discount'],
-                        [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
-                        ['cs_created_at', 'created_at'],
-                        ['cs_updated_at', 'updated_at'],
-                    ],
-                    include: [
-                        {
-                            model: PtMstr,
-                            as: 'product',
-                            attributes: [],
-                            include: [
-                                {
-                                    model: PidDet,
-                                    as: 'singular_relation_price_list',
-                                    attributes: [],
-                                    include: [
-                                        {
-                                            model: PiMstr,
-                                            as: 'master_price_list',
-                                            attributes: []
-                                        }, {
-                                            model: PiddDet.scope('creditPaymentType'),
-                                            as: 'singular_detail_price_list',
-                                            attributes: []
-                                        }
-                                    ]
-                                }
-                            ],
-                            where: {
-                                pt_shown: 'Y'
-                            }
-                        },
-                        {
-                            model: InvcMstr.scope('gudangSesuaiDenganEntitas'),
-                            as: 'qty_location',
-                            attributes: []
-                        }
-                    ],
-                    where: {
                         [Op.and]: [
                             Sequelize.where(Sequelize.col(`invc_en_id`), {
                                 [Op.eq]: Sequelize.literal(`"product"."pt_en_id"`)
