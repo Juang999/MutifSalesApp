@@ -14,10 +14,12 @@ const {InventoryService, CartService} = require('../../services/ServiceContainer
 
 class SalesV2Controller {
     getChart = async (req, res) => {
-        let {userid} = Auth.user();
+        try {
+            let {userid} = Auth.user();
 
-        CartService.retrieveDataCart(userid, 'D', 'N')
-        .then(result => {
+            await this.expireData(userid);
+
+            let result = await CartService.retrieveDataCart(userid, 'D', 'N')
             res.status(200)
                 .json({
                     status: 'success',
@@ -25,18 +27,18 @@ class SalesV2Controller {
                     data: result,
                     error: null
                 })
-        })
-        .catch(err => {
-            errorLog('GET DATA CART V2', err.message);
-
+        } catch (error) {
+            errorLog('GET DATA CART V2', error.message);
+    
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
-        })
+            
+        }
     }
 
     getExpiredDataChart = (req, res) => {
@@ -65,11 +67,16 @@ class SalesV2Controller {
         });
     }
 
-    getLimitedCart = (req, res) => {
-        let {userid} = Auth.user();
+    getLimitedCart = async (req, res) => {
+        try {
+            let {userid} = Auth.user();
 
-        Promise.all([CartService.getSubTotalPriceCart(userid, 'D', 'N'), CartService.retrieveLimitedDataCart(userid, 'D', 'N')])
-        .then(([subTotalPrice, dataCart]) => {
+            await this.expireData(userid);
+
+            let [subTotalPrice, dataCart] = await Promise.all([
+                CartService.getSubTotalPriceCart(userid, 'D', 'N'), 
+                CartService.retrieveLimitedDataCart(userid, 'D', 'N')
+            ]);
 
             res.status(200)
                 .json({
@@ -81,10 +88,9 @@ class SalesV2Controller {
                     },
                     error: null
                 })
-        })
-        .catch(err => {
+        } catch (error) {
             errorLog(`GET LIMITED DATA CART`, err.message)
-
+    
             res.status(400)
                 .json({
                     status: 'failed',
@@ -92,7 +98,31 @@ class SalesV2Controller {
                     data: null,
                     error: err.message
                 })
+        }
+    }
+
+    expireData = async (userId) => {
+        let data = await CartService.retrieveDataCartThatShouldBeExpired(userId, 'N');
+
+        await sequelize.transaction(async t => {
+            for (const {dataValues: singularData} of data) {
+                let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularData.cs_invc_oid, t);
+
+                await this.expireDataChart(singularData, dataInventory, t);
+            }
         })
+    }
+
+    expireDataChart = async (dataCartSales, dataInventory, transaction) => {
+        let qtyInventory = {
+            quantityAvailable: parseInt(dataInventory.qty_available) + parseInt(dataCartSales.cs_qty),
+            quantityBooked: parseInt(dataInventory.qty_booked) - parseInt(dataCartSales.cs_qty)
+        }
+
+        await Promise.all([
+            InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, qtyInventory, transaction),
+            CartService.updateCart(dataCartSales.cs_oid, dataCartSales.cs_qty, 'E', transaction)
+        ])
     }
 }
 

@@ -11,7 +11,8 @@ const {
 } = require('../../models');
 const {v4: uuidv4} = require('uuid');
 const moment = require('moment');
-const {Op} = require('sequelize')
+const {Op} = require('sequelize');
+const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOut');
 
 class CartService {
     retrieveDataCart = async (userId, transId, preOrder) => {
@@ -23,7 +24,7 @@ class CartService {
                 [Sequelize.col(`"product"."pt_code"`), 'product_code'],
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'chart_quantity'],
                 [Sequelize.literal('CAST(SUM("qty_location"."invc_qty_available") AS INTEGER)'), 'available_quantity'],
-                [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN 'melebihi stock' ELSE 'bisa dibeli' END`), 'sales_status'],
+                [Sequelize.literal(`CASE WHEN SUM(CAST("qty_location"."invc_qty_available" AS INTEGER)) - SUM(CAST(cs_qty AS INTEGER)) < 0 THEN 'melebihi stock' ELSE 'bisa dibeli' END`), 'sales_status'],
                 [Sequelize.literal(`(SELECT DISTINCT(CAST(pidd_price AS BIGINT)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'price'],
                 [Sequelize.literal(`(SELECT DISTINCT(ROUND(pidd_disc, 2)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'discount'],
                 [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN false ELSE true END`), 'can_be_sold'],
@@ -95,11 +96,34 @@ class CartService {
                 'product_code',
                 'photo',
                 'entity_id',
-                'transaction_status'
+                'transaction_status',
                 // 'price'
                 // 'created_at',
                 // 'updated_at'
             ],
+            logging: false
+        })
+
+        return result;
+    }
+
+    retrieveDataCartThatShouldBeExpired = async (userId, preOrder) => {
+        let result = await ChartSales.findAll({
+            attributes: [
+                'cs_oid',
+                'cs_invc_oid',
+                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'cs_qty']
+            ],
+            where: {
+                cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: {
+                    [Op.not]: 'E'
+                },
+                cs_created_at: {
+                    [Op.lte]: moment().add(72, 'hours').format('YYYY-MM-DD HH:mm:ss')
+                }
+            },
             logging: false
         })
 
@@ -515,23 +539,32 @@ class CartService {
         }, {
             individualHooks: true,
             transaction,
-            logging: false
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(": ")[1];
+
+                insertQuery(realSql, bind, 1);
+            }
         })
 
         return result;
     }
 
-    updateCart = async (cartSalesOid, quantity, transaction) => {
+    updateCart = async (cartSalesOid, quantity, transId, transaction) => {
         let result = await ChartSales.update({
             cs_qty: quantity,
-            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
+            cs_trans_id: transId,
+            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
         }, {
             where: {
                 cs_oid: cartSalesOid
             },
             transaction,
             individualHooks: true,
-            logging: false
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(": ")[1];
+
+                insertQuery(realSql, bind, 1);
+            }
         })
 
         return result;
@@ -543,9 +576,13 @@ class CartService {
                 cs_oid: cartSalesOid,
                 cs_userid: userId
             },
-            logging: false,
             transaction,
-            individualHooks: true
+            individualHooks: true,
+            logging: (sqlCommamd) => {
+                let realSql = sqlCommamd.split(': ')[1];
+
+                insertBulkQuery(realSql, 2);
+            },
         })
     }
 
