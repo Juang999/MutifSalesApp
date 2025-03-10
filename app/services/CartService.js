@@ -114,16 +114,20 @@ class CartService {
                 'cs_invc_oid',
                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'cs_qty']
             ],
-            where: {
-                cs_userid: userId,
-                cs_preorder: preOrder,
-                cs_trans_id: {
+            where: [
+                Sequelize.where(Sequelize.col(`cs_userid`), {
+                    [Op.eq]: userId
+                }),
+                Sequelize.where(Sequelize.col(`cs_preorder`), {
+                    [Op.eq]: preOrder
+                }),
+                Sequelize.where(Sequelize.col(`cs_trans_id`), {
                     [Op.not]: 'E'
-                },
-                cs_created_at: {
-                    [Op.lte]: moment().add(72, 'hours').format('YYYY-MM-DD HH:mm:ss')
-                }
-            },
+                }),
+                Sequelize.where(Sequelize.literal(`cs_created_at + INTERVAL '72 hours'`), {
+                    [Op.lte]: moment().format('YYYY-MM-DD HH:mm:ss')
+                })
+            ],
             logging: false
         })
 

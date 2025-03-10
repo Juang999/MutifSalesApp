@@ -104,13 +104,15 @@ class SalesV2Controller {
     expireData = async (userId) => {
         let data = await CartService.retrieveDataCartThatShouldBeExpired(userId, 'N');
 
-        await sequelize.transaction(async t => {
-            for (const {dataValues: singularData} of data) {
-                let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularData.cs_invc_oid, t);
-
-                await this.expireDataChart(singularData, dataInventory, t);
-            }
-        })
+        if (data.length != 0) {
+            await sequelize.transaction(async t => {
+                for (const {dataValues: singularData} of data) {
+                    let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularData.cs_invc_oid, t);
+    
+                    await this.expireDataChart(singularData, dataInventory, t);
+                }
+            })
+        }
     }
 
     expireDataChart = async (dataCartSales, dataInventory, transaction) => {
