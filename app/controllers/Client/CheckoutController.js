@@ -5,14 +5,15 @@ const {sequelize} = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
 const ServerSetting = require('../../../helper/SettingServer');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
-const {CartService, SalesQuotationService} = require('../../services/ServiceContainer');
+const {CartService, SalesQuotationService, PartnerService} = require('../../services/ServiceContainer');
 
 class CheckoutController {
     checkOut = (req, res) => {
         const dataUser = Auth.user();
 
         sequelize.transaction(async t => {
-            let [dataHeaderSq, dataBodySq] = await Promise.all([
+            let [dataLocation, dataHeaderSq, dataBodySq] = await Promise.all([
+                PartnerService.getLocationPartner(dataUser.user_ptnr_id),
                 CartService.getDataHeaderSalesQuotation(dataUser.userid, 'D', 'N'), 
                 CartService.getDataDetailSalesQuotation(dataUser.userid, 'D', 'N')
             ])
@@ -29,7 +30,7 @@ class CheckoutController {
                 }
             }
 
-            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataUser);
+            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataLocation, dataUser);
             let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
             headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
@@ -67,7 +68,7 @@ class CheckoutController {
         })
     }
 
-    generateHeaderSalesQuotation = async (dataHeader, formBody, user) => {
+    generateHeaderSalesQuotation = async (dataHeader, formBody, dataLocation, user) => {
         let sequenceNumber = 0;
         let totalSQofTheMonth = await SalesQuotationService.countDataSalesQuotation();
         let {dataValues: dataServer} = await ServerSetting.get(['serv_code']);
@@ -81,6 +82,10 @@ class CheckoutController {
                 entity_id: dataValues.cs_pt_en_id,
                 sq_sequence: totalSQofTheMonth
             }, sequenceNumber, dataServer.serv_code);
+
+            let [location] = dataLocation.filter(({dataValues: singularLocation}) => {
+                return singularLocation.dbgd_en_id == dataValues.cs_pt_en_id
+            })
 
             return {
                 sq_oid: uuidv4(),
@@ -125,7 +130,7 @@ class CheckoutController {
                 sq_alocated: 'N',
                 sq_shipping_charges: 0,
                 sq_ptsfr_loc_id: dataValues.loc_id, 
-                sq_ptsfr_loc_to_id: dataValues.loc_id,
+                sq_ptsfr_loc_to_id: location.dataValues.destination_location_id,
                 sq_ptsfr_loc_git: dataValues.loc_git,
                 sq_en_to_id: 0,
                 sq_dropshipper: 'N',
