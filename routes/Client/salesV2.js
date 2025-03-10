@@ -5,6 +5,5 @@ const {getChart, getExpiredDataChart, getLimitedCart} = require('../../app/contr
 
 router.get('/chart/', [Middleware.AuthMiddleware], getChart);
 router.get('/chart-limited', [Middleware.AuthMiddleware], getLimitedCart);
-router.get('/chart-expired', [Middleware.AuthMiddleware], getExpiredDataChart);
 
 module.exports = router;
