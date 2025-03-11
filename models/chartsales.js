@@ -59,14 +59,18 @@ module.exports = (sequelize, DataTypes) => {
     cs_trans_id: DataTypes.STRING,
     cs_created_by: DataTypes.STRING,
     cs_updated_by: DataTypes.STRING,
-    cs_preorder: DataTypes.STRING
+    cs_preorder: DataTypes.STRING,
+    cs_deleted_at: DataTypes.DATE,
+    cs_deleted_by: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',
     tableName: 'chart_sales',
     timestamps: false,
     modelName: 'ChartSales',
-    hooks: {
+    paranoid: true,
+    deletedAt: 'cs_deleted_at',
+    hooks: { 
       afterCreate: ({dataValues}) => {
         info('CHART', 'CREATED', dataValues)
       },

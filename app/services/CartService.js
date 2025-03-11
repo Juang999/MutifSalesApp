@@ -339,7 +339,7 @@ class CartService {
         return result;
     }
 
-    retrieveDataCartByProductId = async (productId, userId, transId, preOrder) => {
+    retrieveDataCartByProductId = async (productId, userId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -350,7 +350,6 @@ class CartService {
                 cs_pt_id: productId,
                 cs_userid: userId,
                 cs_preorder: preOrder,
-                cs_trans_id: transId,
             }
         })
 
@@ -591,18 +590,22 @@ class CartService {
         return result;
     }
 
-    deleteDataCart = async (cartSalesOid, userId, transaction) => {
-        await ChartSales.destroy({
+    deleteDataCart = async (cartSalesOid, dataUser, transaction) => {
+        await ChartSales.update({
+            cs_trans_id: Sequelize.literal(`CASE WHEN cs_trans_id != 'E' THEN 'X' ELSE 'E' END`),
+            cs_deleted_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_deleted_by: dataUser.userName
+        }, {
             where: {
                 cs_oid: cartSalesOid,
-                cs_userid: userId
+                cs_userid: dataUser.userId
             },
             transaction,
             individualHooks: true,
-            logging: (sqlCommamd) => {
+            logging: (sqlCommamd, {bind}) => {
                 let realSql = sqlCommamd.split(': ')[1];
 
-                insertBulkQuery(realSql, 2);
+                insertQuery(realSql, bind, 2);
             },
         })
     }

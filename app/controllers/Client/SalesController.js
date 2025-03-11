@@ -181,15 +181,15 @@ class SalesController {
 
     deleteChart = async (req, res) => {
         let {product_id} = req.params;
-        let {userid} = Auth.user();
+        let {userid: userId, usernama: userName} = Auth.user();
 
         sequelize.transaction(async t => {
-            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userid, 'D', 'N');
+            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N');
 
             for (const {dataValues: singularDataCart} of dataCart) {
                 let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularDataCart.cs_invc_oid, t);
 
-                await this.deleteDataChart(singularDataCart, dataInventory, userid, t);
+                await this.deleteDataChart(singularDataCart, dataInventory, {userId, userName}, t);
             }
 
             return {
@@ -392,7 +392,7 @@ class SalesController {
         })
     }
 
-    deleteDataChart = async (dataCartSales, dataInventory, userId, transaction) => {
+    deleteDataChart = async (dataCartSales, dataInventory, dataUser, transaction) => {
         let qtyInventory = {
             quantityAvailable: parseInt(dataInventory.qty_available) + parseInt(dataCartSales.cs_qty),
             quantityBooked: parseInt(dataInventory.qty_booked) - parseInt(dataCartSales.cs_qty)
@@ -400,7 +400,7 @@ class SalesController {
 
         await Promise.all([
             InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, qtyInventory, transaction),
-            CartService.deleteDataCart(dataCartSales.cs_oid, userId, transaction)
+            CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
         ])
 
     }
