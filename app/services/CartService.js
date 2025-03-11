@@ -15,7 +15,7 @@ const {Op} = require('sequelize');
 const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOut');
 
 class CartService {
-    retrieveDataCart = async (userId, transId, preOrder) => {
+    retrieveDataCart = async (userId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -29,6 +29,7 @@ class CartService {
                 [Sequelize.literal(`(SELECT DISTINCT(ROUND(pidd_disc, 2)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'discount'],
                 [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
+                [Sequelize.col(`cs_trans_id`), 'transaction_code'],
                 [Sequelize.col(`"status_transaction"."trans_desc"`), 'transaction_status'],
                 [Sequelize.literal('MAX(cs_created_at)'), 'created_at'],
             ],
@@ -50,7 +51,6 @@ class CartService {
             where: {
                 cs_userid: userId,
                 cs_preorder: preOrder,
-                cs_trans_id: transId,
                 [Op.or]: [
                     {
                         [Op.and]: [
@@ -97,6 +97,7 @@ class CartService {
                 'product_code',
                 'photo',
                 'entity_id',
+                'transaction_code',
                 'transaction_status',
             ],
             logging: false
