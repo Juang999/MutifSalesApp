@@ -20,7 +20,7 @@ class SalesV2Controller {
 
             await this.expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, transId, 'N')
+            let result = await CartService.retrieveDataCart(userid, 'N')
             res.status(200)
                 .json({
                     status: 'success',
