@@ -16,9 +16,9 @@ class SalesController {
             } = body;
         
             let transaction = await sequelize.transaction(async t => {
-                let [dataCart, dataQtyProduct] = await Promise.all([
+                let [dataQtyProduct, dataCart] = await Promise.all([
+                    InventoryService.getDataInventory(inventoryOid, t),
                     CartService.findDataCart(productId, inventoryOid, userid), 
-                    InventoryService.getDataInventory(inventoryOid, t)
                 ]);
 
                 if (parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity) < 0) {
@@ -49,9 +49,9 @@ class SalesController {
                 } else {
                     let cartSalesOid = dataCart.dataValues.cs_oid;
                     let cartQty = parseInt(dataCart.dataValues.cs_qty) + parseInt(quantity);
-                    
+
                     await Promise.all([
-                        CartService.updateCart(cartSalesOid, cartQty, t),
+                        CartService.updateCart(cartSalesOid, cartQty, dataCart.dataValues.cs_trans_id, t),
                         InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
                     ])
                 }
