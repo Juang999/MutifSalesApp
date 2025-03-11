@@ -25,9 +25,9 @@ class CartService {
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'chart_quantity'],
                 [Sequelize.literal('CAST(SUM("qty_location"."invc_qty_available") AS INTEGER)'), 'available_quantity'],
                 [Sequelize.literal(`CASE WHEN SUM(CAST("qty_location"."invc_qty_available" AS INTEGER)) - SUM(CAST(cs_qty AS INTEGER)) < 0 THEN 'melebihi stock' ELSE 'bisa dibeli' END`), 'sales_status'],
-                [Sequelize.literal(`(SELECT DISTINCT(CAST(pidd_price AS BIGINT)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'price'],
-                [Sequelize.literal(`(SELECT DISTINCT(ROUND(pidd_disc, 2)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'discount'],
-                [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN false ELSE true END`), 'can_be_sold'],
+                [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'price'],
+                [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                [Sequelize.literal(`CASE WHEN SUM(invc_qty_available) - SUM(cs_qty) < 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
                 [Sequelize.col(`cs_trans_id`), 'transaction_code'],
                 [Sequelize.col(`"status_transaction"."trans_desc"`), 'transaction_status'],
@@ -38,6 +38,20 @@ class CartService {
                     model: PtMstr,
                     as: 'product',
                     attributes: [],
+                    include: [
+                        {
+                            model: PidDet.scope('priceListDistributor'),
+                            as: 'singular_relation_price_list',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PiddDet.scope('creditPaymentType'),
+                                    as: 'singular_detail_price_list',
+                                    attributes: []
+                                }
+                            ]
+                        }
+                    ]
                 }, {
                     model: InvcMstr,
                     as: 'qty_location',
@@ -96,6 +110,8 @@ class CartService {
                 'product_name',
                 'product_code',
                 'photo',
+                'price',
+                'discount',
                 'entity_id',
                 'transaction_code',
                 'transaction_status',
@@ -492,7 +508,8 @@ class CartService {
         let result = await ChartSales.findOne({
             attributes: [
                 'cs_oid',
-                'cs_qty'
+                'cs_qty',
+                'cs_trans_id'
             ],
             where: {
                 cs_pt_id: productId,
@@ -553,6 +570,7 @@ class CartService {
     }
 
     updateCart = async (cartSalesOid, quantity, transId, transaction) => {
+        console.info(transId)
         let result = await ChartSales.update({
             cs_qty: quantity,
             cs_trans_id: transId,
