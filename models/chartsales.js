@@ -30,6 +30,12 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: 'invc_pt_id'
       })
 
+      ChartSales.hasMany(models.InvcMstr, {
+        as: 'data_inventory',
+        sourceKey: 'cs_pt_id',
+        foreignKey: 'invc_pt_id'
+      })
+
       ChartSales.belongsTo(models.PiMstr, {
         as: 'pricelist',
         foreignKey: 'cs_pi_id',
