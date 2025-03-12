@@ -1,6 +1,6 @@
 'use strict';
 const {
-  Model
+  Model, Op
 } = require('sequelize');
 const {info} = require('../helper/Logging')
 module.exports = (sequelize, DataTypes) => {
@@ -22,6 +22,12 @@ module.exports = (sequelize, DataTypes) => {
         as: 'qty_location',
         foreignKey: 'cs_invc_oid',
         targetKey: 'invc_oid'
+      })
+
+      ChartSales.belongsTo(models.InvcMstr, {
+        as: 'product_qty_location',
+        foreignKey: 'cs_pt_id',
+        targetKey: 'invc_pt_id'
       })
 
       ChartSales.belongsTo(models.PiMstr, {
@@ -70,6 +76,20 @@ module.exports = (sequelize, DataTypes) => {
     modelName: 'ChartSales',
     paranoid: true,
     deletedAt: 'cs_deleted_at',
+    scopes: {
+      showCart: {
+        where: {
+          cs_trans_id: {
+            [Op.in]: ['D', 'E']
+          }
+        }
+      },
+      defaultTransId: {
+        where: {
+          cs_trans_id: 'D'
+        }
+      }
+    },
     hooks: { 
       afterCreate: ({dataValues}) => {
         info('CHART', 'CREATED', dataValues)

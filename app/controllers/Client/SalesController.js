@@ -108,32 +108,6 @@ class SalesController {
         })
     }
 
-    getExpiredDataChart = (req, res) => {
-        let {userid} = Auth.user();
-
-        CartService.retrieveDataCart(userid, 'E', 'N')
-        .then(result => {
-            res.status(200)
-                .json({
-                    status: 'success',
-                    message: 'ok',
-                    data: result,
-                    error: null
-                })
-        })
-        .catch(err => {
-            errorLog('GET EXPIRED DATA CART', err.message);
-            
-            res.status(400)
-                .json({
-                    status: 'failed',
-                    message: 'error',
-                    data: null,
-                    error: err.message
-                })
-        });
-    }
-
     updateChart = (req, res) => {
         let {userid} = Auth.user();
         let {cart_oid} = req.params;
@@ -398,11 +372,14 @@ class SalesController {
             quantityBooked: parseInt(dataInventory.qty_booked) - parseInt(dataCartSales.cs_qty)
         }
 
-        await Promise.all([
-            InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, qtyInventory, transaction),
-            CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
-        ])
-
+        if (dataCartSales.cs_trans_id == 'D') {
+            await Promise.all([
+                InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, qtyInventory, transaction),
+                CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
+            ])
+        } else {
+            await CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
+        }
     }
 
     increaseQtyCart = async (dataCartSales, dataInventory, quantity, transaction) => {
