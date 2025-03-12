@@ -3,6 +3,7 @@ const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {sequelize} = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
+const {errorResponse} = require('../../../helper/Helper');
 const ServerSetting = require('../../../helper/SettingServer');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
 const {CartService, SalesQuotationService, PartnerService} = require('../../services/ServiceContainer');
@@ -14,8 +15,8 @@ class CheckoutController {
         sequelize.transaction(async t => {
             let [dataLocation, dataHeaderSq, dataBodySq] = await Promise.all([
                 PartnerService.getLocationPartner(dataUser.user_ptnr_id),
-                CartService.getDataHeaderSalesQuotation(dataUser.userid, 'D', 'N'), 
-                CartService.getDataDetailSalesQuotation(dataUser.userid, 'D', 'N')
+                CartService.getDataHeaderSalesQuotation(dataUser.userid, 'N'), 
+                CartService.getDataDetailSalesQuotation(dataUser.userid, 'N')
             ])
 
             if (dataHeaderSq.length == 0) {
@@ -37,7 +38,7 @@ class CheckoutController {
             await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
             this.sleep(1000)
             await SalesQuotationService.bulkInsertDetailSalesQuotation(detailSalesQuotation, t);
-            await CartService.bulkDeleteDataCart(dataBodySq, dataUser.userid, t);
+            await CartService.bulkDeleteDataCart(dataBodySq, dataUser, t);
 
             return {
                 statusCode: 200,
@@ -63,7 +64,7 @@ class CheckoutController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: errorResponse(err.message)
                 });
         })
     }
