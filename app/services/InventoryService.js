@@ -179,7 +179,7 @@ class InventoryService {
         return result;
     }
 
-    bookProductQuantit2 = async (inventoryOid, quantity, transaction) => {
+    bookQty = async (inventoryOid, quantity, transaction) => {
         let result = await InvcMstr.update({
             invc_qty_available: Sequelize.literal(`CAST(invc_qty_available AS INTEGER) - ${parseInt(quantity)}`),
             invc_qty_booked: Sequelize.literal(`CAST(invc_qty_booked AS INTEGER) + ${parseInt(quantity)}`)
