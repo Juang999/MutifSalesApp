@@ -179,6 +179,26 @@ class InventoryService {
         return result;
     }
 
+    bookProductQuantit2 = async (inventoryOid, quantity, transaction) => {
+        let result = await InvcMstr.update({
+            invc_qty_available: Sequelize.literal(`CAST(invc_qty_available AS INTEGER) - ${parseInt(quantity)}`),
+            invc_qty_booked: Sequelize.literal(`CAST(invc_qty_booked AS INTEGER) + ${parseInt(quantity)}`)
+        }, {
+            where: {
+                invc_oid: inventoryOid
+            },
+            individualHooks: true,
+            transaction,
+            logging: async (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1]
+
+                await insertQuery(realSql, bind, 1);
+            }
+        })
+
+        return result;
+    }
+
     getStockBySerial = async (productId, limit, transaction) => {
         let data = await InvcdDet.scope('gudangReguler').findAll({
             attributes: [

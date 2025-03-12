@@ -85,6 +85,20 @@ class CartService {
         return result;
     }
 
+    getDataCartByInventoryOid = async (inventoryOid, userId) => {
+        let result = await ChartSales.findAll({
+            attributes: ['cs_oid', 'cs_invc_oid', 'cs_qty'],
+            where: {
+                cs_invc_oid: {
+                    [Op.in]: inventoryOid
+                },
+                cs_userid: userId
+            }
+        })
+
+        return result;
+    }
+
     retrieveDataCartThatShouldBeExpired = async (userId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
@@ -508,6 +522,7 @@ class CartService {
             attributes: [
                 'cs_pt_id',
                 'cs_pt_en_id',
+                'cs_pi_id',
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'cs_qty']
             ],
             where: {
@@ -611,6 +626,23 @@ class CartService {
             },
             logging: false,
             transaction: transaction,
+            individualHooks: true
+        })
+    }
+
+    bulkDeleteDataCart2 = async (productId, dataUser, transaction) => {
+        console.info(dataUser.userid)
+        await ChartSales.update({
+            cs_trans_id: Sequelize.literal(`CASE WHEN cs_trans_id != 'E' THEN 'X' ELSE 'E' END`),
+            cs_deleted_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_deleted_by: dataUser.userName
+        }, {
+            where: {
+                cs_userid: dataUser.userid,
+                cs_trans_id: 'E',
+                cs_pt_id: productId
+            },
+            logging: false,
             individualHooks: true
         })
     }

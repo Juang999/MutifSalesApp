@@ -1,6 +1,7 @@
 class ServiceContainer {
     constructor() {
         return {
+            UserService: require('./UserService'),
             CartService: require('./CartService'),
             PriceService: require('./PriceService'),
             PartnerService: require('./PartnerService'),

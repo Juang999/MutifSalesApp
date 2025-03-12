@@ -193,6 +193,16 @@ class SalesController {
         })
     }
 
+    buyBack = async (req, res) => {
+        res.status(200)
+            .json({
+                status:'success',
+                message: 'ok',
+                data: 'berhasil membeli kembali',
+                error: null
+            })
+    }
+
     readyToCheckout = (req, res) => {
         let {userid} = Auth.user();
 
