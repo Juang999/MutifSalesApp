@@ -64,9 +64,7 @@ class CartService {
                 cs_trans_id: {
                     [Op.in]: ['D', 'E']
                 },
-                cs_deleted_at: {
-                    [Op.eq]: null
-                }
+                cs_deleted_at: null
             },
             group: [
                 'cs_pt_id',
@@ -530,6 +528,9 @@ class CartService {
                 cs_userid: userId,
                 cs_preorder: preOrder,
                 cs_trans_id: 'E',
+                cs_deleted_at: {
+                    [Op.eq]: null
+                }
             },
             group: [
                 'cs_oid',
@@ -630,18 +631,18 @@ class CartService {
         })
     }
 
-    bulkDeleteDataCart2 = async (productId, dataUser, transaction) => {
-        console.info(dataUser.userid)
+    bulkDeleteData = async (productId, dataUser, transaction) => {
         await ChartSales.update({
             cs_trans_id: Sequelize.literal(`CASE WHEN cs_trans_id != 'E' THEN 'X' ELSE 'E' END`),
             cs_deleted_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            cs_deleted_by: dataUser.userName
+            cs_deleted_by: dataUser.usernama
         }, {
             where: {
                 cs_userid: dataUser.userid,
                 cs_trans_id: 'E',
                 cs_pt_id: productId
             },
+            transaction,
             logging: false,
             individualHooks: true
         })

@@ -16,7 +16,6 @@ class SalesV2Controller {
     getChart = async (req, res) => {
         try {
             let {userid} = Auth.user();
-            let transId = (req.query.expired == 'Y') ? 'E' : 'D';
 
             await this.expireData(userid);
 
@@ -40,32 +39,6 @@ class SalesV2Controller {
                 })
             
         }
-    }
-
-    getExpiredDataChart = (req, res) => {
-        let {userid} = Auth.user();
-
-        CartService.retrieveDataCart(userid, 'E', 'N')
-        .then(result => {
-            res.status(200)
-                .json({
-                    status: 'success',
-                    message: 'ok',
-                    data: result,
-                    error: null
-                })
-        })
-        .catch(err => {
-            errorLog('GET EXPIRED DATA CART', err.message);
-
-            res.status(400)
-                .json({
-                    status: 'failed',
-                    message: 'error',
-                    data: null,
-                    error: err.message
-                })
-        });
     }
 
     getLimitedCart = async (req, res) => {
@@ -105,6 +78,19 @@ class SalesV2Controller {
     getDetailDataCart = async (req, res) => {
             try {
                 let dataCart = await CartService.getDetailDataCart(req.params.product_id, Auth.user().userid, 'N');
+
+                if (!dataCart) {
+                    res.status(404)
+                        .json({
+                            status: 'failed',
+                            message: 'Data not found',
+                            data: null,
+                            error: null
+                        })
+
+                    return;
+                }
+
                 let dataInventory = await InventoryService.getDataInventoryByProductIdAndEntityId(dataCart.dataValues.cs_pt_id, parseInt(dataCart.dataValues.cs_pt_en_id));
 
                 res.status(200)
@@ -136,17 +122,26 @@ class SalesV2Controller {
             let {data} = req.body;
             let {userid, usernama: username} = Auth.user();
 
-            await CartService.bulkDeleteDataCart2(data[0]['pt_id'], Auth.user());
+            await sequelize.transaction(async t => {
+                await CartService.bulkDeleteData(data[0]['pt_id'], Auth.user(), t);
+    
+                for (const singular of data) {
+                    let dataUser = {userid, username};
+                        let bodyCart = {
+                            productId: singular.pt_id, 
+                            entityId: singular.en_id, 
+                            inventoryOid: singular.invc_oid, 
+                            priceListId: singular.pi_id,
+                            quantity: parseInt(singular.qty)
+                        };
 
-            for (const {invc_oid: inventoryOid, pt_id: productId, en_id: entityId, qty: quantity, pi_id: priceListId} of data) {
-                let dataUser = {userid, username};
-                    let bodyCart = {productId, entityId, inventoryOid, priceListId, quantity: parseInt(quantity)};
+                        await Promise.all([
+                            CartService.inputIntoCart(bodyCart, dataUser, 'N'),
+                            InventoryService.bookQty(singular.invc_oid, parseInt(singular.qty))
+                        ])
+                }
+            })
 
-                    await Promise.all([
-                        CartService.inputIntoCart(bodyCart, dataUser, 'N'),
-                        InventoryService.bookProductQuantit2(inventoryOid, parseInt(quantity))
-                    ])
-            }
 
             res.status(200)
                 .json({
