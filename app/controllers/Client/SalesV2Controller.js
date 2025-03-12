@@ -107,6 +107,8 @@ class SalesV2Controller {
                         error: null
                     })
             } catch (error) {
+                errorLog('GET DETAIL EXPIRED DATA CART', error.message)
+
                 res.status(400)
                     .json({
                         status: 'failed',
@@ -151,6 +153,8 @@ class SalesV2Controller {
                     error: null
                 })
         } catch (error) {
+            errorLog('BUY BACK', error.message)
+
             res.status(400)
                 .json({
                     status: 'failed',
