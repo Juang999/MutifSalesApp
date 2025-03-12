@@ -122,12 +122,13 @@ class SalesV2Controller {
     buyBack = async (req, res) => {
         try {
             let {data} = req.body;
+            let rawData = JSON.parse(data);
             let {userid, usernama: username} = Auth.user();
 
             await sequelize.transaction(async t => {
-                await CartService.bulkDeleteData(data[0]['pt_id'], Auth.user(), t);
+                await CartService.bulkDeleteData(rawData[0]['pt_id'], Auth.user(), t);
     
-                for (const singular of data) {
+                for (const singular of rawData) {
                     let dataUser = {userid, username};
                         let bodyCart = {
                             productId: singular.pt_id, 

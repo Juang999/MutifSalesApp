@@ -77,7 +77,7 @@ class CartService {
                 'transaction_code',
                 'transaction_status',
             ],
-            // logging: false
+            logging: false
         })
 
         return result;
@@ -184,7 +184,7 @@ class CartService {
                                 [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
                                 [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
                                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                                [Sequelize.literal('CAST(SUM("chart_sales->qty_location"."invc_qty_available") AS INTEGER)'), 'available_quantity'],
+                                [Sequelize.literal('(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))'), 'available_quantity'],
                                 [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                                 [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                                 [Sequelize.literal(`CASE WHEN "chart_sales->product"."pt_weight" IS NULL THEN 600 ELSE CAST("chart_sales->product"."pt_weight" AS INTEGER) END`), 'pt_weight']
@@ -215,10 +215,6 @@ class CartService {
                                     where: {
                                         pt_shown: 'Y'
                                     }
-                                }, {
-                                    model: InvcMstr.scope(`gudangSesuaiDenganEntitas`),
-                                    as: 'qty_location',
-                                    attributes: [],
                                 }
                             ],
                             where: {
@@ -617,15 +613,19 @@ class CartService {
         await ChartSales.update({
             cs_trans_id: 'C',
             cs_deleted_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            cs_deleted_by: dataUser.userName
+            cs_deleted_by: dataUser.usernama
         }, {
             where: {
                 cs_oid: {
                     [Op.in]: CART_SALES_OID
                 },
-                cs_userid: dataUser.userId
+                cs_userid: dataUser.userid
             },
-            logging: false,
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1];
+
+                insertQuery(realSql, bind, 3)
+            },
             transaction: transaction,
             individualHooks: true
         })
@@ -643,7 +643,11 @@ class CartService {
                 cs_pt_id: productId
             },
             transaction,
-            logging: false,
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1];
+
+                insertQuery(realSql, bind, 1);
+            },
             individualHooks: true
         })
     }
