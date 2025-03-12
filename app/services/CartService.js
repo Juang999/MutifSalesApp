@@ -504,27 +504,22 @@ class CartService {
     }
 
     getDetailDataCart = async (productId, userId, preOrder) => {
-        let result = await ChartSales.findAll({
+        let result = await ChartSales.findOne({
             attributes: [
-                'cs_oid',
-                'cs_qty',
-                [Sequelize.col(`"product_qty_location"."invc_oid"`), 'invc_oid'],
-                [Sequelize.col(`"product_qty_location"."invc_qty_available"`), 'qty_available'],
-            ],
-            include: [
-                {
-                    model: InvcMstr.scope({method: ['matchEntityWithLocation', Sequelize.col(`cs_pt_en_id`)]}),
-                    as: 'product_qty_location',
-                    attributes: [],
-                    right: true
-                }
+                'cs_pt_id',
+                'cs_pt_en_id',
+                [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'cs_qty']
             ],
             where: {
                 cs_pt_id: productId,
                 cs_userid: userId,
                 cs_preorder: preOrder,
                 cs_trans_id: 'E',
-            }
+            },
+            group: [
+                'cs_oid',
+                'cs_pt_id'
+            ]
         })
 
         return result;

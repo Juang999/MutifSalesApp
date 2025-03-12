@@ -145,6 +145,20 @@ class InventoryService {
         return result;
     }
 
+    getDataInventoryByProductIdAndEntityId = async (productId, entityId) => {
+        let result = await InvcMstr.scope({method: ['matchEntityWithLocation', entityId]}).findAll({
+            attributes: [
+                'invc_oid',
+                [Sequelize.literal('CAST(invc_qty_available AS INTEGER)'), 'invc_qty_available']
+            ],
+            where: {
+                invc_pt_id: productId
+            }
+        })
+
+        return result;
+    }
+
     bookProductQuantity = async (inventoryOid, quantity, transaction) => {
         let result = await InvcMstr.update({
             invc_qty_available: quantity.quantityAvailable,

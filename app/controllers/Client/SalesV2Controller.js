@@ -102,6 +102,33 @@ class SalesV2Controller {
         }
     }
 
+    getDetailDataCart = async (req, res) => {
+            try {
+                let dataCart = await CartService.getDetailDataCart(req.params.product_id, Auth.user().userid, 'N');
+                let dataInventory = await InventoryService.getDataInventoryByProductIdAndEntityId(dataCart.dataValues.cs_pt_id, parseInt(dataCart.dataValues.cs_pt_en_id));
+
+                res.status(200)
+                    .json({
+                        status:'success',
+                        message: 'ok',
+                        data: {
+                            product_id: dataCart.dataValues.cs_pt_id,
+                            qty: dataCart.dataValues.cs_qty,
+                            data_inventory: dataInventory
+                        },
+                        error: null
+                    })
+            } catch (error) {
+                res.status(400)
+                    .json({
+                        status: 'failed',
+                        message: 'error',
+                        data: null,
+                        error: error.message
+                    })
+            }
+        } 
+
     expireData = async (userId) => {
         let data = await CartService.retrieveDataCartThatShouldBeExpired(userId, 'N');
 
