@@ -1,5 +1,5 @@
 const axios = require('axios');
-const {Op} = require('sequelize');
+const {Op, InvalidConnectionError} = require('sequelize');
 const Auth = require('../../../helper/Auth');
 const {config} = require('../../../config/environment');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
@@ -114,6 +114,8 @@ class SalesV2Controller {
                         data: {
                             product_id: dataCart.dataValues.cs_pt_id,
                             qty: dataCart.dataValues.cs_qty,
+                            pi_id: dataCart.dataValues.cs_pi_id,
+                            en_id: dataCart.dataValues.cs_pt_en_id,
                             data_inventory: dataInventory
                         },
                         error: null
@@ -127,7 +129,56 @@ class SalesV2Controller {
                         error: error.message
                     })
             }
-        } 
+    } 
+
+    buyBack = async (req, res) => {
+        try {
+            let {data} = req.body;
+            let {userid, usernama: username} = Auth.user();
+
+            await CartService.bulkDeleteDataCart2(data[0]['pt_id'], Auth.user());
+
+            for (const {invc_oid: inventoryOid, pt_id: productId, en_id: entityId, qty: quantity, pi_id: priceListId} of data) {
+                let dataUser = {userid, username};
+                    let bodyCart = {productId, entityId, inventoryOid, priceListId, quantity: parseInt(quantity)};
+
+                    await Promise.all([
+                        CartService.inputIntoCart(bodyCart, dataUser, 'N'),
+                        InventoryService.bookProductQuantit2(inventoryOid, parseInt(quantity))
+                    ])
+            }
+
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'ok',
+                    data: null,
+                    error: null
+                })
+        } catch (error) {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: error.message
+                })
+        }
+    }
+
+    increaseQtyCart = async (dataCartSales, dataInventory, quantity, transaction) => {
+        let resultQuantity = parseInt(quantity) - parseInt(dataCartSales.cs_qty)
+        let qtyInventory = {
+            quantityAvailable: Sequelize.literal(`CAST(invc_qty_available AS INTEGER) - ${parseInt(quantity)}`),
+            quantityBooked: Sequelize.literal(`CAST(invc_qty_available AS INTEGER) + ${parseInt(quantity)}`)
+        }
+
+        await Promise.all([
+            InventoryService.bookProductQuantity(dataInventory.invc_oid, qtyInventory, transaction),
+            CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction)
+        ])
+
+    }
 
     expireData = async (userId) => {
         let data = await CartService.retrieveDataCartThatShouldBeExpired(userId, 'N');
