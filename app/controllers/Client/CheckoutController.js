@@ -131,7 +131,7 @@ class CheckoutController {
                 sq_alocated: 'N',
                 sq_shipping_charges: 0,
                 sq_ptsfr_loc_id: dataValues.loc_id, 
-                sq_ptsfr_loc_to_id: location.dataValues.destination_location_id,
+                sq_ptsfr_loc_to_id: dataValues.loc_id,
                 sq_ptsfr_loc_git: dataValues.loc_git,
                 sq_en_to_id: 0,
                 sq_dropshipper: 'N',
