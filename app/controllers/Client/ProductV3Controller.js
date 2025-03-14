@@ -2,14 +2,10 @@ const moment = require('moment');
 const Auth = require('../../../helper/Auth');
 const Page = require('../../../helper/Page');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
-const {ProductService, PriceService} = require('../../services/ServiceContainer');
+const {ProductService, PriceService, GetDescService} = require('../../services/ServiceContainer');
 
 class ProductV3Controller {
     index = (req, res) => {
-        let {ptnrg_id} = Auth.user();
-        let currentPage = (req.query.page) ? req.query.page : 1;
-        let {page, limit} = new Page(currentPage, 15);
-
         ProductService.getProduct(req.query)
         .then(result => {
             res.status(200)
@@ -31,6 +27,54 @@ class ProductV3Controller {
                     error: 'Server Error!'
                 })
         })
+    }
+
+    getProductWithGetDescQty = (req, res) => {
+        let {ptnrg_id} = Auth.user();
+        let currentPage = (req.query.page) ? req.query.page : 1;
+        let {page, limit} = new Page(currentPage, 15);
+
+        Promise.all([
+            ProductService.getProduct(req.query),
+            GetDescService.getAllData()
+        ])
+        .then(([dataProduct, dataQty]) => {
+            let result = dataProduct.map(({dataValues: item}) => {
+                let [qtyProduct] = dataQty.filter(({dataValues: singularQty}) => singularQty.qr == item.product_code)
+
+                return {
+                    product_id: item.product_id,
+                    product_name: item.product_name,
+                    product_code: item.product_code,
+                    thumbnail: item.thumbnail,
+                    entity: item.entity,
+                    category: item.category,
+                    price: item.price,
+                    discount: item.discount,
+                    qty: (qtyProduct) ? qtyProduct.dataValues.counts : 0
+                }
+            })
+
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            errorLog('GET PRODUCT', err.message);
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: 'Server Error!'
+                })
+        })
+
     }
 
     detail = async (req, res) => {
