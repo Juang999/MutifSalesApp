@@ -144,15 +144,7 @@ class ProductV3Controller {
                 product_height: dataProduct.product_height,
                 product_width: dataProduct.product_width,
                 product_length: dataProduct.product_length,
-                product_quantity: dataQtyGetDesc.map(({dataValues}) => {
-                    return {
-                        invc_oid: uuidv4(),
-                        data_location: dataValues.loc,
-                        entity: "-",
-                        invc_loc_id: "-",
-                        quantity: dataValues.counts
-                    }
-                })
+                product_quantity: this.showDetailStock(dataQtyGetDesc)
             }
 
             res.status(200)
@@ -172,6 +164,37 @@ class ProductV3Controller {
                     data: null,
                     error: error.message
                 })
+        }
+    }
+
+    showDetailStock = (data) => {
+        if (data.length == 0) {
+            return [
+                {
+                    invc_oid: uuidv4(),
+                    data_location: "kutaluhur",
+                    entity: "-",
+                    invc_loc_id: "-",
+                    quantity: 0
+                },
+                {
+                    invc_oid: uuidv4(),
+                    data_location: "pusat",
+                    entity: "-",
+                    invc_loc_id: "-",
+                    quantity: 0
+                }
+            ]
+        } else {
+            return data.map(({dataValues}) => {
+                return {
+                    invc_oid: uuidv4(),
+                    data_location: dataValues.loc,
+                    entity: "-",
+                    invc_loc_id: "-",
+                    quantity: dataValues.counts
+                }
+            })
         }
     }
 }
