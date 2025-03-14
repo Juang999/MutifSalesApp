@@ -139,6 +139,21 @@ class InventoryService {
             where: {
                 invc_oid: inventoryOid
             },
+            logging: false
+        })
+
+        return result;
+    }
+
+    getDataInventoryByProductIdAndEntityId = async (productId, entityId) => {
+        let result = await InvcMstr.scope({method: ['matchEntityWithLocation', entityId]}).findAll({
+            attributes: [
+                'invc_oid',
+                [Sequelize.literal('CAST(invc_qty_available AS INTEGER)'), 'invc_qty_available']
+            ],
+            where: {
+                invc_pt_id: productId
+            }
         })
 
         return result;
@@ -148,6 +163,26 @@ class InventoryService {
         let result = await InvcMstr.update({
             invc_qty_available: quantity.quantityAvailable,
             invc_qty_booked: quantity.quantityBooked
+        }, {
+            where: {
+                invc_oid: inventoryOid
+            },
+            individualHooks: true,
+            transaction,
+            logging: async (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1]
+
+                await insertQuery(realSql, bind, 1);
+            }
+        })
+
+        return result;
+    }
+
+    bookQty = async (inventoryOid, quantity, transaction) => {
+        let result = await InvcMstr.update({
+            invc_qty_available: Sequelize.literal(`CAST(invc_qty_available AS INTEGER) - ${parseInt(quantity)}`),
+            invc_qty_booked: Sequelize.literal(`CAST(invc_qty_booked AS INTEGER) + ${parseInt(quantity)}`)
         }, {
             where: {
                 invc_oid: inventoryOid

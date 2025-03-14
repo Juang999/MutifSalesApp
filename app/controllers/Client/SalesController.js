@@ -8,7 +8,7 @@ class SalesController {
     inputIntoChart = async (req, res) => {
         try {
             const {body} = req;
-            const {userid, user_ptnr_id} = Auth.user();
+            const {userid, usernama: username} = Auth.user();
             const {
                 pi_id: priceListId,
                 pt_id: productId, en_id: entityId, 
@@ -16,8 +16,10 @@ class SalesController {
             } = body;
         
             let transaction = await sequelize.transaction(async t => {
-                let dataCart = await CartService.findDataCart(productId, inventoryOid, userid);
-                let dataQtyProduct = await InventoryService.getDataInventory(inventoryOid, t);
+                let [dataQtyProduct, dataCart] = await Promise.all([
+                    InventoryService.getDataInventory(inventoryOid, t),
+                    CartService.findDataCart(productId, inventoryOid, userid), 
+                ]);
 
                 if (parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity) < 0) {
                     return {
@@ -31,15 +33,27 @@ class SalesController {
                     }
                 }
 
-                await InventoryService.bookProductQuantity(inventoryOid, {
-                    quantityAvailable: dataQtyProduct.dataValues.qty_available - parseInt(quantity),
-                    quantityBooked: dataQtyProduct.dataValues.qty_booked + parseInt(quantity),
-                }, t)
-        
+                let qtyInventory = {
+                    quantityAvailable: parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity),
+                    quantityBooked: parseInt(dataQtyProduct.dataValues.qty_booked) + parseInt(quantity)
+                }
+
                 if (!dataCart) {
-                    await CartService.inputIntoCart({productId, entityId, inventoryOid, quantity: parseInt(quantity), priceListId}, userid, t)
+                    let dataUser = {userid, username};
+                    let bodyCart = {productId, entityId, inventoryOid, priceListId, quantity: parseInt(quantity)};
+
+                    await Promise.all([
+                        CartService.inputIntoCart(bodyCart, dataUser, 'N', t),
+                        InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
+                    ])
                 } else {
-                    await CartService.updateCart(dataCart.dataValues.cs_oid, parseInt(dataCart.dataValues.cs_qty) + parseInt(quantity), t)
+                    let cartSalesOid = dataCart.dataValues.cs_oid;
+                    let cartQty = parseInt(dataCart.dataValues.cs_qty) + parseInt(quantity);
+
+                    await Promise.all([
+                        CartService.updateCart(cartSalesOid, cartQty, dataCart.dataValues.cs_trans_id, t),
+                        InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
+                    ])
                 }
 
                 return {
@@ -57,6 +71,7 @@ class SalesController {
                 .json(transaction.json)
         } catch (error) {
             errorLog('INPUT INTO CART', error.message);
+
             res.status(400)
                 .json({
                     status: 'failed',
@@ -70,7 +85,7 @@ class SalesController {
     getDataChart = (req, res) => {
         let {userid} = Auth.user();
 
-        CartService.retrieveDataCart(userid)
+        CartService.retrieveDataCart(userid, 'D', 'N')
         .then(result => {
             res.status(200)
                 .json({
@@ -140,16 +155,15 @@ class SalesController {
 
     deleteChart = async (req, res) => {
         let {product_id} = req.params;
-        let {userid} = Auth.user();
+        let {userid: userId, usernama: userName} = Auth.user();
 
         sequelize.transaction(async t => {
-            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userid);
-            console.info(dataCart)
-            
+            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N');
+
             for (const {dataValues: singularDataCart} of dataCart) {
                 let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularDataCart.cs_invc_oid, t);
 
-                await this.deleteDataChart(singularDataCart, dataInventory, userid, t);
+                await this.deleteDataChart(singularDataCart, dataInventory, {userId, userName}, t);
             }
 
             return {
@@ -179,10 +193,20 @@ class SalesController {
         })
     }
 
+    buyBack = async (req, res) => {
+        res.status(200)
+            .json({
+                status:'success',
+                message: 'ok',
+                data: 'berhasil membeli kembali',
+                error: null
+            })
+    }
+
     readyToCheckout = (req, res) => {
         let {userid} = Auth.user();
 
-        CartService.retrieveDataToCheckout(userid)
+        CartService.retrieveDataToCheckout(userid, 'D', 'N')
         .then(result => {
             res.status(200)
                 .json({
@@ -352,35 +376,47 @@ class SalesController {
         })
     }
 
-    deleteDataChart = async (dataCartSales, dataInventory, userId, transaction) => {
-        await InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, {
+    deleteDataChart = async (dataCartSales, dataInventory, dataUser, transaction) => {
+        let qtyInventory = {
             quantityAvailable: parseInt(dataInventory.qty_available) + parseInt(dataCartSales.cs_qty),
             quantityBooked: parseInt(dataInventory.qty_booked) - parseInt(dataCartSales.cs_qty)
-        }, transaction)
+        }
 
-        await CartService.deleteDataCart(dataCartSales.cs_oid, userId, transaction);
+        if (dataCartSales.cs_trans_id == 'D') {
+            await Promise.all([
+                InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, qtyInventory, transaction),
+                CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
+            ])
+        } else {
+            await CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
+        }
     }
 
     increaseQtyCart = async (dataCartSales, dataInventory, quantity, transaction) => {
         let resultQuantity = parseInt(quantity) - parseInt(dataCartSales.cs_qty)
-
-        await InventoryService.bookProductQuantity(dataInventory.invc_oid, {
+        let qtyInventory = {
             quantityAvailable: parseInt(dataInventory.qty_available) - parseInt(resultQuantity),
             quantityBooked: parseInt(dataInventory.qty_booked) + parseInt(resultQuantity)
-        }, transaction)
+        }
 
-        await CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction);
+        await Promise.all([
+            InventoryService.bookProductQuantity(dataInventory.invc_oid, qtyInventory, transaction),
+            CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction)
+        ])
+
     }
 
     decreaseDataCart = async (dataCartSales, dataInventory, quantity, transaction) => {
         let resultQuantity = parseInt(dataCartSales.cs_qty) - parseInt(quantity)
-
-        await InventoryService.bookProductQuantity(dataInventory.invc_oid, {
+        let qtyInventory = {
             quantityAvailable: parseInt(dataInventory.qty_available) + parseInt(resultQuantity),
             quantityBooked: parseInt(dataInventory.qty_booked) - parseInt(resultQuantity)
-        }, transaction)
+        }
 
-        await CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction);
+        await Promise.all([
+            InventoryService.bookProductQuantity(dataInventory.invc_oid, qtyInventory, transaction),
+            CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction)
+        ])
     }
 }
 

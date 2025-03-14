@@ -1,4 +1,5 @@
 const {
+    TransStatus,
     PiddDet, TConfUser,
     ChartSales, PiMstr,
     PtnrMstr, InvcMstr,
@@ -10,29 +11,51 @@ const {
 } = require('../../models');
 const {v4: uuidv4} = require('uuid');
 const moment = require('moment');
-const {Op} = require('sequelize')
+const {Op} = require('sequelize');
+const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOut');
 
 class CartService {
-    retrieveDataCart = async (userId) => {
-        let result = await ChartSales.findAll({
+    retrieveDataCart = async (userId, preOrder) => {
+        let result = await ChartSales.scope('showCart').findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
                 ['cs_pt_en_id', 'entity_id'],
                 [Sequelize.col(`"product"."pt_desc1"`), 'product_name'],
                 [Sequelize.col(`"product"."pt_code"`), 'product_code'],
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'chart_quantity'],
-                [Sequelize.literal('CAST(SUM("qty_location"."invc_qty_available") AS INTEGER)'), 'available_quantity'],
-                [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN 'melebihi stock' ELSE 'bisa dibeli' END`), 'sales_status'],
-                [Sequelize.literal(`(SELECT DISTINCT(CAST(pidd_price AS BIGINT)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'price'],
-                [Sequelize.literal(`(SELECT DISTINCT(ROUND(pidd_disc, 2)) FROM public.pidd_det WHERE pidd_payment_type = 9942 AND pidd_pid_oid = (SELECT pid_oid FROM public.pid_det WHERE pid_pt_id = cs_pt_id AND pid_pi_oid IN ('75606dee-e498-4a5e-9858-568dfb1fb117','83415091-54cc-4fd1-8e10-0dac3561fb9c','80c389eb-dd3a-409c-81b3-c236e98f2c32')))`), 'discount'],
-                [Sequelize.literal(`CASE WHEN SUM(cs_qty) - SUM(invc_qty_available) < 0 THEN false ELSE true END`), 'can_be_sold'],
+                [Sequelize.literal('(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))'), 'available_quantity'],
+                [Sequelize.literal(`CASE WHEN (SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id)) - SUM(CAST(cs_qty AS INTEGER)) < 0 THEN 'melebihi stock' ELSE 'bisa dibeli' END`), 'sales_status'],
+                [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'price'],
+                [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                [Sequelize.literal(`CASE WHEN (SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id)) - SUM(cs_qty) < 0 THEN false ELSE true END`), 'can_be_sold'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
+                [Sequelize.col(`cs_trans_id`), 'transaction_code'],
+                [Sequelize.col(`"status_transaction"."trans_desc"`), 'transaction_status'],
+                [Sequelize.literal('MAX(cs_created_at)'), 'created_at'],
             ],
             include: [
                 {
                     model: PtMstr,
                     as: 'product',
                     attributes: [],
+                    include: [
+                        {
+                            model: PidDet.scope('priceListDistributor'),
+                            as: 'singular_relation_price_list',
+                            attributes: [],
+                            include: [
+                                {
+                                    model: PiddDet.scope('creditPaymentType'),
+                                    as: 'singular_detail_price_list',
+                                    attributes: []
+                                }
+                            ]
+                        },
+                    ]
+                }, {
+                    model: TransStatus,
+                    as: 'status_transaction',
+                    attributes: []
                 }, {
                     model: InvcMstr,
                     as: 'qty_location',
@@ -41,6 +64,11 @@ class CartService {
             ],
             where: {
                 cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: {
+                    [Op.in]: ['D', 'E']
+                },
+                cs_deleted_at: null
                 [Op.or]: [
                     {
                         [Op.and]: [
@@ -87,17 +115,60 @@ class CartService {
                 'product_name',
                 'product_code',
                 'photo',
-                'entity_id'
-                // 'price'
-                // 'created_at',
-                // 'updated_at'
-            ]
+                'price',
+                'discount',
+                'entity_id',
+                'transaction_code',
+                'transaction_status',
+            ],
+            logging: false
         })
 
         return result;
     }
 
-    retrieveDataToCheckout = async (userId) => {
+    getDataCartByInventoryOid = async (inventoryOid, userId) => {
+        let result = await ChartSales.findAll({
+            attributes: ['cs_oid', 'cs_invc_oid', 'cs_qty'],
+            where: {
+                cs_invc_oid: {
+                    [Op.in]: inventoryOid
+                },
+                cs_userid: userId
+            }
+        })
+
+        return result;
+    }
+
+    retrieveDataCartThatShouldBeExpired = async (userId, preOrder) => {
+        let result = await ChartSales.findAll({
+            attributes: [
+                'cs_oid',
+                'cs_invc_oid',
+                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'cs_qty']
+            ],
+            where: [
+                Sequelize.where(Sequelize.col(`cs_userid`), {
+                    [Op.eq]: userId
+                }),
+                Sequelize.where(Sequelize.col(`cs_preorder`), {
+                    [Op.eq]: preOrder
+                }),
+                Sequelize.where(Sequelize.col(`cs_trans_id`), {
+                    [Op.not]: 'E'
+                }),
+                Sequelize.where(Sequelize.literal(`cs_created_at + INTERVAL '72 hours'`), {
+                    [Op.lte]: moment().format('YYYY-MM-DD HH:mm:ss')
+                })
+            ],
+            logging: false
+        })
+
+        return result;
+    }
+
+    retrieveDataToCheckout = async (userId, transId, preOrder) => {
         let result = await TConfUser.findOne({
                     attributes: [
                         [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
@@ -157,7 +228,7 @@ class CartService {
                                 [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
                                 [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
                                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                                [Sequelize.literal('CAST(SUM("chart_sales->qty_location"."invc_qty_available") AS INTEGER)'), 'available_quantity'],
+                                [Sequelize.literal('(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))'), 'available_quantity'],
                                 [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                                 [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                                 [Sequelize.literal(`CASE WHEN "chart_sales->product"."pt_weight" IS NULL THEN 600 ELSE CAST("chart_sales->product"."pt_weight" AS INTEGER) END`), 'pt_weight']
@@ -188,12 +259,12 @@ class CartService {
                                     where: {
                                         pt_shown: 'Y'
                                     }
-                                }, {
-                                    model: InvcMstr.scope(`gudangSesuaiDenganEntitas`),
-                                    as: 'qty_location',
-                                    attributes: [],
                                 }
-                            ]
+                            ],
+                            where: {
+                                cs_preorder: preOrder,
+                                cs_trans_id: transId,
+                            }
                         }
                     ],
                     where: {
@@ -229,7 +300,7 @@ class CartService {
         return result;
     }
 
-    retrieveLimitedDataCart = async (userid) => {
+    retrieveLimitedDataCart = async (userid, transId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -265,7 +336,9 @@ class CartService {
                 }
             ],
             where: {
-                cs_userid: userid
+                cs_userid: userid,
+                cs_preorder: preOrder,
+                cs_trans_id: transId,
             },
             group: [
                 'product_id',
@@ -281,23 +354,25 @@ class CartService {
         return result;
     }
 
-    retrieveDataCartByProductId = async (productId, userId) => {
-        let result = await ChartSales.findAll({
+    retrieveDataCartByProductId = async (productId, userId, preOrder) => {
+        let result = await ChartSales.scope('showCart').findAll({
             attributes: [
                 'cs_oid',
                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'cs_qty'],
-                'cs_invc_oid'
+                'cs_invc_oid',
+                'cs_trans_id'
             ],
             where: {
                 cs_pt_id: productId,
-                cs_userid: userId
+                cs_userid: userId,
+                cs_preorder: preOrder,
             }
         })
 
         return result;
     }
 
-    getSubTotalPriceCart = async (userid) => {
+    getSubTotalPriceCart = async (userid, transId, preOrder) => {
         let [subTotal] = await sequelize.query(`
             SELECT 
                 CAST(SUM("cs_qty" * ("detail_price_list"."pidd_price" - ("detail_price_list"."pidd_price" * "detail_price_list"."pidd_disc"))) AS BIGINT) 
@@ -306,15 +381,16 @@ class CartService {
             LEFT JOIN public.pid_det AS relation_price_list ON relation_price_list.pid_pt_id = product.pt_id
             LEFT JOIN public.pi_mstr AS master_price_list ON master_price_list.pi_oid = relation_price_list.pid_pi_oid
             LEFT JOIN public.pidd_det AS detail_price_list ON detail_price_list.pidd_pid_oid = relation_price_list.pid_oid
-            WHERE
-                cs_userid = :userid
-            AND
-                master_price_list.pi_id IN (103, 202, 304)
-            AND
-                detail_price_list.pidd_payment_type = 9942
+            WHERE cs_userid = :userid
+            AND master_price_list.pi_id IN (103, 202, 304)
+            AND detail_price_list.pidd_payment_type = 9942
+            AND cs_trans_id = :transId
+            AND cs_preorder = :preOrder
             `, {
                 replacements: {
-                    userid
+                    userid,
+                    transId,
+                    preOrder
                 },
                 logging: false
             })
@@ -322,7 +398,7 @@ class CartService {
         return subTotal;
     }
 
-    getDataHeaderSalesQuotation = async (userId) => {
+    getDataHeaderSalesQuotation = async (userId, preOrder) => {
         let result = await ChartSales.findAll({
             attributes: [
                 'cs_pt_en_id',
@@ -362,6 +438,12 @@ class CartService {
                     Sequelize.where(Sequelize.col('cs_userid'), {
                         [Op.eq]: userId
                     }),
+                    Sequelize.where(Sequelize.col('cs_trans_id'), {
+                        [Op.eq]: 'D'
+                    }),
+                    Sequelize.where(Sequelize.col('cs_preorder'), {
+                        [Op.eq]: preOrder
+                    }),
                     Sequelize.where(Sequelize.col(`"product->singular_relation_price_list"."pid_pi_oid"`), {
                         [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = cs_pi_id)`)
                     })
@@ -379,7 +461,7 @@ class CartService {
         return result;
     }
 
-    getDataDetailSalesQuotation = async (userId) => {
+    getDataDetailSalesQuotation = async (userId, preOrder) => {
         let dataProducts = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -427,6 +509,8 @@ class CartService {
             ],
             where: {
                 cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: 'D',
             },
             logging: false
         })
@@ -435,23 +519,25 @@ class CartService {
     }
 
     findDataCart = async (productId, inventoryOid, userId) => {
-
         let result = await ChartSales.findOne({
             attributes: [
                 'cs_oid',
-                'cs_qty'
+                'cs_qty',
+                'cs_trans_id'
             ],
             where: {
                 cs_pt_id: productId,
                 cs_invc_oid: inventoryOid,
-                cs_userid: userId
+                cs_userid: userId,
+                cs_preorder: 'N',
+                cs_trans_id: 'D',
             }
         })
 
         return result;
     }
 
-    findDataCartByOid = async (cartSalesOid, userId) => {
+    findDataCartByOid = async (cartSalesOid, transId, preOrder, userId) => {
         let result = await ChartSales.findOne({
             attributes: [
                 'cs_oid',
@@ -460,72 +546,152 @@ class CartService {
             ],
             where: {
                 cs_oid: cartSalesOid,
-                cs_userid: userId
+                cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: transId,
             }
         })
 
         return result;
     }
 
-    inputIntoCart = async (body, userid, transaction) => {
+    getDetailDataCart = async (productId, userId, preOrder) => {
+        let result = await ChartSales.findOne({
+            attributes: [
+                'cs_pt_id',
+                'cs_pt_en_id',
+                'cs_pi_id',
+                [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'cs_qty']
+            ],
+            where: {
+                cs_pt_id: productId,
+                cs_userid: userId,
+                cs_preorder: preOrder,
+                cs_trans_id: 'E',
+                cs_deleted_at: {
+                    [Op.eq]: null
+                }
+            },
+            group: [
+                'cs_oid',
+                'cs_pt_id'
+            ]
+        })
+
+        return result;
+    }
+
+    inputIntoCart = async (body, dataUser, preOrder, transaction) => {
         let result = await ChartSales.create({
             cs_oid: uuidv4(),
-            cs_userid: userid,
+            cs_userid: dataUser.userid,
             cs_pt_id: body.productId,
             cs_pt_en_id: body.entityId,
             cs_invc_oid: body.inventoryOid,
             cs_qty: body.quantity,
             cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            cs_pi_id: body.priceListId
+            cs_pi_id: body.priceListId,
+            cs_created_by: dataUser.username,
+            cs_updated_by: dataUser.username,
+            cs_trans_id: 'D',
+            cs_preorder: preOrder
         }, {
             individualHooks: true,
-            transaction
+            transaction,
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(": ")[1];
+
+                insertQuery(realSql, bind, 1);
+            }
         })
 
         return result;
     }
 
-    updateCart = async (cartSalesOid, quantity, transaction) => {
+    updateCart = async (cartSalesOid, quantity, transId, transaction) => {
+        console.info(transId)
         let result = await ChartSales.update({
             cs_qty: quantity,
-            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss')
+            cs_trans_id: transId,
+            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
         }, {
             where: {
                 cs_oid: cartSalesOid
             },
             transaction,
             individualHooks: true,
-            logging: false
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(": ")[1];
+
+                insertQuery(realSql, bind, 1);
+            }
         })
 
         return result;
     }
 
-    deleteDataCart = async (cartSalesOid, userId, transaction) => {
-        await ChartSales.destroy({
+    deleteDataCart = async (cartSalesOid, dataUser, transaction) => {
+        await ChartSales.update({
+            cs_trans_id: Sequelize.literal(`CASE WHEN cs_trans_id != 'E' THEN 'X' ELSE 'E' END`),
+            cs_deleted_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_deleted_by: dataUser.userName
+        }, {
             where: {
                 cs_oid: cartSalesOid,
-                cs_userid: userId
+                cs_userid: dataUser.userId
             },
-            logging: false,
             transaction,
-            individualHooks: true
+            individualHooks: true,
+            logging: (sqlCommamd, {bind}) => {
+                let realSql = sqlCommamd.split(': ')[1];
+
+                insertQuery(realSql, bind, 2);
+            },
         })
     }
 
-    bulkDeleteDataCart = async (dataCartSales, userId, transaction) => {
+    bulkDeleteDataCart = async (dataCartSales, dataUser, transaction) => {
         let CART_SALES_OID = dataCartSales.map(({dataValues}) => dataValues.cs_oid);
 
-        await ChartSales.destroy({
+        await ChartSales.update({
+            cs_trans_id: 'C',
+            cs_deleted_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_deleted_by: dataUser.usernama
+        }, {
             where: {
                 cs_oid: {
                     [Op.in]: CART_SALES_OID
                 },
-                cs_userid: userId
+                cs_userid: dataUser.userid
             },
-            logging: false,
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1];
+
+                insertQuery(realSql, bind, 3)
+            },
             transaction: transaction,
+            individualHooks: true
+        })
+    }
+
+    bulkDeleteData = async (productId, dataUser, transaction) => {
+        await ChartSales.update({
+            cs_trans_id: Sequelize.literal(`CASE WHEN cs_trans_id != 'E' THEN 'X' ELSE 'E' END`),
+            cs_deleted_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_deleted_by: dataUser.usernama
+        }, {
+            where: {
+                cs_userid: dataUser.userid,
+                cs_trans_id: 'E',
+                cs_pt_id: productId
+            },
+            transaction,
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1];
+
+                insertQuery(realSql, bind, 1);
+            },
             individualHooks: true
         })
     }

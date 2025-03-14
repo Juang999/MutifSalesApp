@@ -3,19 +3,21 @@ const {v4: uuidv4} = require('uuid');
 const Auth = require('../../../helper/Auth');
 const {sequelize} = require('../../../models');
 const Bilangan = require('../../../helper/Bilangan');
+const {errorResponse} = require('../../../helper/Helper');
 const ServerSetting = require('../../../helper/SettingServer');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
-const {CartService, SalesQuotationService} = require('../../services/ServiceContainer');
+const {CartService, SalesQuotationService, PartnerService} = require('../../services/ServiceContainer');
 
 class CheckoutController {
     checkOut = (req, res) => {
         const dataUser = Auth.user();
 
         sequelize.transaction(async t => {
-            let RAW_DATA_HEADER_SQ = CartService.getDataHeaderSalesQuotation(dataUser.userid);
-            let RAW_DATA_BODY_SQ = CartService.getDataDetailSalesQuotation(dataUser.userid);
-
-            let [dataHeaderSq, dataBodySq] = await Promise.all([RAW_DATA_HEADER_SQ, RAW_DATA_BODY_SQ])
+            let [dataLocation, dataHeaderSq, dataBodySq] = await Promise.all([
+                PartnerService.getLocationPartner(dataUser.user_ptnr_id),
+                CartService.getDataHeaderSalesQuotation(dataUser.userid, 'N'), 
+                CartService.getDataDetailSalesQuotation(dataUser.userid, 'N')
+            ])
 
             if (dataHeaderSq.length == 0) {
                 return {
@@ -29,14 +31,14 @@ class CheckoutController {
                 }
             }
 
-            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataUser);
+            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataLocation, dataUser);
             let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
             headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
             await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
             this.sleep(1000)
             await SalesQuotationService.bulkInsertDetailSalesQuotation(detailSalesQuotation, t);
-            await CartService.bulkDeleteDataCart(dataBodySq, dataUser.userid, t);
+            await CartService.bulkDeleteDataCart(dataBodySq, dataUser, t);
 
             return {
                 statusCode: 200,
@@ -62,12 +64,12 @@ class CheckoutController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: errorResponse(err.message)
                 });
         })
     }
 
-    generateHeaderSalesQuotation = async (dataHeader, formBody, user) => {
+    generateHeaderSalesQuotation = async (dataHeader, formBody, dataLocation, user) => {
         let sequenceNumber = 0;
         let totalSQofTheMonth = await SalesQuotationService.countDataSalesQuotation();
         let {dataValues: dataServer} = await ServerSetting.get(['serv_code']);
@@ -81,6 +83,10 @@ class CheckoutController {
                 entity_id: dataValues.cs_pt_en_id,
                 sq_sequence: totalSQofTheMonth
             }, sequenceNumber, dataServer.serv_code);
+
+            let [location] = dataLocation.filter(({dataValues: singularLocation}) => {
+                return singularLocation.dbgd_en_id == dataValues.cs_pt_en_id
+            })
 
             return {
                 sq_oid: uuidv4(),

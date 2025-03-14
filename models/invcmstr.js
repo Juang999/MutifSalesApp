@@ -1,6 +1,6 @@
 'use strict';
 const {
-  Model, Op
+  Model, Op, Sequelize
 } = require('sequelize');
 const {info} = require('../helper/Logging');
 module.exports = (sequelize, DataTypes) => {
@@ -96,6 +96,51 @@ module.exports = (sequelize, DataTypes) => {
                 },
             }
           ]
+        }
+      },
+      matchEntityWithLocation(value) {
+        return {
+          where: {
+            [Op.or]: [
+              {
+                [Op.and]: [
+                  Sequelize.where(Sequelize.col(`invc_en_id`), {
+                    [Op.eq]: value
+                  }),
+                  Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                    [Op.in]: [10001, 1000555]
+                  }),
+                  Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                    [Op.gte]: 0
+                  })
+                ]
+              }, {
+                [Op.and]: [
+                  Sequelize.where(Sequelize.col(`invc_en_id`), {
+                    [Op.eq]: value
+                  }),
+                  Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                    [Op.in]: [200010, 2000556]
+                  }),
+                  Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                    [Op.gte]: 0
+                  })
+                ]
+              }, {
+                [Op.and]: [
+                  Sequelize.where(Sequelize.col(`invc_en_id`), {
+                    [Op.eq]: value
+                  }),
+                  Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                    [Op.in]: [300018, 3000557]
+                  }),
+                  Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                    [Op.gte]: 0
+                  })
+                ]
+              }
+            ]
+          }
         }
       },
       isVerified: {

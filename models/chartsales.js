@@ -1,6 +1,6 @@
 'use strict';
 const {
-  Model
+  Model, Op
 } = require('sequelize');
 const {info} = require('../helper/Logging')
 module.exports = (sequelize, DataTypes) => {
@@ -24,6 +24,18 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: 'invc_oid'
       })
 
+      ChartSales.belongsTo(models.InvcMstr, {
+        as: 'product_qty_location',
+        foreignKey: 'cs_pt_id',
+        targetKey: 'invc_pt_id'
+      })
+
+      ChartSales.hasMany(models.InvcMstr, {
+        as: 'data_inventory',
+        sourceKey: 'cs_pt_id',
+        foreignKey: 'invc_pt_id'
+      })
+
       ChartSales.belongsTo(models.PiMstr, {
         as: 'pricelist',
         foreignKey: 'cs_pi_id',
@@ -34,6 +46,12 @@ module.exports = (sequelize, DataTypes) => {
         as: 'singular_serial',
         sourceKey: 'cs_oid',
         foreignKey: 'invcd_cs_oid'
+      })
+
+      ChartSales.belongsTo(models.TransStatus, {
+        as: 'status_transaction',
+        targetKey: 'trans_id',
+        foreignKey: 'cs_trans_id'
       })
     }
   }
@@ -49,14 +67,36 @@ module.exports = (sequelize, DataTypes) => {
     cs_qty: DataTypes.INTEGER,
     cs_created_at: DataTypes.DATE,
     cs_updated_at: DataTypes.DATE,
-    cs_pi_id: DataTypes.BIGINT
+    cs_pi_id: DataTypes.BIGINT,
+    cs_trans_id: DataTypes.STRING,
+    cs_created_by: DataTypes.STRING,
+    cs_updated_by: DataTypes.STRING,
+    cs_preorder: DataTypes.STRING,
+    cs_deleted_at: DataTypes.DATE,
+    cs_deleted_by: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',
     tableName: 'chart_sales',
     timestamps: false,
     modelName: 'ChartSales',
-    hooks: {
+    paranoid: true,
+    deletedAt: 'cs_deleted_at',
+    scopes: {
+      showCart: {
+        where: {
+          cs_trans_id: {
+            [Op.in]: ['D', 'E']
+          }
+        }
+      },
+      defaultTransId: {
+        where: {
+          cs_trans_id: 'D'
+        }
+      }
+    },
+    hooks: { 
       afterCreate: ({dataValues}) => {
         info('CHART', 'CREATED', dataValues)
       },
