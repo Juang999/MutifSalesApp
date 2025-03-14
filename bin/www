@@ -2,13 +2,13 @@
 /**
  * config Virtual Private Server
 */
-const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env'})
+// const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env'})
 
 
 /**
  * config local Windows
 */
-// const {parsed: config} = require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'})
+const {config} = require('../config/environment')
 
 
 /**
@@ -23,14 +23,14 @@ var http = require('http');
  * Get host from environment and store in Express.
  */
 
-var host = (config.HOST) ? config.HOST : 'localhost';
+var host = (config.parsed.HOST) ? config.parsed.HOST : 'localhost';
 app.set('port', host);
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(config.parsed.PORT || '3000');
 app.set('port', port);
 
 /**

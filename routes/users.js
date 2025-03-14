@@ -1,22 +1,21 @@
 var express = require('express');
 var router = express.Router();
 
-/**
- * controller for Virtual Private Server
-*/
-const {loginClient, loginAdmin} = require('root/Project/MutifSalesApp/app/controllers/AuthController')
-
-/**
- * Controller for local Windows
-*/
-// const {loginClient, loginAdmin} = require('C:/Users/user/Project/MutifSalesApp/app/controllers/AuthController')
+const {loginClient, loginAdmin, getProfile, sumAccountReceivable, getDetailAccountReceivable, getAccountReceivable, getLoggedinUser} = require('../app/controllers/AuthController')
+const AuthMiddleware = require('../app/middleware/AuthMiddleware');
+const AuthRequest = require('../app/requests/AuthRequest');
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
   res.send('respond with a resource');
 });
 
-router.post('/login', loginClient);
-router.post('/admin/login', loginAdmin);
+router.post('/login', AuthRequest, loginClient);
+router.get('/profile', AuthMiddleware, getProfile);
+router.post('/admin/login', AuthRequest, loginAdmin);
+router.get('/logged-in-user', AuthMiddleware, getLoggedinUser);
+router.get('/account-receivable', AuthMiddleware, sumAccountReceivable);
+router.get('/data-account-receivable', AuthMiddleware, getAccountReceivable);
+router.get('/:arOid/detail-account-receivable', AuthMiddleware, getDetailAccountReceivable);
 
 module.exports = router;

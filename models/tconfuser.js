@@ -10,7 +10,47 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      TConfUser.belongsTo(models.PtnrMstr, {
+        as: 'detail_partner',
+        foreignKey: 'user_ptnr_id',
+        targetKey: 'ptnr_id'
+      })
+
+      TConfUser.hasOne(models.ChartSales, {
+        as: 'singular_chart_sales',
+        sourceKey: 'userid',
+        foreignKey: 'cs_userid'
+      })
+
+      TConfUser.hasOne(models.Wishlist, {
+        as: 'singular_wishlist',
+        sourceKey: 'userid',
+        foreignKey: 'wl_user_id'
+      })
+
+      TConfUser.hasOne(models.Wishlist, {
+      as: 'singular_pre_order',
+        sourceKey: 'userid',
+        foreignKey: 'wl_user_id'
+      })
+
+      TConfUser.belongsTo(models.EnMstr, {
+        as: 'entity_default',
+        targetKey: 'en_id',
+        foreignKey: 'en_id'
+      })
+
+      TConfUser.hasMany(models.ChartSales, {
+        as: 'chart_sales',
+        sourceKey: 'userid',
+        foreignKey: 'cs_userid'
+      })
+
+      TConfUser.hasOne(models.DbgdDet, {
+        as: 'grouping_partner',
+        sourceKey: 'user_ptnr_id',
+        foreignKey: 'dbgd_ptnr_id'
+      })
     }
   }
   TConfUser.init({
@@ -19,7 +59,7 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true
     },
     userkode: DataTypes.STRING,
-    username: DataTypes.STRING,
+    usernama: DataTypes.STRING,
     password: DataTypes.STRING,
     groupid: DataTypes.INTEGER,
     last_access: DataTypes.DATE,
@@ -36,13 +76,13 @@ module.exports = (sequelize, DataTypes) => {
     user_imei: DataTypes.STRING,
     nik_id: DataTypes.STRING,
     user_ptnrg_id: DataTypes.INTEGER,
-    user_group_id: DataTypes.INTEGER,
-    username: DataTypes.STRING,
-    api_token: DataTypes.STRING,
-    created_at: DataTypes.DATE,
-    updated_at: DataTypes.DATE,
-    pin: DataTypes.STRING,
-    user_id_telegram: DataTypes.INTEGER
+    // user_group_id: DataTypes.INTEGER,
+    // username: DataTypes.STRING,
+    // api_token: DataTypes.STRING,
+    // created_at: DataTypes.DATE,
+    // updated_at: DataTypes.DATE,
+    // pin: DataTypes.STRING,
+    // user_id_telegram: DataTypes.INTEGER
   }, {
     sequelize,
     schema: 'public',
