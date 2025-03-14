@@ -1,49 +1,27 @@
 const {Op} = require('sequelize');
 const jwt = require('jsonwebtoken');
 const Page = require('../../helper/Page');
+const {errorResponse} = require('../../helper/Helper');
 const {config} = require('../../config/environment');
 const {getData} = require('../../helper/ProductUrl');
 const {info, errorV2: errorLog} = require('../../helper/Logging');
 const {
     Wishlist,
     ArMstr, ArdDist,
-    PtnrMstr, PtnrgGrp,
     Sequelize, ChartSales, 
     TConfUser, TokenStorage,
 } = require('../../models');
 const Auth = require('../../helper/Auth');
 const moment = require('moment');
 const {v4: uuidv4} = require('uuid');
-const {messageSend} = require('../../helper/TelegramBot');
+const {UserService} = require('../services/ServiceContainer');
 
 class AuthController {
     loginClient = async (req, res) => {
         try {
-            let user = await TConfUser.findOne({
-                attributes: [
-                    'userid',
-                    'usernama',
-                    'password',
-                    'groupid',
-                    'user_ptnr_id',
-                    [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id']
-                ],
-                include: [
-                    {
-                        model: PtnrMstr,
-                        as: 'detail_partner',
-                        attributes: []
-                    }
-                ],
-                where: {
-                    usernama: req.body.username,
-                    password: req.body.password,
-                    user_ptnr_id: {
-                        [Op.in]: Sequelize.literal("(SELECT ptnr_id FROM public.ptnr_mstr WHERE ptnr_is_emp = 'Y')")
-                    }
-                },
-                logging: false
-            })
+            let {username, password} = req.body
+            
+            let user = await UserService.findClientAccount(username, password);
 
             if (user == null) {
                 res.status(400)
@@ -76,36 +54,16 @@ class AuthController {
                     status: 'failed',
                     message:'error',
                     data: null,
-                    error: 'Internal Server Error'
+                    error: errorResponse(error.message)
                 })
         }
     }
 
     loginAdmin = async (req, res) => {
         try {
-            let admin = await TConfUser.findOne({
-                attributes: [
-                    'userid',
-                    'usernama',
-                    'password',
-                    'groupid',
-                    'user_ptnr_id',
-                    [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id']
-                ],
-                include: [
-                    {
-                        model: PtnrMstr,
-                        as: 'detail_partner',
-                        attributes: []
-                    }
-                ],
-                where: {
-                    usernama: req.body.username,
-                    password: req.body.password,
-                    groupid: 1
-                },
-                logging: () => {}
-            })
+            let {username, password} = req.body;
+
+            let admin = await UserService.findAdminAccount(username, password);
 
             if (admin == null) {
                 res.status(400)
@@ -138,8 +96,7 @@ class AuthController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: error.message
-
+                    error: errorResponse(error.message)
                 })
         }
     }
@@ -148,52 +105,7 @@ class AuthController {
         try {
             let {userid} = Auth.user();
 
-            let dataProfile = await TConfUser.findOne({
-                attributes: [
-                    [Sequelize.col(`"detail_partner"."ptnr_id"`), 'ptnr_id'],
-                    [Sequelize.col('"detail_partner"."ptnr_name"'), 'ptnr_name'],
-                    ['usernama', 'username'],
-                    [Sequelize.col('"detail_partner"."ptnr_ptnrg_id"'), 'group_id'],
-                    [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
-                    [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
-                    [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' ELSE '0.30' END`), 'discount'],
-                    [Sequelize.literal(`COUNT(singular_chart_sales.cs_oid)`), 'products_in_chart'],
-                    [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userid} AND wl_is_po = FALSE)`), 'products_wishlist'],
-                    [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userid} AND wl_is_po = TRUE)`), 'products_pre_order'],
-                ],
-                include: [
-                    {
-                        model: PtnrMstr,
-                        as: 'detail_partner',
-                        attributes: [],
-                        include: [
-                            {
-                                model: PtnrgGrp,
-                                as: 'group_partner',
-                                attributes: []
-                            }
-                        ]
-                    },
-                    {
-                        model: ChartSales,
-                        as: 'singular_chart_sales',
-                        attributes: []
-                    }
-                ],
-                where: {
-                    userid,
-                },
-                group: [
-                    'ptnr_id',
-                    'ptnr_name',
-                    'usernama',
-                    'group_id',
-                    'group_code',
-                    'group_name',
-                    'discount'
-                ],
-                logging: false
-            });
+            let dataProfile = await UserService.retrieveDataProfile(userid);
 
             res.status(200)
                 .json({
@@ -210,7 +122,7 @@ class AuthController {
                     status: 'failed',
                     message: 'failed to get profile!',
                     data: null,
-                    error: error.message
+                    error: errorResponse(error.message)
                 })
         }
     }
@@ -218,15 +130,7 @@ class AuthController {
     sumAccountReceivable = (req, res) => {
         let {user_ptnr_id} = Auth.user();
 
-        ArMstr.findOne({
-            attributes: [
-                [Sequelize.literal(`CAST(SUM("ar_amount" - "ar_pay_amount") AS BIGINT)`), 'ar_total']
-            ],
-            where: {
-                ar_bill_to: user_ptnr_id
-            },
-            logging: false
-        })
+        UserService.sumAccountReceivable(user_ptnr_id)
         .then(result => {
             res.status(200)
                 .json({
@@ -244,7 +148,7 @@ class AuthController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: errorResponse(err.message)
                 })
         })
     }
@@ -255,28 +159,7 @@ class AuthController {
         let {limit, offset} = new Page(currentPage, 20);
         let search = (req.query.search) ? `${req.query.search}` : '';
 
-        ArMstr.findAndCountAll({
-            attributes: [
-                'ar_oid',
-                ['ar_code', 'account_receivable_code'],
-                ['ar_remarks', 'salesorder_code'],
-                ['ar_amount', 'amount'],
-                ['ar_date', 'date'],
-                ['ar_pay_amount', 'paid']
-            ],
-            where: {
-                ar_bill_to: user_ptnr_id,
-                ar_remarks: {
-                    [Op.iLike]: `%${search}%`
-                }
-            },
-            order: [
-                ['ar_date', 'DESC']
-            ],
-            limit,
-            offset,
-            logging: false,
-        })
+        UserService.getDataAccountReceivable(user_ptnr_id, search, limit, offset)
         .then(({count, rows}) => {
             res.status(200)
                 .json({
@@ -300,7 +183,7 @@ class AuthController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: errorResponse(err.message)
                 })
         })
     }
@@ -350,7 +233,7 @@ class AuthController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: errorResponse(err.message)
                 })
         })
     }
@@ -388,7 +271,7 @@ class AuthController {
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: errorResponse(err.message)
                 })
         })
     }
