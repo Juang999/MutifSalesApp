@@ -38,7 +38,7 @@ app.use('/client/pre-order', require('./routes/Client/preorder'));
 
 // routes V2 for client
 app.use('/V2/client/sales', require('./routes/Client/salesV2'));
-app.use('/V2/client/product', require('./routes/Client/productV2'));
+// app.use('/V2/client/product', require('./routes/Client/productV2'));
 
 // routes V3 for client
 app.use('/V3/client/product', require('./routes/Client/productV3'));

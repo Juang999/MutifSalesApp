@@ -41,6 +41,9 @@ class GetDescService {
             },
             group: ['loc', 'qr', 'name'],
             having: Sequelize.where(Sequelize.literal(`COUNT(*)`), '>', 0),
+            order: [
+                ['loc', 'ASC']
+            ],
             logging: false
         })
 
