@@ -56,6 +56,10 @@ class CartService {
                     model: TransStatus,
                     as: 'status_transaction',
                     attributes: []
+                }, {
+                    model: InvcMstr,
+                    as: 'qty_location',
+                    attributes: [],
                 }
             ],
             where: {
@@ -65,6 +69,46 @@ class CartService {
                     [Op.in]: ['D', 'E']
                 },
                 cs_deleted_at: null
+                [Op.or]: [
+                    {
+                        [Op.and]: [
+                            Sequelize.where(Sequelize.col(`invc_en_id`), {
+                                [Op.eq]: Sequelize.literal(`"product"."pt_en_id"`)
+                            }),
+                            Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                                [Op.in]: [10001, 1000555]
+                            }),
+                            Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                                [Op.gte]: 0
+                            })
+                        ],
+                    }, 
+                    {
+                        [Op.and]: [
+                            Sequelize.where(Sequelize.col(`invc_en_id`), {
+                                [Op.eq]: Sequelize.literal(`"product"."pt_en_id"`)
+                            }),
+                            Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                                [Op.in]: [200010, 2000556]
+                            }),
+                            Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                                [Op.gte]: 0
+                            })
+                        ],
+                    }, {
+                        [Op.and]: [
+                            Sequelize.where(Sequelize.col(`invc_en_id`), {
+                                [Op.eq]: Sequelize.literal(`"product"."pt_en_id"`)
+                            }),
+                            Sequelize.where(Sequelize.col(`invc_loc_id`), {
+                                [Op.in]: [300018, 3000557]
+                            }),
+                            Sequelize.where(Sequelize.col(`invc_qty_available`), {
+                                [Op.gte]: 0
+                            })
+                        ],
+                    }
+                ]
             },
             group: [
                 'cs_pt_id',
