@@ -168,34 +168,25 @@ class ProductV3Controller {
     }
 
     showDetailStock = (data) => {
-        if (data.length == 0) {
-            return [
-                {
-                    invc_oid: uuidv4(),
-                    data_location: "kutaluhur",
-                    entity: "-",
-                    invc_loc_id: "-",
-                    quantity: 0
-                },
-                {
-                    invc_oid: uuidv4(),
-                    data_location: "pusat",
-                    entity: "-",
-                    invc_loc_id: "-",
-                    quantity: 0
-                }
-            ]
-        } else {
-            return data.map(({dataValues}) => {
-                return {
-                    invc_oid: uuidv4(),
-                    data_location: dataValues.loc,
-                    entity: "-",
-                    invc_loc_id: "-",
-                    quantity: dataValues.counts
-                }
-            })
-        }
+        let dataKutaluhur = data.find(({dataValues}) => dataValues.loc == 'kutaluhur')
+        let dataPusat = data.find(({dataValues}) => dataValues.loc == 'pusat')
+
+        return [
+            {
+                invc_oid: uuidv4(),
+                data_location: "kutaluhur",
+                entity: "-",
+                invc_loc_id: "-",
+                quantity: (dataKutaluhur) ? dataKutaluhur['dataValues']['counts'] : 0
+            },
+            {
+                invc_oid: uuidv4(),
+                data_location: "pusat",
+                entity: "-",
+                invc_loc_id: "-",
+                quantity: (dataPusat) ? dataPusat['dataValues']['counts'] : 0
+            }
+        ]
     }
 }
 
