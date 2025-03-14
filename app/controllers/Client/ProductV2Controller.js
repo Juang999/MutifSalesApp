@@ -13,7 +13,6 @@ const {
     PtCatMstr, Sequelize, 
     ProductJubelioThumbnail,
 } = require('../../../models');
-const {getStock, bulkGetStock} = require('../../modules/Stock/controllers/StockProductController');
 const {config} = require('../../../config/environment');
 
 class ProductV2Controller {

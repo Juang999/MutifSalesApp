@@ -24,14 +24,27 @@ class GetDescService {
         return result;
     }
 
-    testConnection = async () => {
-        try {
-            await sequelize.authenticate();
+    getDetailData = async (partNumber) => {
+        let result = await GetDescIn.findAll({
+            attributes: [
+                'loc',
+                'qr',
+                'name',
+                [Sequelize.literal(`COUNT(*)`), 'counts'],
+            ],
+            where: {
+                status: 1,
+                qr: partNumber,
+                loc: {
+                    [Op.in]: ['kutaluhur', 'pusat']
+                },
+            },
+            group: ['loc', 'qr', 'name'],
+            having: Sequelize.where(Sequelize.literal(`COUNT(*)`), '>', 0),
+            logging: false
+        })
 
-            return 'connected'
-        } catch (error) {
-            return error.messsage
-        }
+        return result;
     }
 }
 
