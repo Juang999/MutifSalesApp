@@ -3,22 +3,29 @@ const {Op} = require('sequelize');
 const {sequelize, Sequelize} = require('../../models/modelGetDesc/getdescindex');
 
 class GetDescService {
-    getAllData = async () => {
+    getAllData = async (search) => {
         let result = await GetDescIn.findAll({
             attributes: [
-                'qr',
-                'name',
-                [Sequelize.literal(`COUNT(*)`), 'counts'],
+                ['name', 'product_name'],
+                ['qr', 'product_code'],
+                [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/thumbnail/', qr, '.jpg')`), 'thumbnail'],
+                [Sequelize.literal(`'MUTIF'`), 'entity'],
+                [Sequelize.literal(`'-'`), 'category'],
+                [Sequelize.literal(`COUNT(*)`), 'qty'],
+                
             ],
             where: {
                 status: 1,
                 loc: {
                     [Op.in]: ['kutaluhur', 'pusat']
                 },
+                name: {
+                    [Op.like]: `%${search}%`
+                }
             },
             group: ['qr', 'name'],
             having: Sequelize.where(Sequelize.literal(`COUNT(*)`), '>', 0),
-            logging: false
+            // logging: false
         })
 
         return result;
@@ -44,6 +51,26 @@ class GetDescService {
             order: [
                 ['loc', 'ASC']
             ],
+            logging: false
+        })
+
+        return result;
+    }
+
+    getDetail = async (partNumber) => {
+        let result = await GetDescIn.findOne({
+            attributes: [
+                ['name', 'product_name'],
+                ['qr', 'product_code'],
+                [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/thumbnail/', qr, '.jpg')`), 'photo'],
+                [Sequelize.literal('0'), 'product_weight'],
+                [Sequelize.literal('0'), 'product_height'],
+                [Sequelize.literal('0'), 'product_width'],
+                [Sequelize.literal('0'), 'product_length'],
+            ],
+            where: {
+                qr: partNumber,
+            },
             logging: false
         })
 
