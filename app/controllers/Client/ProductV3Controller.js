@@ -33,25 +33,26 @@ class ProductV3Controller {
         let {ptnrg_id} = Auth.user();
         let currentPage = (req.query.page) ? req.query.page : 1;
         let {page, limit} = new Page(currentPage, 15);
+        let search = (req.query.search) ? req.query.search : ''
 
         Promise.all([
-            ProductService.getProduct(req.query),
-            GetDescService.getAllData()
+            GetDescService.getAllData(search),
+            PriceService.getAllPriceGetDesc()
         ])
-        .then(([dataProduct, dataQty]) => {
-            let result = dataProduct.map(({dataValues: item}) => {
-                let [qtyProduct] = dataQty.filter(({dataValues: singularQty}) => singularQty.qr == item.product_code)
+        .then(([dataProduct, dataPrice]) => {
+            let result = dataProduct.map(({dataValues}) => {
+                let [priceProduct] = dataPrice.filter(({dataValues: singularPrice}) => singularPrice.pt_code == dataValues.product_code)
 
                 return {
-                    product_id: item.product_id,
-                    product_name: item.product_name,
-                    product_code: item.product_code,
-                    thumbnail: item.thumbnail,
-                    entity: item.entity,
-                    category: item.category,
-                    price: item.price,
-                    discount: item.discount,
-                    qty: (qtyProduct) ? qtyProduct.dataValues.counts : 0
+                    product_id: this.getRandomInt(1, 1000),
+                    product_name: dataValues.product_name,
+                    product_code: dataValues.product_code,
+                    thumbnail: dataValues.thumbnail,
+                    entity: dataValues.entity,
+                    category: dataValues.category,
+                    price: (priceProduct) ? priceProduct.dataValues.price : 0,
+                    discount: (priceProduct) ? priceProduct.dataValues.discount : 0,
+                    qty: dataValues.qty
                 }
             })
 
@@ -121,30 +122,31 @@ class ProductV3Controller {
 
     getDetailProductWithGetDescQty = async (req, res) => {
         try {
-            let {dataValues: dataProduct} = await ProductService.getDetailProduct(req.params)
             let [
+                {dataValues: dataProduct},
                 {dataValues: dataPrice}, 
-                dataQtyGetDesc
+                dataQty,
             ] = await Promise.all([
-                PriceService.getPrice(dataProduct.product_id, dataProduct.pt_en_id), 
-                GetDescService.getDetailData(dataProduct.product_code)
+                GetDescService.getDetail(req.params.product_code),
+                PriceService.getPriceGetDesc(req.params.product_code), 
+                GetDescService.getDetailData(req.params.product_code)
             ])
 
             let result = {
-                product_id: dataProduct.product_id,
+                product_id: this.getRandomInt(1, 1000),
                 product_name: dataProduct.product_name,
                 product_code: dataProduct.product_code,
-                pt_en_id: dataProduct.pt_en_id,
+                pt_en_id: this.getRandomInt(1, 1000),
                 pricelist_name: dataPrice.pricelist_name,
                 pi_id: dataPrice.pi_id,
                 price: dataPrice.price,
                 discount: dataPrice.discount,
-                photo: `https://cdn.mutif.biz.id/detail/${dataProduct.product_code}.jpg`,
+                photo: dataProduct.photo,
                 product_weight: dataProduct.product_weight,
                 product_height: dataProduct.product_height,
                 product_width: dataProduct.product_width,
                 product_length: dataProduct.product_length,
-                product_quantity: this.showDetailStock(dataQtyGetDesc)
+                product_quantity: this.showDetailStock(dataQty)
             }
 
             res.status(200)
@@ -176,17 +178,24 @@ class ProductV3Controller {
                 invc_oid: uuidv4(),
                 data_location: "kutaluhur",
                 entity: "-",
-                invc_loc_id: "-",
+                invc_loc_id: this.getRandomInt(1, 1000),
                 quantity: (dataKutaluhur) ? dataKutaluhur['dataValues']['counts'] : 0
             },
             {
                 invc_oid: uuidv4(),
                 data_location: "pusat",
                 entity: "-",
-                invc_loc_id: "-",
+                invc_loc_id: this.getRandomInt(1, 1000),
                 quantity: (dataPusat) ? dataPusat['dataValues']['counts'] : 0
             }
         ]
+    }
+
+    getRandomInt = (min, max) => {
+        min = Math.ceil(min); // Membulatkan ke atas angka minimum
+        max = Math.floor(max); // Membulatkan ke bawah angka maksimum
+
+        return Math.floor(Math.random() * (max - min + 1)) + min; // Random integer dalam rentang [min, max]
     }
 }
 

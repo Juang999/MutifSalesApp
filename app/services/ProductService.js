@@ -114,7 +114,7 @@ class ProductService {
             order: [
                 ['qty', 'DESC']
             ],
-            logging: false
+            // logging: false
         })
 
         return result;
@@ -207,6 +207,8 @@ class ProductService {
 
         return result
     }
+
+    
 }
 
 module.exports = new ProductService();
