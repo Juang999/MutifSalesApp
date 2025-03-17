@@ -231,13 +231,12 @@ class SalesQuotationService {
         return result;
     }
 
-    updatePaymentStatus = async (invoiceNumber, paymentStatus, partnerId, transaction) => {
+    updatePaymentStatus = async (invoiceNumber, paymentStatus, transaction) => {
         await SqMstr.update({
                 sq_midtrans_inv_status: paymentStatus
             }, {
                 where: {
                     sq_midtrans_inv_number: invoiceNumber,
-                    sq_ptnr_id_sold: partnerId
                 },
                 individualHooks: true,
                 transaction,

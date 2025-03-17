@@ -1,7 +1,16 @@
 const { DataTypes, Model } = require('sequelize');
 const {sequelize} = require('./getdescindex.js');
 
-class GetDescIn extends Model {}
+class GetDescIn extends Model {
+    static associate(models) {
+        // define association here
+        GetDescIn.belongsTo(models.GetDescMasterData, {
+            as: 'data_product',
+            targetKey: 'pt_code',
+            foreignKey: 'qr'
+        })
+    }
+}
 
 GetDescIn.init(
     {

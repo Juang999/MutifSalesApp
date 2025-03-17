@@ -37,7 +37,7 @@ class PriceService {
         return result;
     }
 
-    getPriceGetDesc = async (productCode) => {
+    getPriceGetDesc = async (productId) => {
         const result = await PidDet.findOne({
             attributes: [
                 [Sequelize.literal(`master_price_list.pi_id`), 'pi_id'],
@@ -58,7 +58,7 @@ class PriceService {
             ],
             where: {
                 pid_pt_id: {
-                    [Op.eq]: Sequelize.literal(`(SELECT pt_id FROM public.pt_mstr WHERE pt_code = '${productCode}')`),
+                    [Op.eq]: productId,
                 }
             },
             logging: false
@@ -70,6 +70,7 @@ class PriceService {
     getAllPriceGetDesc = async () => {
         const result = await PidDet.findAll({
             attributes: [
+                ['pid_pt_id', 'pt_id'],
                 [Sequelize.literal(`master_price_list.pi_id`), 'pi_id'],
                 [Sequelize.col(`master_price_list.pi_desc`), 'pricelist_name'],
                 [Sequelize.literal(`CAST("singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
