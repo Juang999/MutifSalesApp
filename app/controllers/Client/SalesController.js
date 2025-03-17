@@ -232,10 +232,9 @@ class SalesController {
     updatePaymentStatus = async (req, res) => {
         let {invoice} = req.params;
         let {payment_status} = req.body;
-        let {user_ptnr_id} = Auth.user();
 
         sequelize.transaction(async t => {
-            await SalesQuotationService.updatePaymentStatus(invoice, payment_status, user_ptnr_id, t);
+            await SalesQuotationService.updatePaymentStatus(invoice, payment_status, t);
 
             let dataProducts = await SalesQuotationService.getBookedProductByInvoiceNumber(invoice);
 

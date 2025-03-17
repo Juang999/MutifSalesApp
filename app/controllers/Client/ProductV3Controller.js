@@ -36,23 +36,23 @@ class ProductV3Controller {
         let search = (req.query.search) ? req.query.search : ''
 
         Promise.all([
-            GetDescService.getAllData(search),
+            GetDescService.getAllDataV2(search),
             PriceService.getAllPriceGetDesc()
         ])
         .then(([dataProduct, dataPrice]) => {
-            let result = dataProduct.map(({dataValues}) => {
-                let [priceProduct] = dataPrice.filter(({dataValues: singularPrice}) => singularPrice.pt_code == dataValues.product_code)
+            let result = dataProduct.map((item) => {
+                let [priceProduct] = dataPrice.filter(({dataValues: singularPrice}) => singularPrice.pt_id == item.product_id)
 
                 return {
-                    product_id: this.getRandomInt(1, 1000),
-                    product_name: dataValues.product_name,
-                    product_code: dataValues.product_code,
-                    thumbnail: dataValues.thumbnail,
-                    entity: dataValues.entity,
-                    category: dataValues.category,
+                    product_id: item.product_id,
+                    product_name: item.product_name,
+                    product_code: item.product_code,
+                    thumbnail: item.thumbnail,
+                    entity: item.entity,
+                    category: item.category,
                     price: (priceProduct) ? priceProduct.dataValues.price : 0,
                     discount: (priceProduct) ? priceProduct.dataValues.discount : 0,
-                    qty: dataValues.qty
+                    qty: item.qty
                 }
             })
 
@@ -123,24 +123,28 @@ class ProductV3Controller {
     getDetailProductWithGetDescQty = async (req, res) => {
         try {
             let [
-                {dataValues: dataProduct},
-                {dataValues: dataPrice}, 
-                dataQty,
+                [dataProduct],
+                dataQty
             ] = await Promise.all([
                 GetDescService.getDetail(req.params.product_code),
-                PriceService.getPriceGetDesc(req.params.product_code), 
                 GetDescService.getDetailData(req.params.product_code)
             ])
 
+            let dataPrice = null;
+
+            if (dataProduct.product_id != null) {
+                dataPrice = await PriceService.getPriceGetDesc(dataProduct.product_id);
+            }
+
             let result = {
-                product_id: this.getRandomInt(1, 1000),
+                product_id: dataProduct.product_id,
                 product_name: dataProduct.product_name,
                 product_code: dataProduct.product_code,
-                pt_en_id: this.getRandomInt(1, 1000),
-                pricelist_name: dataPrice.pricelist_name,
-                pi_id: dataPrice.pi_id,
-                price: dataPrice.price,
-                discount: dataPrice.discount,
+                pt_en_id: this.getRandomInt(1, 3),
+                pricelist_name: ( dataPrice != null ) ? dataPrice.dataValues.pricelist_name : '-',
+                pi_id: ( dataPrice != null ) ? dataPrice.dataValues.pi_id : this.getRandomInt(1, 1000),
+                price:  ( dataPrice != null ) ? dataPrice.dataValues.price : 0,
+                discount: ( dataPrice != null ) ? dataPrice.dataValues.discount : 0,
                 photo: dataProduct.photo,
                 product_weight: dataProduct.product_weight,
                 product_height: dataProduct.product_height,

@@ -26,6 +26,6 @@ router.get('/invoice-number', [Middleware.AuthMiddleware], getInvoiceNumber);
 router.get('/invoice-number-sequence', [Middleware.AuthMiddleware], invoiceNumberSequence);
 router.get('/invoice-number/:invoice/detail', [Middleware.AuthMiddleware], getDetailInvoiceNumber);
 router.patch('/chart/:cart_oid/update', [Middleware.AuthMiddleware, Requests.SalesRequests.UpdateChartRequest], updateChart);
-router.patch('/payment-status/:invoice/update', [Middleware.AuthMiddleware, Requests.SalesRequests.UpdatePaymentStatusRequest], updatePaymentStatus);
+router.patch('/payment-status/:invoice/update', [Requests.SalesRequests.UpdatePaymentStatusRequest], updatePaymentStatus);
 
 module.exports = router;
