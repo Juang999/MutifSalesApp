@@ -233,12 +233,12 @@ class SalesController {
         let {invoice} = req.params;
         let {payment_status} = req.body;
 
-        sequelize.transaction(async t => {
-            await SalesQuotationService.updatePaymentStatus(invoice, payment_status, t);
-
+        sequelize.transaction(async t => {            
             let dataProducts = await SalesQuotationService.getBookedProductByInvoiceNumber(invoice);
 
-            if (payment_status == 'cancel' || payment_status == 'failure') {
+            if (payment_status == 'cancel' || payment_status == 'failure' || payment_status == 'expire') {
+                await SalesQuotationService.updatePaymentStatus(invoice, payment_status, 'X', t);
+
                 for (const {dataValues: singular} of dataProducts) {
                     let {dataValues: dataInventory} = await InventoryService.getDataInventory(singular.sqd_invc_oid, t);
 
@@ -247,6 +247,8 @@ class SalesController {
                         quantityBooked: parseInt(dataInventory.qty_booked) - parseInt(singular.sqd_qty_real)
                     }, t)
                 }
+            } else {
+                await SalesQuotationService.updatePaymentStatus(invoice, payment_status, 'D', t);
             }
 
             return {
