@@ -231,8 +231,11 @@ class SalesQuotationService {
         return result;
     }
 
-    updatePaymentStatus = async (invoiceNumber, paymentStatus, transaction) => {
+    updatePaymentStatus = async (invoiceNumber, paymentStatus, transactionStatus, transaction) => {
         await SqMstr.update({
+                sq_upd_by: 'system',
+                sq_upd_date: Sequelize.literal(`CURRENT_TIMESTAMP`),
+                sq_trans_id: transactionStatus,
                 sq_midtrans_inv_status: paymentStatus
             }, {
                 where: {
