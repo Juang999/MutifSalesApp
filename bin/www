@@ -2,9 +2,6 @@
 /**
  * config Virtual Private Server
 */
-// const {parsed: config} = require('dotenv').config({path: '/root/Project/MutifSalesApp/.env'})
-
-
 /**
  * config local Windows
 */
@@ -44,6 +41,7 @@ var server = http.createServer(app);
  */
 
 server.listen(port, () => {
+  console.info(`stage: ${config.parsed.NODE_ENV}`);
   console.info(`listening into http://${host}:${port}`);
 });
 server.on('error', onError);

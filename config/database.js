@@ -9,6 +9,7 @@ module.exports = {
         port: devEnvironment.parsed.DB_PORT,
         dialect: devEnvironment.parsed.DB_DIALECT,
         timezone: devEnvironment.parsed.DB_TIMEZONE,
+        logging: false,
         pool: {
             max: parseInt(devEnvironment.parsed.DB_MAX_CONN),
             min: parseInt(devEnvironment.parsed.DB_MIN_CONN),
@@ -24,6 +25,7 @@ module.exports = {
         port: testEnvironment.parsed.DB_PORT,
         dialect: testEnvironment.parsed.DB_DIALECT,
         timezone: testEnvironment.parsed.DB_TIMEZONE,
+        logging: false,
         pool: {
             max: parseInt(testEnvironment.parsed.DB_MAX_CONN),
             min: parseInt(testEnvironment.parsed.DB_MIN_CONN),
@@ -40,6 +42,7 @@ module.exports = {
         port: proEnvironment.parsed.DB_PORT,
         dialect: proEnvironment.parsed.DB_DIALECT,
         timezone: proEnvironment.parsed.DB_TIMEZONE,
+        logging: false,
         pool: {
             max: parseInt(proEnvironment.parsed.DB_MAX_CONN),
             min: parseInt(proEnvironment.parsed.DB_MIN_CONN),
