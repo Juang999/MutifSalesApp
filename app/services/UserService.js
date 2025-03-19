@@ -1,10 +1,3 @@
-const {Op} = require('sequelize');
-const jwt = require('jsonwebtoken');
-const Page = require('../../helper/Page');
-const {errorResponse} = require('../../helper/Helper');
-const {config} = require('../../config/environment');
-const {getData} = require('../../helper/ProductUrl');
-const {info, errorV2: errorLog} = require('../../helper/Logging');
 const {
     Wishlist,
     ArMstr, ArdDist,
@@ -12,8 +5,8 @@ const {
     Sequelize, ChartSales, 
     TConfUser, TokenStorage,
 } = require('../../models');
-const Auth = require('../../helper/Auth');
 const moment = require('moment');
+const {Op} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 
 class UserService {
@@ -40,8 +33,7 @@ class UserService {
                 user_ptnr_id: {
                     [Op.in]: Sequelize.literal("(SELECT ptnr_id FROM public.ptnr_mstr WHERE ptnr_is_emp = 'Y')")
                 }
-            },
-            logging: false
+            }
         })
 
         return result;
@@ -69,7 +61,6 @@ class UserService {
                 password: password,
                 groupid: 1
             },
-            logging: false
         })
 
         return result;
@@ -85,9 +76,9 @@ class UserService {
                         [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
                         [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
                         [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' ELSE '0.30' END`), 'discount'],
-                        [Sequelize.literal(`(SELECT COUNT(*) FROM public.chart_sales WHERE cs_userid = ${userId} AND cs_trans_id = 'D')`), 'products_in_chart'],
-                        [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userId} AND wl_is_po = FALSE)`), 'products_wishlist'],
-                        [Sequelize.literal(`(SELECT COUNT(wl_oid) FROM public.wishlists WHERE wl_user_id = ${userId} AND wl_is_po = TRUE)`), 'products_pre_order'],
+                        [Sequelize.literal(`CASE WHEN SUM("singular_chart_sales"."cs_userid") IS NULL THEN 0 ELSE SUM("singular_chart_sales"."cs_userid") END`), 'products_in_chart'],
+                        [Sequelize.literal(`CASE WHEN SUM("singular_wishlist"."wl_user_id") IS NULL THEN 0 ELSE SUM("singular_wishlist"."wl_user_id") END`), 'products_wishlist'],
+                        [Sequelize.literal(`CASE WHEN SUM("singular_pre_order"."wl_user_id") IS NULL THEN 0 ELSE SUM("singular_pre_order"."wl_user_id") END`), 'products_pre_order'],
                     ],
                     include: [
                         {
@@ -101,7 +92,22 @@ class UserService {
                                     attributes: []
                                 }
                             ]
-                        },
+                        }, {
+                            model: ChartSales.scope('defaultTransId'),
+                            required: false,
+                            as: 'singular_chart_sales',
+                            attributes: []
+                        }, {
+                            model: Wishlist.scope('isWishlist'),
+                            required: false,
+                            as: 'singular_wishlist',
+                            attributes: []
+                        }, {
+                            model: Wishlist.scope('isPreOrder'),
+                            required: false,
+                            as: 'singular_pre_order',
+                            attributes: []
+                        }
                     ],
                     where: {
                         userid: userId,
@@ -115,7 +121,6 @@ class UserService {
                         'group_name',
                         'discount'
                     ],
-                    logging: false
                 });
 
         return result;
@@ -129,7 +134,6 @@ class UserService {
             where: {
                 ar_bill_to: partnerId
             },
-            logging: false
         })
 
         return result;
@@ -155,11 +159,20 @@ class UserService {
                 ['ar_date', 'DESC']
             ],
             limit,
-            offset,
-            logging: false,
+            offset
         })
 
         return result;
+    }
+
+    insertToken = async (userId, token) => {
+        await TokenStorage.create({
+            token_oid: uuidv4(),
+            token_user_id: userId,
+            token_token: token,
+            created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            token_desc: 'mutif-sales-app'
+        })
     }
 }
 

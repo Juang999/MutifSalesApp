@@ -1,21 +1,15 @@
 class Configuration {
+    // path for windows
+    path = 'C:/Users/user/Project'
+    // path for linux
+    // path = '/var/www'
+
     constructor () {
         return {
-            /**
-             * environment for Virtual Private Server
-            */
-            config: require('dotenv').config({path: '/root/Project/MutifSalesApp/.env'}),
-            devEnvironment: require('dotenv').config({path: '/root/Project/MutifSalesApp/.env.development'}),
-            testEnvironment: require('dotenv').config({path: '/root/Project/MutifSalesApp/.env.testing'}),
-            proEnvironment: require('dotenv').config({path: '/root/Project/MutifSalesApp/.env.production'})
-
-            /**
-             * environment for local Windows
-            */
-            // config: require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env'}),
-            // devEnvironment: require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env.development'}),
-            // testEnvironment: require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env.testing'}),
-            // proEnvironment: require('dotenv').config({path: 'C:/Users/user/Project/MutifSalesApp/.env.production'})
+            config: require('dotenv').config({path: `${this.path}/MutifSalesApp/.env`}),
+            devEnvironment: require('dotenv').config({path: `${this.path}/MutifSalesApp/.env.development`}),
+            testEnvironment: require('dotenv').config({path: `${this.path}/MutifSalesApp/.env.testing`}),
+            proEnvironment: require('dotenv').config({path: `${this.path}/MutifSalesApp/.env.production`})
         }
     }
 }

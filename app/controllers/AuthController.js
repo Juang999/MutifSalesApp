@@ -36,7 +36,7 @@ class AuthController {
             }
 
             let token = this.createToken(user.dataValues);
-            await this.insertToken(user.dataValues.userid, token);
+            await UserService.insertToken(user.dataValues.userid, token);
 
             info("LOGIN CLIENT", `${user.dataValues.usernama} LOGGED IN!`)
             res.status(200)
@@ -213,8 +213,7 @@ class AuthController {
             where: {
                 ar_oid: req.params.arOid,
                 ar_bill_to: Auth.user().user_ptnr_id
-            },
-            logging: false
+            }
         })
         .then(result => {
             res.status(200)
@@ -251,8 +250,7 @@ class AuthController {
                     as: 'user',
                     attributes: []
                 }
-            ],
-            logging: false
+            ]
         })
         .then(result => {
             res.status(200)
@@ -278,18 +276,6 @@ class AuthController {
 
     createToken = (dataUser) => {
         return jwt.sign(dataUser, config.parsed.ACCESS_TOKEN_SECRET, {expiresIn: '24h'})
-    }
-
-    insertToken = async (userid, token) => {
-        await TokenStorage.create({
-            token_oid: uuidv4(),
-            token_user_id: userid,
-            token_token: token,
-            created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
-            token_desc: 'mutif-sales-app'
-        }, {
-            logging: false
-        })
     }
 
     getImages = async (dataProduct) => {
