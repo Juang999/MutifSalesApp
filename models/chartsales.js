@@ -94,6 +94,16 @@ module.exports = (sequelize, DataTypes) => {
         where: {
           cs_trans_id: 'D'
         }
+      },
+      isReguler: {
+        where: {
+          cs_preorder: 'N'
+        }
+      },
+      isPreOrder: {
+        where: {
+          cs_preorder: 'Y'
+        }
       }
     },
     hooks: { 
