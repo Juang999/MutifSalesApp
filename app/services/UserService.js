@@ -76,9 +76,9 @@ class UserService {
                         [Sequelize.col('"detail_partner->group_partner"."ptnrg_code"'), 'group_code'],
                         [Sequelize.col('"detail_partner->group_partner"."ptnrg_name"'), 'group_name'],
                         [Sequelize.literal(`CASE WHEN "detail_partner"."ptnr_ptnrg_id" = 9911 THEN '0.40' ELSE '0.30' END`), 'discount'],
-                        [Sequelize.literal(`CASE WHEN SUM("singular_chart_sales"."cs_userid") IS NULL THEN 0 ELSE SUM("singular_chart_sales"."cs_userid") END`), 'products_in_chart'],
-                        [Sequelize.literal(`CASE WHEN SUM("singular_wishlist"."wl_user_id") IS NULL THEN 0 ELSE SUM("singular_wishlist"."wl_user_id") END`), 'products_wishlist'],
-                        [Sequelize.literal(`CASE WHEN SUM("singular_pre_order"."wl_user_id") IS NULL THEN 0 ELSE SUM("singular_pre_order"."wl_user_id") END`), 'products_pre_order'],
+                        [Sequelize.literal(`CASE WHEN COUNT("singular_chart_sales"."cs_userid") IS NULL THEN 0 ELSE COUNT("singular_chart_sales"."cs_userid") END`), 'products_in_chart'],
+                        [Sequelize.literal(`CASE WHEN COUNT("singular_wishlist"."wl_user_id") IS NULL THEN 0 ELSE COUNT("singular_wishlist"."wl_user_id") END`), 'products_wishlist'],
+                        [Sequelize.literal(`CASE WHEN COUNT("singular_pre_order"."wl_user_id") IS NULL THEN 0 ELSE COUNT("singular_pre_order"."wl_user_id") END`), 'products_pre_order'],
                     ],
                     include: [
                         {
@@ -93,7 +93,7 @@ class UserService {
                                 }
                             ]
                         }, {
-                            model: ChartSales.scope('defaultTransId'),
+                            model: ChartSales.scope('defaultTransId', 'isReguler'),
                             required: false,
                             as: 'singular_chart_sales',
                             attributes: []
