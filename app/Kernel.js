@@ -12,6 +12,9 @@ class Kernel {
                     InputChartRequest: require('./requests/SalesRequests/InputChartRequest'),
                     UpdateChartRequest: require('./requests/SalesRequests/UpdateChartRequest'),
                     UpdatePaymentStatusRequest: require('./requests/SalesRequests/UpdatePaymentStatusRequest')
+                },
+                PreOrderRequest: {
+                    inputIntoCartRequest: require('./requests/PreOrderRequests/StorePreOrderRequest'),
                 }
             }
         }

@@ -13,7 +13,7 @@ class ProductService {
         let result = await InvcMstr.findAll({
             attributes: [
                 [Sequelize.col(`product_knowledge.pt_id`), 'product_id'],
-                [Sequelize.col(`product_knowledge.pt_desc1`), 'product_name'],
+                [Sequelize.col(`product_knowledge.pt_desc_jubelio`), 'product_name'],
                 [Sequelize.col(`product_knowledge.pt_code`), 'product_code'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/thumbnail/', "product_knowledge"."pt_code", '.jpg')`), 'thumbnail'],
                 [Sequelize.literal(`"product_knowledge->entity_product"."en_desc"`), 'entity'],
@@ -53,7 +53,7 @@ class ProductService {
             ],
             where: {
                 [Op.and]: [
-                    Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_desc1"`), {
+                    Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_desc_jubelio"`), {
                         [Op.iLike]: `%${productName}%`
                     }),
                     Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_shown"`), {
@@ -104,7 +104,7 @@ class ProductService {
             group: [
                 'invc_en_id',
                 Sequelize.col(`product_knowledge.pt_id`),
-                Sequelize.col(`product_knowledge.pt_desc1`),
+                Sequelize.col(`product_knowledge.pt_desc_jubelio`),
                 Sequelize.col(`product_knowledge.pt_code`),
                 Sequelize.literal(`"product_knowledge->entity_product"."en_desc"`),
                 Sequelize.literal('"product_knowledge->master_category"."ptcat_desc"'),
@@ -124,7 +124,7 @@ class ProductService {
         let result = await PtMstr.findOne({
             attributes: [
                 ['pt_id', 'product_id'],
-                ['pt_desc1', 'product_name'],
+                ['pt_desc_jubelio', 'product_name'],
                 ['pt_code', 'product_code'],
                 'pt_en_id',
                 [Sequelize.literal('CAST(pt_weight AS INTEGER)'), 'product_weight'],

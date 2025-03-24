@@ -128,7 +128,7 @@ class SalesQuotationService {
     getDetailInvoice = async (invoiceNumber, ptnrId) => {
         let result = await SqdDet.findAll({
             attributes: [
-                [Sequelize.col('product.pt_desc1'), 'product_name'],
+                [Sequelize.col('product.pt_desc_jubelio'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
                 [Sequelize.col('product.pt_weight'), 'weight'],
                 [Sequelize.literal('CAST(SUM(sqd_qty) AS INTEGER)'), 'qty_product'],

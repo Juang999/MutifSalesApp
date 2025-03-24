@@ -20,7 +20,7 @@ class CartService {
             attributes: [
                 ['cs_pt_id', 'product_id'],
                 ['cs_pt_en_id', 'entity_id'],
-                [Sequelize.col(`"product"."pt_desc1"`), 'product_name'],
+                [Sequelize.col(`"product"."pt_desc_jubelio"`), 'product_name'],
                 [Sequelize.col(`"product"."pt_code"`), 'product_code'],
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'chart_quantity'],
                 [Sequelize.literal('(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))'), 'available_quantity'],
@@ -77,7 +77,6 @@ class CartService {
                 'transaction_code',
                 'transaction_status',
             ],
-            logging: false
         })
 
         return result;
@@ -181,7 +180,7 @@ class CartService {
                             as: 'chart_sales',
                             attributes: [
                                 'cs_oid',
-                                [Sequelize.literal('"chart_sales->product"."pt_desc1"'), 'product_name'],
+                                [Sequelize.literal('"chart_sales->product"."pt_desc_jubelio"'), 'product_name'],
                                 [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
                                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
                                 [Sequelize.literal('(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))'), 'available_quantity'],
@@ -244,7 +243,7 @@ class CartService {
                         Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kel_id"'),
                         Sequelize.col(`"detail_partner->singular_partner_address->singular_kelurahan"."kel_name"`),
                         Sequelize.col('"chart_sales"."cs_oid"'),
-                        Sequelize.literal('"chart_sales->product"."pt_desc1"'),
+                        Sequelize.literal('"chart_sales->product"."pt_desc_jubelio"'),
                         Sequelize.literal('"chart_sales->product"."pt_code"'),
                         Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
                         Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
@@ -260,7 +259,7 @@ class CartService {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
-                [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
+                [Sequelize.col('"product"."pt_desc_jubelio"'), 'product_name'],
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'quantity'],
                 [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
@@ -322,7 +321,7 @@ class CartService {
                 cs_pt_id: productId,
                 cs_userid: userId,
                 cs_preorder: preOrder,
-            }
+            },
         })
 
         return result;
@@ -362,7 +361,7 @@ class CartService {
                 [Sequelize.literal(`"qty_location"."invc_loc_id"`), 'loc_id'],
                 [Sequelize.literal(`CASE WHEN cs_pt_en_id = 1 THEN 10004 WHEN cs_pt_en_id = 2 THEN 20009 WHEN cs_pt_en_id = 3 THEN 300017 END`), 'loc_git'],
                 [Sequelize.literal(`ROUND(MAX("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"), 2)`), 'discount'],
-                [Sequelize.literal(`CAST(SUM((cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - (cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2))) AS INTEGER)`), 'total_price']
+                [Sequelize.literal(`CAST(SUM((cs_qty * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price")) AS INTEGER)`), 'total_price']
             ],
             include: [
                 {
@@ -423,8 +422,8 @@ class CartService {
                 'cs_oid',
                 'cs_pt_id',
                 ['cs_pt_en_id', 'en_id'],
-                [Sequelize.literal(`CAST("cs_qty" * "product->singular_table_cost"."invct_cost" AS BIGINT)`), 'total_cost'],
-                [Sequelize.literal(`CAST(("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price") - ("cs_qty" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_price" * "product->singular_relation_price_list->singular_detail_price_list"."pidd_disc") AS BIGINT)`), 'total_price'],
+                [Sequelize.literal(`CAST("product->singular_table_cost"."invct_cost" AS BIGINT)`), 'total_cost'],
+                [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'total_price'],
                 [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                 [Sequelize.literal('CAST(cs_qty AS BIGINT)'), 'cs_qty'],
                 'cs_invc_oid',
@@ -474,7 +473,7 @@ class CartService {
         return dataProducts;
     }
 
-    findDataCart = async (productId, inventoryOid, userId) => {
+    findDataCart = async (productId, inventoryOid, userId, preOrder) => {
         let result = await ChartSales.findOne({
             attributes: [
                 'cs_oid',
@@ -485,8 +484,24 @@ class CartService {
                 cs_pt_id: productId,
                 cs_invc_oid: inventoryOid,
                 cs_userid: userId,
-                cs_preorder: 'N',
+                cs_preorder: preOrder,
                 cs_trans_id: 'D',
+            }
+        })
+
+        return result;
+    }
+
+    findDataPreOrder = async (productId, inventoryOid, userId) => {
+        let result = await ChartSales.findOne({
+            attributes: [
+                'cs_oid',
+                [Sequelize.literal(`CAST(cs_qty AS INTEGER)`), 'qty']
+            ],
+            where: {
+                cs_pt_id: productId,
+                cs_invc_oid: inventoryOid,
+                cs_userid: userId
             }
         })
 
@@ -566,7 +581,6 @@ class CartService {
     }
 
     updateCart = async (cartSalesOid, quantity, transId, transaction) => {
-        console.info(transId)
         let result = await ChartSales.update({
             cs_qty: quantity,
             cs_trans_id: transId,
