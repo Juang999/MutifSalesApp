@@ -142,7 +142,8 @@ module.exports = (sequelize, DataTypes) => {
     pt_height: DataTypes.INTEGER,
     pt_width: DataTypes.INTEGER,
     pt_length: DataTypes.INTEGER,
-    pt_shown: DataTypes.STRING
+    pt_shown: DataTypes.STRING,
+    pt_desc_jubelio: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',

@@ -179,6 +179,22 @@ class InventoryService {
         return result;
     }
 
+    updateQtyAllocated = async (inventoryOid, queryQty, transaction) => {
+        await InvcMstr.update({
+            invc_qty_alloc: Sequelize.literal(queryQty)
+        }, {
+            where: {
+                invc_oid: inventoryOid
+            },
+            transaction,
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(': ')[1];
+
+                insertQuery(realSql, bind, 1);
+            }
+        })
+    }
+
     bookQty = async (inventoryOid, quantity, transaction) => {
         let result = await InvcMstr.update({
             invc_qty_available: Sequelize.literal(`CAST(invc_qty_available AS INTEGER) - ${parseInt(quantity)}`),

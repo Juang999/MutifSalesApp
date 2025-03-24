@@ -72,7 +72,7 @@ class CheckoutController {
     generateHeaderSalesQuotation = async (dataHeader, formBody, dataLocation, user) => {
         let sequenceNumber = 0;
         let totalSQofTheMonth = await SalesQuotationService.countDataSalesQuotation();
-        let {dataValues: dataServer} = await ServerSetting.get(['serv_code']);
+        let {dataValues: dataServer} = await ServerSetting.get(['server_code']);
 
         let dataHeadersSalesQuotation = dataHeader.map(({dataValues}) => {
             sequenceNumber += 1;
@@ -82,7 +82,7 @@ class CheckoutController {
             let salesQuotationCode = this.generateSalesQuotationNumber({
                 entity_id: dataValues.cs_pt_en_id,
                 sq_sequence: totalSQofTheMonth
-            }, sequenceNumber, dataServer.serv_code);
+            }, sequenceNumber, dataServer.server_code);
 
             let [location] = dataLocation.filter(({dataValues: singularLocation}) => {
                 return singularLocation.dbgd_en_id == dataValues.cs_pt_en_id
@@ -106,9 +106,8 @@ class CheckoutController {
                 sq_pay_type: formBody.payment_type,
                 sq_pay_method: formBody.payment_method,
                 sq_dp: 0,
-                sq_disc_header: dataValues.discount,
+                sq_disc_header: 0,
                 sq_total: dataValues.total_price,
-                sq_close_date: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_dt: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_cu_id: 1,
                 sq_total_ppn: 0,
@@ -122,7 +121,7 @@ class CheckoutController {
                 sq_ar_ac_id: 13,
                 sq_ar_sb_id: 0,
                 sq_ar_cc_id: 0,
-                sq_need_date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                sq_need_date: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
                 sq_is_package: 'N',
                 sq_sales_program: '-',
                 sq_booking: 'Y',
@@ -160,7 +159,6 @@ class CheckoutController {
     }
 
     generateDetailSalesQuotation = (dataBody, headerSalesQuotation, dataUser) => {
-        let createdAt = moment().format('YYYY-MM-DD HH:mm:ss')
         let baseSequence = 1;
 
         let result = dataBody.map(({dataValues: dataDetail}) => {
@@ -173,7 +171,7 @@ class CheckoutController {
                 sqd_dom_id: 1,
                 sqd_en_id: dataDetail.en_id,
                 sqd_add_by: dataUser.usernama,
-                sqd_add_date: createdAt,
+                sqd_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sqd_sq_oid: dataHeaderSalesQuotation.sq_oid,
                 sqd_seq: baseSequence,
                 sqd_si_id: 992,
@@ -193,7 +191,7 @@ class CheckoutController {
                 sqd_taxable: 'N',
                 sqd_tax_inc: 'N',
                 sqd_tax_class: 9949,
-                sqd_dt: createdAt,
+                sqd_dt: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
                 sqd_payment: 0,
                 sqd_dp: 0,
                 sqd_sales_unit: 0,
@@ -201,9 +199,8 @@ class CheckoutController {
                 sqd_ppn_type: 'E',
                 sqd_invc_oid: dataDetail.cs_invc_oid,
                 sqd_invc_loc_id: dataDetail.location_id,
-                sqd_need_date: createdAt,
+                sqd_need_date: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
                 sqd_qty_booking: dataDetail.cs_qty,
-                sqd_qty_outs: 0,
             };
 
             baseSequence += 1;

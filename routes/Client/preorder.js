@@ -4,7 +4,7 @@ const {index, store, destroy} = require('../../app/controllers/Client/PreOrderCo
 const {Middleware, Requests} = require('../../app/Kernel');
 
 router.get('/', [Middleware.AuthMiddleware], index);
-router.post('/store', [Middleware.AuthMiddleware], store);
-router.delete('/:wishlistOid/delete', [Middleware.AuthMiddleware], destroy);
+router.post('/store', [Middleware.AuthMiddleware, Requests.PreOrderRequest.inputIntoCartRequest], store);
+router.delete('/:product_id/delete', [Middleware.AuthMiddleware], destroy);
 
 module.exports = router;
