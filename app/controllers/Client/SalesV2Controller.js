@@ -15,11 +15,11 @@ const {InventoryService, CartService} = require('../../services/ServiceContainer
 class SalesV2Controller {
     getChart = async (req, res) => {
         try {
-            let {userid} = Auth.user();
+            let {userid, ptnrg_id} = Auth.user();
 
             await this.expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'N')
+            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id)
             res.status(200)
                 .json({
                     status: 'success',
@@ -43,13 +43,13 @@ class SalesV2Controller {
 
     getLimitedCart = async (req, res) => {
         try {
-            let {userid} = Auth.user();
+            let {userid, ptnrg_id} = Auth.user();
 
             await this.expireData(userid);
 
             let [subTotalPrice, dataCart] = await Promise.all([
-                CartService.getSubTotalPriceCart(userid, 'D', 'N'), 
-                CartService.retrieveLimitedDataCart(userid, 'D', 'N')
+                CartService.getSubTotalPriceCart(userid, 'D', 'N', ptnrg_id), 
+                CartService.retrieveLimitedDataCart(userid, 'D', 'N', ptnrg_id)
             ]);
 
             res.status(200)

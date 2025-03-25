@@ -15,7 +15,7 @@ const {Op} = require('sequelize');
 const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOut');
 
 class CartService {
-    retrieveDataCart = async (userId, preOrder) => {
+    retrieveDataCart = async (userId, preOrder, groupId) => {
         let result = await ChartSales.scope('showCart').findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -40,7 +40,7 @@ class CartService {
                     attributes: [],
                     include: [
                         {
-                            model: PidDet.scope('priceListDistributor'),
+                            model: PidDet.scope({method: ['priceListGroup', groupId]}),
                             as: 'singular_relation_price_list',
                             attributes: [],
                             include: [
@@ -244,7 +244,7 @@ class CartService {
                                             attributes: [],
                                             include: [
                                                 {
-                                                    model: PiMstr.scope('priceListDistributor'),
+                                                    model: PiMstr.scope('activePriceList'),
                                                     as: 'master_price_list',
                                                     attributes: [],
                                                 }, {
@@ -293,13 +293,12 @@ class CartService {
                         Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
                         Sequelize.literal('"chart_sales->product"."pt_weight"')
                     ],
-                    logging: false
                 })
 
         return result;
     }
 
-    retrieveLimitedDataCart = async (userid, transId, preOrder) => {
+    retrieveLimitedDataCart = async (userid, transId, preOrder, groupId) => {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -321,7 +320,7 @@ class CartService {
                             attributes: [],
                             include: [
                                 {
-                                    model: PiMstr.scope('priceListDistributor'),
+                                    model: PiMstr.scope({method: ['priceListGroup', groupId]}),
                                     as: 'master_price_list',
                                     attributes: [],
                                 }, {
@@ -371,7 +370,7 @@ class CartService {
         return result;
     }
 
-    getSubTotalPriceCart = async (userid, transId, preOrder) => {
+    getSubTotalPriceCart = async (userid, transId, preOrder, groupId) => {
         let [subTotal] = await sequelize.query(`
             SELECT 
                 CAST(SUM("cs_qty" * ("detail_price_list"."pidd_price" - ("detail_price_list"."pidd_price" * "detail_price_list"."pidd_disc"))) AS BIGINT) 
@@ -381,7 +380,8 @@ class CartService {
             LEFT JOIN public.pi_mstr AS master_price_list ON master_price_list.pi_oid = relation_price_list.pid_pi_oid
             LEFT JOIN public.pidd_det AS detail_price_list ON detail_price_list.pidd_pid_oid = relation_price_list.pid_oid
             WHERE cs_userid = :userid
-            AND master_price_list.pi_id IN (103, 202, 304)
+            AND master_price_list.pi_ptnrg_id = group_id
+            AND master_price_list.pi_active = 'Y'
             AND detail_price_list.pidd_payment_type = 9942
             AND cs_trans_id = :transId
             AND cs_preorder = :preOrder
@@ -389,7 +389,8 @@ class CartService {
                 replacements: {
                     userid,
                     transId,
-                    preOrder
+                    preOrder,
+                    group_id: groupId
                 },
                 logging: false
             })
@@ -460,7 +461,7 @@ class CartService {
         return result;
     }
 
-    getDataDetailSalesQuotation = async (userId, preOrder) => {
+    getDataDetailSalesQuotation = async (userId, preOrder, groupId) => {
         let dataProducts = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -493,7 +494,7 @@ class CartService {
                                     as: 'singular_detail_price_list',
                                     attributes: [],
                                 }, {
-                                    model: PiMstr.scope('priceListDistributor'),
+                                    model: PiMstr,
                                     as: 'master_price_list',
                                     attributes: []
                                 }
@@ -510,6 +511,23 @@ class CartService {
                 cs_userid: userId,
                 cs_preorder: preOrder,
                 cs_trans_id: 'D',
+                [Op.and]: [
+                    Sequelize.where(Sequelize.col(`cs_userid`), {
+                        [Op.eq]: userId
+                    }),
+                    Sequelize.where(Sequelize.col(`cs_preorder`), {
+                        [Op.eq]: preOrder
+                    }),
+                    Sequelize.where(Sequelize.col(`cs_trans_id`), {
+                        [Op.eq]: 'D'
+                    }),
+                    Sequelize.where(Sequelize.col(`"product->singular_relation_price_list->master_price_list"."pi_id"`), {
+                        [Op.eq]: Sequelize.literal(`cs_pi_id`)
+                    }),
+                    Sequelize.where(Sequelize.col(`"product->singular_relation_price_list->master_price_list"."pi_active"`), {
+                        [Op.eq]: 'Y'
+                    }),
+                ]
             },
             logging: false
         })

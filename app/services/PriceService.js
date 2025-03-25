@@ -4,7 +4,7 @@ const {
 const {Op} = require('sequelize')
 
 class PriceService {
-    getPrice = async (productId, entityId) => {
+    getPrice = async (productId, entityId, groupId) => {
         const result = await PidDet.findOne({
             attributes: [
                 [Sequelize.literal(`master_price_list.pi_id`), 'pi_id'],
@@ -14,9 +14,9 @@ class PriceService {
             ],
             include: [
                 {
-                    model: PiMstr.scope('priceListDistributor'),
+                    model: PiMstr,
                     as: 'master_price_list',
-                    attributes: []
+                    attributes: [],
                 }, {
                     model: PiddDet.scope('creditPaymentType'),
                     as: 'singular_detail_price_list',
@@ -29,6 +29,9 @@ class PriceService {
                 }),
                 Sequelize.where(Sequelize.literal(`"master_price_list"."pi_en_id"`), {
                     [Op.eq]: entityId
+                }),
+                Sequelize.where(Sequelize.literal(`"master_price_list"."pi_ptnrg_id"`), {
+                    [Op.eq]: groupId
                 })
             ],
             logging: false

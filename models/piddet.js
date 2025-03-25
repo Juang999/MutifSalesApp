@@ -1,6 +1,6 @@
 'use strict';
 const {
-  Model, Op
+  Model, Op, Sequelize
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class PidDet extends Model {
@@ -65,6 +65,15 @@ module.exports = (sequelize, DataTypes) => {
               '83415091-54cc-4fd1-8e10-0dac3561fb9c', // => pricelist distributor damoza
               '80c389eb-dd3a-409c-81b3-c236e98f2c32' // => pricelist distributor upmore
             ]
+          }
+        }
+      },
+      priceListGroup(partnerGroupId) {
+        return {
+          where: {
+            pid_pi_oid: {
+              [Op.in]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_ptnrg_id = ${partnerGroupId} AND pi_active = 'Y')`)
+            }
           }
         }
       }
