@@ -63,6 +63,17 @@ module.exports = (sequelize, DataTypes) => {
             [Op.in]: [103, 202, 304]
           }
         }
+      },
+      priceListGroup(partnerGroupId) {
+        return {
+          pi_ptnrg_id: partnerGroupId,
+          pi_active: 'Y'
+        }
+      },
+      activePriceList: {
+        where: {
+          pi_active: 'Y'
+        }
       }
     }
   });

@@ -9,6 +9,9 @@ class SalesController {
         try {
             const {body} = req;
             const {userid, usernama: username} = Auth.user();
+
+            console.info(Auth.user());
+
             const {
                 pi_id: priceListId,
                 pt_id: productId, en_id: entityId, 

@@ -6,7 +6,14 @@ const {v4: uuidv4} = require('uuid')
 
 class ProductV3Controller {
     index = (req, res) => {
-        ProductService.getProduct(req.query)
+        let {ptnrg_id} = Auth.user();
+        let partnerGroupId = 9912;
+
+        if (ptnrg_id != null) {
+            partnerGroupId = ptnrg_id;
+        }
+
+        ProductService.getProduct(req.query, partnerGroupId)
         .then(result => {
             res.status(200)
                 .json({
@@ -80,8 +87,15 @@ class ProductV3Controller {
 
     detail = async (req, res) => {
         try {
+            let {ptnrg_id} = Auth.user();
+            let partnerGroupId = 9912;
+    
+            if (ptnrg_id != null) {
+                partnerGroupId = ptnrg_id;
+            }
+
             let {dataValues: dataProduct} = await ProductService.getDetailProduct(req.params)
-            let {dataValues: dataPrice} = await PriceService.getPrice(dataProduct.product_id, dataProduct.pt_en_id)
+            let {dataValues: dataPrice} = await PriceService.getPrice(dataProduct.product_id, dataProduct.pt_en_id, partnerGroupId)
 
             let result = {
                 product_id: dataProduct.product_id,

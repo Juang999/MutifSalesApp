@@ -7,7 +7,7 @@ const {
 const {Op} = require('sequelize');
 
 class ProductService {
-    getProduct = async (query) => {
+    getProduct = async (query, groupId) => {
         let productName = (query.search) ? query.search : '';
 
         let result = await InvcMstr.findAll({
@@ -37,7 +37,7 @@ class ProductService {
                             as: 'master_category',
                             attributes: []
                         }, {
-                            model: PidDet.scope('priceListDistributor'),
+                            model: PidDet.scope({method: ['priceListGroup', groupId]}),
                             as: 'singular_relation_price_list',
                             attributes: [],
                             include: [
@@ -114,7 +114,6 @@ class ProductService {
             order: [
                 ['qty', 'DESC']
             ],
-            // logging: false
         })
 
         return result;
