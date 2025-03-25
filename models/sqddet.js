@@ -17,6 +17,12 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: 'pt_id',
         foreignKey: 'sqd_pt_id'
       })
+
+      SqdDet.belongsTo(models.SqMstr, {
+        as: 'header_sq',
+        targetKey: 'sq_oid',
+        foreignKey: 'sqd_sq_oid'
+      })
     }
   }
   SqdDet.init({
