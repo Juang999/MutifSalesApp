@@ -10,48 +10,40 @@ const {insertQuery, insertBulkQuery} = require('../../helper/InputQueryIntoSqlOu
 
 class SalesQuotationService {
     retrieveDataInvoice = async (date, search, userPartnerId) => {
-        try {
-            
-            let dataInvoice = await SqMstr.findAll({
-                        attributes: [
-                            [Sequelize.literal('sq_midtrans_inv_number'), 'invoice'],
-                            ['sq_midtrans_inv_status', 'status'],
-                            [Sequelize.col(`"sq_date"`), 'start_date'],
-                            [Sequelize.col(`"sq_need_date"`), 'end_date'],
-                            [Sequelize.literal(`CAST(SUM(sq_total) AS INTEGER)`), 'total_purchase'],
-                            [Sequelize.fn('MAX', Sequelize.col(`"sq_add_date"`)), 'date'],
-                        ],
-                        where: [
-                            Sequelize.where(Sequelize.literal(`date("sq_add_date")`), {
-                                [Op.between]: [date.startDate, date.endDate]
-                            }),
-                            Sequelize.where(Sequelize.col(`"sq_midtrans_inv_number"`), {
-                                [Op.iLike]: `%${search}%`
-                            }),
-                            Sequelize.where(Sequelize.col(`"sq_midtrans_inv_number"`), {
-                                [Op.not]: null
-                            }),
-                            Sequelize.where(Sequelize.col('sq_ptnr_id_sold'), {
-                                [Op.eq]: userPartnerId
-                            })
-                        ],
-                        group: [
-                            'sq_midtrans_inv_number',
-                            'sq_midtrans_inv_status',
-                            'sq_date',
-                            'sq_need_date',
-                        ],
-                        order: [
-                            ['sq_date', 'DESC'],
-                            ['sq_midtrans_inv_number', 'DESC'],
-                        ],
-                        logging: false
-                    })
+        let result = SqdDet.findAll({
+            attributes: [
+                [Sequelize.col(`"header_sq"."sq_midtrans_inv_number"`), 'invoice'],
+                [Sequelize.col(`"header_sq"."sq_midtrans_inv_status"`), 'status'],
+                [Sequelize.col(`"header_sq"."sq_date"`), 'start_date'],
+                [Sequelize.col(`"header_sq"."sq_need_date"`), 'end_date'],
+                [Sequelize.literal(`CAST(SUM((sqd_price * sqd_qty) - (sqd_price * sqd_qty * sqd_disc)) AS BIGINT)`), 'total_purchase'],
+                [Sequelize.fn('MAX', Sequelize.col(`"header_sq"."sq_add_date"`)), 'date'],
+            ],
+            include: [
+                {
+                    model: SqMstr,
+                    as: 'header_sq',
+                    attributes: []
+                }
+            ],
+            where: [
+                Sequelize.where(Sequelize.literal(`date("header_sq"."sq_add_date")`), {
+                    [Op.between]: [date.startDate, date.endDate]
+                }),
+                Sequelize.where(Sequelize.col(`"header_sq"."sq_midtrans_inv_number"`), {
+                    [Op.iLike]: `%${search}%`
+                }),
+                Sequelize.where(Sequelize.col(`"header_sq"."sq_midtrans_inv_number"`), {
+                    [Op.not]: null
+                }),
+                Sequelize.where(Sequelize.col('"header_sq"."sq_ptnr_id_sold"'), {
+                    [Op.eq]: userPartnerId
+                })
+            ],
+            group: ['invoice', 'status', 'start_date', 'end_date']
+        })
     
-            return dataInvoice;
-        } catch (error) {
-            return error.message
-        }
+        return result;
     }
 
     getHeaderInvoice = async (invoiceNumber, ptnrId) => {
@@ -234,7 +226,8 @@ class SalesQuotationService {
     updatePaymentStatus = async (invoiceNumber, paymentStatus, transactionStatus, transaction) => {
         await SqMstr.update({
                 sq_upd_by: 'system',
-                sq_upd_date: Sequelize.literal(`CURRENT_TIMESTAMP`),
+                sq_close_date: moment().format('YYYY-MM-DD'),
+                sq_upd_date: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_trans_id: transactionStatus,
                 sq_midtrans_inv_status: paymentStatus
             }, {
