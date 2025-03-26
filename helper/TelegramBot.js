@@ -5,9 +5,16 @@ const PackageTelegramBot = require('node-telegram-bot-api');
 class TelegramBot {
     messageSend = async (feature, status, message) => {
         const waktu = moment().format('YYYY-MM-DD HH:mm:ss');
-        const {NODE_ENV: stage} = config.parsed;
+        const {NODE_ENV: stage, APP_NAME: appName} = config.parsed;
 
-        let dataMessage = `${stage}\nTanggal & Waktu: ${waktu}\n\nFeature: ${feature}\nStatus: ${status}\nmessage: ${message}`
+        let dataMessage = `
+        --=[ ${appName} ]=--\n
+        Stage: ${stage}\n
+        Tanggal & Waktu: ${waktu}\n\n
+
+        Feature: ${feature}\n
+        Status: ${status}\n
+        message: ${message}`
 
         await this.botSetting(dataMessage);
     }

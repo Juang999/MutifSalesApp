@@ -422,6 +422,8 @@ class SalesController {
             CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction)
         ])
     }
+
+    // salesOrder => (invoiceNumber)
 }
 
 module.exports = new SalesController();

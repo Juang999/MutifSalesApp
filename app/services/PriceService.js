@@ -34,7 +34,6 @@ class PriceService {
                     [Op.eq]: groupId
                 })
             ],
-            logging: false
         })
 
         return result;

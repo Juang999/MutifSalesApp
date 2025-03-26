@@ -63,14 +63,14 @@ class SalesV2Controller {
                     error: null
                 })
         } catch (error) {
-            errorLog(`GET LIMITED DATA CART`, err.message)
+            errorLog(`GET LIMITED DATA CART`, error.message)
     
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
         }
     }
