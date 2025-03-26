@@ -68,7 +68,7 @@ class CartService {
                 cs_trans_id: {
                     [Op.in]: ['D', 'E']
                 },
-                cs_deleted_at: null
+                cs_deleted_at: null,
                 [Op.or]: [
                     {
                         [Op.and]: [
