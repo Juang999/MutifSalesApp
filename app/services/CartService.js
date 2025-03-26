@@ -56,6 +56,10 @@ class CartService {
                     model: TransStatus,
                     as: 'status_transaction',
                     attributes: []
+                }, {
+                    model: InvcMstr.scope({method: ['matchEntityWithLocation', Sequelize.literal(`"product"."pt_en_id"`)]}),
+                    as: 'qty_location',
+                    attributes: [],
                 }
             ],
             where: {
