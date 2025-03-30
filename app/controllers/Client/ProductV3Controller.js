@@ -122,7 +122,7 @@ class ProductV3Controller {
                     error: null
                 })
         } catch (error) {
-            await errorLog('GET DETAIL PRODUCT', error.message)
+            await errorLog('GET DETAIL PRODUCT', `USER: ${Auth.user().usernama} | GROUP: ${Auth.user().groupid} | DETAIL ${req.params.product_code} | ${error.message}`)
 
             res.status(400)
                 .json({
