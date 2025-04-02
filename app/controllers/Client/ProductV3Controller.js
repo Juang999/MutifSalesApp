@@ -94,24 +94,49 @@ class ProductV3Controller {
                 partnerGroupId = ptnrg_id;
             }
 
-            let {dataValues: dataProduct} = await ProductService.getDetailProduct(req.params)
-            let {dataValues: dataPrice} = await PriceService.getPrice(dataProduct.product_id, dataProduct.pt_en_id, partnerGroupId)
+            let dataProduct = await ProductService.getDetailProduct(req.params)
+
+            if (!dataProduct) {
+                res.status(404)
+                    .json({
+                        status: 'not found',
+                        message: 'not found',
+                        data: null,
+                        error: 'not found'
+                    });
+
+                return;
+            }
+
+            let dataPrice = await PriceService.getPrice(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id, partnerGroupId)
+
+            if (!dataPrice) {
+                res.status(404)
+                    .json({
+                        status: 'not found',
+                        message: 'not found',
+                        data: null,
+                        error: 'not found'
+                    });
+
+                return;
+            }
 
             let result = {
-                product_id: dataProduct.product_id,
-                product_name: dataProduct.product_name,
-                product_code: dataProduct.product_code,
-                pt_en_id: dataProduct.pt_en_id,
-                pricelist_name: dataPrice.pricelist_name,
-                pi_id: dataPrice.pi_id,
-                price: dataPrice.price,
-                discount: dataPrice.discount,
-                photo: `https://cdn.mutif.biz.id/detail/${dataProduct.product_code}.jpg`,
-                product_weight: dataProduct.product_weight,
-                product_height: dataProduct.product_height,
-                product_width: dataProduct.product_width,
-                product_length: dataProduct.product_length,
-                product_quantity: dataProduct.product_quantity.map(({dataValues}) => dataValues)
+                product_id: dataProduct.dataValues.product_id,
+                product_name: dataProduct.dataValues.product_name,
+                product_code: dataProduct.dataValues.product_code,
+                pt_en_id: dataProduct.dataValues.pt_en_id,
+                pricelist_name: dataPrice.dataValues.pricelist_name,
+                pi_id: dataPrice.dataValues.pi_id,
+                price: dataPrice.dataValues.price,
+                discount: dataPrice.dataValues.discount,
+                photo: `https://cdn.mutif.biz.id/detail/${dataProduct.dataValues.product_code}.jpg`,
+                product_weight: dataProduct.dataValues.product_weight,
+                product_height: dataProduct.dataValues.product_height,
+                product_width: dataProduct.dataValues.product_width,
+                product_length: dataProduct.dataValues.product_length,
+                product_quantity: dataProduct.dataValues.product_quantity.map(({dataValues}) => dataValues)
             }
 
             res.status(200)
