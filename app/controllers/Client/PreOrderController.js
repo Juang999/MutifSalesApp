@@ -45,8 +45,8 @@ class PreOrderController {
                     productId: product_id, 
                     entityId: entity_id, 
                     inventoryOid: inventory_oid, 
-                    quantity: parseInt(quantity), 
-                    priceListId: pricelist_id, 
+                    quantity: parseInt(quantity),
+                    priceListId: pricelist_id,
                 }
 
                 await Promise.all([

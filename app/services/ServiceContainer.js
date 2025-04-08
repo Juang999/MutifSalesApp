@@ -8,6 +8,7 @@ class ServiceContainer {
             GetDescService: require('./GetDescService'),
             ProductService: require('./ProductService'),
             InventoryService: require('./InventoryService'),
+            SalesOrderService: require('./SalesOrderService'),
             SalesQuotationService: require('./SalesQuotationService'),
         }
     }

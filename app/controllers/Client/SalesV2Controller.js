@@ -1,15 +1,6 @@
-const axios = require('axios');
-const {Op, InvalidConnectionError} = require('sequelize');
 const Auth = require('../../../helper/Auth');
-const {config} = require('../../../config/environment');
+const {sequelize, Sequelize} = require('../../../models');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
-const {
-    InvcdDet,
-    PiddDet, sequelize,
-    PtMstr, PidDet, Sequelize, 
-    ChartSales, PiMstr, InvcMstr,
-    ProductJubelio, ProductJubelioThumbnail
-} = require('../../../models');
 const {InventoryService, CartService} = require('../../services/ServiceContainer');
 
 class SalesV2Controller {

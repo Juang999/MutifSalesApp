@@ -1,8 +1,13 @@
 const moment = require('moment');
 const Auth = require('../../../helper/Auth');
-const {sequelize,} = require('../../../models');
-const {errorV2: errorLog} = require('../../../helper/Logging');
-const {InventoryService, CartService, SalesQuotationService} = require('../../services/ServiceContainer');
+const {sequelize} = require('../../../models');
+const {info, errorV2: errorLog} = require('../../../helper/Logging');
+const {
+    InventoryService, CartService, 
+    SalesQuotationService, SalesOrderService
+} = require('../../services/ServiceContainer');
+const {v4: uuidv4} = require('uuid');
+const {serverSetting} = require('../../../helper/Helper');
 
 class SalesController {
     inputIntoChart = async (req, res) => {
@@ -252,6 +257,7 @@ class SalesController {
                 }
             } else {
                 await SalesQuotationService.updatePaymentStatus(invoice, payment_status, 'D', t);
+                await this.salesOrder(invoice);
             }
 
             return {
@@ -423,7 +429,157 @@ class SalesController {
         ])
     }
 
-    // salesOrder => (invoiceNumber)
+    salesOrder = async (invoiceNumber) => {
+        await sequelize.transaction(async t => {
+            let [
+                headerSalesQuotation, 
+                detailSalesQuotation,
+                totalData,
+                serverCode
+            ] = await Promise.all([
+                SalesQuotationService.getHeaderSalesQuotation(invoiceNumber), 
+                SalesQuotationService.getDetailSalesQuotation(invoiceNumber),
+                SalesOrderService.generateTotalOrder(t),
+                serverSetting(['server_code'])
+            ]);
+
+            let resultDataHeader = this.generateHeaderSalesOrder(headerSalesQuotation, totalData, serverCode);
+            let resultDataDetail = this.generateDetailSalesOrder(detailSalesQuotation, resultDataHeader);
+
+            await SalesOrderService.createHeaderOrder(resultDataHeader, t);
+            this.sleep(5000)
+            await SalesOrderService.createDetailOrder(resultDataDetail, t);
+
+            info(`CREATE SALES ORDER`, 'SALES ORDER ALREADY CREATED!', resultDataHeader);
+        })
+
+    }
+
+    generateHeaderSalesOrder = (data, totalData, serverCode) => {
+        let result = [];
+        let {dataValues: dataServer} = serverCode;
+
+        for (const {dataValues: dataHeader} of data) {
+            totalData += 1;
+
+            result.push({
+                so_oid: uuidv4(),
+                so_dom_id: dataHeader.sq_dom_id,
+                so_en_id: dataHeader.sq_en_id,
+                so_add_by: dataHeader.sq_add_by,
+                so_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                so_code: this.generateSalesOrderCode(dataHeader.sq_en_id, dataServer.server_code, totalData),
+                so_ptnr_id_sold: dataHeader.sq_ptnr_id_sold,
+                so_ptnr_id_bill: dataHeader.sq_ptnr_id_bill,
+                so_date: moment().format('YYYY-MM-DD'),
+                so_credit_term: dataHeader.sq_credit_term,
+                so_si_id: dataHeader.sq_si_id,
+                so_type: dataHeader.sq_type,
+                so_sales_person: dataHeader.sq_sales_person,
+                so_pi_id: dataHeader.sq_pi_id,
+                so_pay_type: dataHeader.sq_pay_type,
+                so_pay_method: dataHeader.sq_pay_method,
+                so_ar_ac_id: dataHeader.sq_ar_ac_id,
+                so_ar_sb_id: dataHeader.sq_ar_sb_id,
+                so_ar_cc_id: dataHeader.sq_ar_cc_id,
+                so_dp: dataHeader.sq_dp,
+                so_disc_header: dataHeader.sq_disc_header,
+                so_total: dataHeader.sq_total,
+                so_payment_date: moment().format('YYYY-MM-DD'),
+                so_tran_id: dataHeader.sq_tran_id,
+                so_trans_id: 'D',
+                so_trans_rmks: dataHeader.sq_trans_rmks,
+                so_dt: moment().format('YYYY-MM-DD'),
+                so_exc_rate: dataHeader.sq_exc_rate,
+                so_cons: dataHeader.sq_cons,
+                so_terbilang: dataHeader.sq_terbilang,
+                so_bk_id: dataHeader.sq_bk_id,
+                so_interval: dataHeader.sq_interval,
+                so_ppn_type: dataHeader.sq_ppn_type,
+                so_is_package: dataHeader.sq_is_package,
+                so_manufactures: 'N',
+                so_pt_id: dataHeader.sq_pt_id,
+                so_project: 'N',
+                so_total_final: dataHeader.sq_total,
+                so_booking: 'Y',
+                so_sq_ref_oid: dataHeader.sq_oid,
+                so_sq_ref_code: dataHeader.sq_code,
+                so_ptsfr_loc_id: dataHeader.sq_ptsfr_loc_id,
+                so_ptsfr_loc_to_id: dataHeader.sq_ptsfr_loc_to_id,
+                so_ptsfr_loc_git: dataHeader.sq_ptsfr_loc_git,
+                so_alocated: 'N',
+                so_status_packing: 'N'
+            })
+        }
+
+        return result;
+    }
+
+    generateDetailSalesOrder = (data, dataHeader) => {
+        let result = [];
+
+        for (const {dataValues: dataDetail} of data) {
+            let [header] = dataHeader.filter(dataHeader1 => dataHeader1.so_sq_ref_oid == dataDetail.sqd_sq_oid);
+
+            result.push({
+                sod_oid: uuidv4(),
+                sod_dom_id: dataDetail.sqd_dom_id,
+                sod_en_id: dataDetail.sqd_en_id,
+                sod_add_by: dataDetail.sqd_add_by,
+                sod_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                sod_so_oid: header.so_oid,
+                sod_seq: dataDetail.sqd_seq,
+                sod_is_additional_charge: 'N',
+                sod_si_id: dataDetail.sqd_si_id,
+                sod_pt_id: dataDetail.sqd_pt_id,
+                sod_rmks: dataDetail.sqd_rmks,
+                sod_qty: dataDetail.sqd_qty,
+                sod_qty_allocated: dataDetail.sqd_qty,
+                sod_um: dataDetail.sqd_um,
+                sod_cost: dataDetail.sqd_cost,
+                sod_price: dataDetail.sqd_price,
+                sod_disc: dataDetail.sqd_disc,
+                sod_sales_ac_id: dataDetail.sqd_sales_ac_id,
+                sod_sales_sb_id: dataDetail.sqd_sales_sb_id,
+                sod_sales_cc_id: dataDetail.sqd_sales_cc_id,
+                sod_um_conv: dataDetail.qod_um_conv,
+                sod_qty_real: dataDetail.sqd_qty_real,
+                sod_taxable: dataDetail.sqd_taxable,
+                sod_tax_inc: dataDetail.sqd_tax_inc,
+                sod_tax_class: dataDetail.sqd_tax_class,
+                sod_dt: moment().format('YYYY-MM-DD HH:mm:ss'),
+                sod_payment: dataDetail.sqd_payment,
+                sod_dp: dataDetail.sqd_dp,
+                sod_sales_unit: dataDetail.sqd_sales_unit,
+                sod_loc_id: dataDetail.sqd_loc_id,
+                sod_ppn_type: dataDetail.sqd_ppn_type,
+                sod_invc_oid: dataDetail.sqd_invc_oid,
+                sod_invc_loc_id: dataDetail.sqd_invc_loc_id,
+                sod_sqd_oid: dataDetail.sqd_oid,
+                sod_qty_open: dataDetail.sqd_qty,
+                sod_qty_booked: dataDetail.sqd_qty
+            })
+        }
+
+        return result;
+    }
+
+    generateSalesOrderCode = (entity, serverCode, rawSequence) => {
+        let soCode = 'SO';
+        let entityCode = `${entity}0`;
+        let yearMonth = moment().format('YYMM');
+        let monthCode = '0000';
+        let baseSequence = '0000';
+        let sequence = baseSequence.slice(0, -rawSequence.toString().length) + rawSequence;
+
+        return `${soCode}${entityCode}${yearMonth}${serverCode}${monthCode}${sequence}`
+    }
+
+    sleep = (milliseconds) => {
+        const now = new Date().getTime();
+        while (new Date().getTime() < now + milliseconds) {
+        }
+    }
 }
 
 module.exports = new SalesController();

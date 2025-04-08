@@ -175,6 +175,95 @@ class SalesQuotationService {
         // return result || null;
     }
 
+    getHeaderSalesQuotation = async (invoiceNumber) => {
+        let result = await SqMstr.findAll({
+            attributes: [
+                'sq_dom_id',
+                'sq_en_id',
+                'sq_add_by',
+                'sq_ptnr_id_sold',
+                'sq_ptnr_id_bill',
+                'sq_credit_term',
+                'sq_si_id',
+                'sq_type',
+                'sq_sales_person',
+                'sq_pay_type',
+                'sq_pay_method',
+                'sq_ar_ac_id',
+                'sq_ar_sb_id',
+                'sq_ar_cc_id',
+                'sq_dp',
+                'sq_disc_header',
+                'sq_total',
+                'sq_total_ppn',
+                'sq_total_pph',
+                'sq_exc_rate',
+                'sq_cons',
+                'sq_terbilang',
+                'sq_bk_id',
+                'sq_interval',
+                'sq_ppn_type',
+                'sq_is_package',
+                'sq_oid',
+                'sq_code',
+                'sq_ptsfr_loc_id',
+                'sq_ptsfr_loc_to_id',
+                'sq_ptsfr_loc_git'
+            ],
+            where: {
+                sq_midtrans_inv_number: invoiceNumber,
+                sq_midtrans_inv_status: 'settlement'
+            }
+        })
+
+        return result;
+    }
+
+    getDetailSalesQuotation = async (invoiceNumber) => {
+        let result = await SqdDet.findAll({
+            attributes: [
+                'sqd_dom_id',
+                'sqd_en_id',
+                'sqd_add_by',
+                'sqd_seq',
+                'sqd_is_additional_charge',
+                'sqd_si_id',
+                'sqd_pt_id',
+                'sqd_rmks',
+                'sqd_qty',
+                'sqd_qty_allocated',
+                'sqd_um',
+                'sqd_cost',
+                'sqd_price',
+                'sqd_disc',
+                'sqd_sales_ac_id',
+                'sqd_sales_sb_id',
+                'sqd_sales_cc_id',
+                'sqd_um_conv',
+                'sqd_qty_real',
+                'sqd_taxable',
+                'sqd_tax_inc',
+                'sqd_tax_class',
+                'sqd_payment',
+                'sqd_dp',
+                'sqd_sales_unit',
+                'sqd_loc_id',
+                'sqd_ppn_type',
+                'sqd_invc_oid',
+                'sqd_invc_loc_id',
+                'sqd_oid',
+                'sqd_sq_oid',
+            ],
+            where: {
+                sqd_sq_oid: {
+                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = '${invoiceNumber}' AND sq_midtrans_inv_status = 'settlement')`)
+                }
+            }
+        });
+
+        return result;
+    }
+
     countDataSalesQuotation = async () => {
             let startOfMonth = moment().startOf('months').format('YYYY-MM-DD');
             let endOfMonth = moment().endOf('months').format('YYYY-MM-DD');
@@ -217,7 +306,6 @@ class SalesQuotationService {
                     [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = '${invoiceNumber}')`)
                 }
             },
-            logging: false
         })
 
         return result;
