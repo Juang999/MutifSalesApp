@@ -7,14 +7,7 @@ class TelegramBot {
         const waktu = moment().format('YYYY-MM-DD HH:mm:ss');
         const {NODE_ENV: stage, APP_NAME: appName} = config.parsed;
 
-        let dataMessage = `
-        --=[ ${appName} ]=--\n
-        Stage: ${stage}\n
-        Tanggal & Waktu: ${waktu}\n\n
-
-        Feature: ${feature}\n
-        Status: ${status}\n
-        message: ${message}`
+        let dataMessage = `--=[ ${appName} ]=--\nStage: ${stage}\nTanggal & Waktu: ${waktu}\n\nFeature: ${feature}\nStatus: ${status}\nmessage: ${message}`
 
         await this.botSetting(dataMessage);
     }
