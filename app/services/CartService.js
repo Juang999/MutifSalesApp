@@ -387,9 +387,12 @@ class CartService {
                             attributes: [],
                             include: [
                                 {
-                                    model: PiddDet.scope(`creditPaymentType`),
+                                    model: PiddDet,
                                     as: 'singular_detail_price_list',
-                                    attributes: []
+                                    attributes: [],
+                                    where: {
+                                        pidd_payment_type: 9942
+                                    }
                                 }
                             ],
                         }
@@ -453,9 +456,12 @@ class CartService {
                             attributes: [],
                             include: [
                                 {
-                                    model: PiddDet.scope('creditPaymentType'),
+                                    model: PiddDet,
                                     as: 'singular_detail_price_list',
                                     attributes: [],
+                                    where: {
+                                        pidd_payment_type: 9942
+                                    }
                                 }, {
                                     model: PiMstr,
                                     as: 'master_price_list',
