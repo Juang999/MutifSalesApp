@@ -510,7 +510,9 @@ class CartService {
                 cs_invc_oid: inventoryOid,
                 cs_userid: userId,
                 cs_preorder: preOrder,
-                cs_trans_id: 'D',
+                cs_trans_id: {
+                    [Op.notIn]: ['X', 'C']
+                },
             }
         })
 
@@ -609,6 +611,7 @@ class CartService {
         let result = await ChartSales.update({
             cs_qty: quantity,
             cs_trans_id: transId,
+            cs_trans_id: 'D',
             cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
         }, {
             where: {

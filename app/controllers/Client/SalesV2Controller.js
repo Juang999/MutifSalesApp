@@ -121,6 +121,7 @@ class SalesV2Controller {
     
                 for (const singular of rawData) {
                     let dataUser = {userid, username};
+                    if (parseInt(singular.qty) != 0) {
                         let bodyCart = {
                             productId: singular.pt_id, 
                             entityId: singular.en_id, 
@@ -133,6 +134,7 @@ class SalesV2Controller {
                             CartService.inputIntoCart(bodyCart, dataUser, 'N'),
                             InventoryService.bookQty(singular.invc_oid, parseInt(singular.qty))
                         ])
+                    }
                 }
             })
 
