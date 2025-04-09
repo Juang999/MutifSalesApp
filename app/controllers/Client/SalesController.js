@@ -210,9 +210,9 @@ class SalesController {
     }
 
     readyToCheckout = (req, res) => {
-        let {userid} = Auth.user();
+        let {userid, ptnrg_id} = Auth.user();
 
-        CartService.retrieveDataToCheckout(userid, 'D', 'N')
+        CartService.retrieveDataToCheckout(userid, ptnrg_id, 'D', 'N')
         .then(result => {
             res.status(200)
                 .json({

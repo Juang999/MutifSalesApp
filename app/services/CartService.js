@@ -127,7 +127,7 @@ class CartService {
         return result;
     }
 
-    retrieveDataToCheckout = async (userId, transId, preOrder) => {
+    retrieveDataToCheckout = async (userId, groupId, transId, preOrder) => {
         let result = await TConfUser.findOne({
                     attributes: [
                         [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
@@ -204,13 +204,20 @@ class CartService {
                                             attributes: [],
                                             include: [
                                                 {
-                                                    model: PiMstr.scope('activePriceList'),
+                                                    model: PiMstr,
                                                     as: 'master_price_list',
                                                     attributes: [],
+                                                    where: {
+                                                        pi_ptnrg_id: groupId,
+                                                        pi_active: 'Y'
+                                                    }
                                                 }, {
-                                                    model: PiddDet.scope('creditPaymentType'),
+                                                    model: PiddDet,
                                                     as: 'singular_detail_price_list',
                                                     attributes: [],
+                                                    where: {
+                                                        pidd_payment_type: 9942
+                                                    }
                                                 }
                                             ]
                                         }
@@ -253,6 +260,9 @@ class CartService {
                         Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
                         Sequelize.literal('"chart_sales->product"."pt_weight"')
                     ],
+                    logging: (sqlCommand) => {
+                        console.info(sqlCommand)
+                    }
                 })
 
         return result;
