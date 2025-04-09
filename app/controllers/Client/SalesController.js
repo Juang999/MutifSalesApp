@@ -54,7 +54,7 @@ class SalesController {
                     ])
                 } else {
                     let cartSalesOid = dataCart.dataValues.cs_oid;
-                    let cartQty = parseInt(dataCart.dataValues.cs_qty) + parseInt(quantity);
+                    let cartQty = (dataCart.dataValues.cs_trans_id == 'E') ? parseInt(quantity) : parseInt(dataCart.dataValues.cs_qty) + parseInt(quantity);
 
                     await Promise.all([
                         CartService.updateCart(cartSalesOid, cartQty, dataCart.dataValues.cs_trans_id, t),
