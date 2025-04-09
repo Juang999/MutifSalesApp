@@ -280,9 +280,13 @@ class CartService {
                             attributes: [],
                             include: [
                                 {
-                                    model: PiMstr.scope({method: ['priceListGroup', groupId]}),
+                                    model: PiMstr,
                                     as: 'master_price_list',
                                     attributes: [],
+                                    where: {
+                                        pi_ptnrg_id: groupId,
+                                        pi_active: 'Y'
+                                    }
                                 }, {
                                     model: PiddDet.scope('creditPaymentType'),
                                     as: 'singular_detail_price_list',
@@ -306,7 +310,6 @@ class CartService {
                 'photo',
             ],
             limit: 15,
-            logging: false
         })
 
         return result;
