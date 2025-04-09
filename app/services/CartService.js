@@ -612,6 +612,7 @@ class CartService {
             cs_qty: quantity,
             cs_trans_id: transId,
             cs_trans_id: 'D',
+            cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
         }, {
             where: {
