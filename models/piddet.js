@@ -72,7 +72,7 @@ module.exports = (sequelize, DataTypes) => {
         return {
           where: {
             pid_pi_oid: {
-              [Op.in]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_ptnrg_id = ${partnerGroupId} AND pi_active = 'Y')`)
+              [Op.in]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_ptnrg_id = ${partnerGroupId} AND pi_shown = 'Y')`)
             }
           }
         }

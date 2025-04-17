@@ -209,7 +209,7 @@ class CartService {
                                                     attributes: [],
                                                     where: {
                                                         pi_ptnrg_id: groupId,
-                                                        pi_active: 'Y'
+                                                        pi_shown: 'Y'
                                                     }
                                                 }, {
                                                     model: PiddDet,
@@ -295,7 +295,7 @@ class CartService {
                                     attributes: [],
                                     where: {
                                         pi_ptnrg_id: groupId,
-                                        pi_active: 'Y'
+                                        pi_shown: 'Y'
                                     }
                                 }, {
                                     model: PiddDet.scope('creditPaymentType'),
@@ -354,7 +354,7 @@ class CartService {
             LEFT JOIN public.pidd_det AS detail_price_list ON detail_price_list.pidd_pid_oid = relation_price_list.pid_oid
             WHERE cs_userid = :userid
             AND master_price_list.pi_ptnrg_id = :group_id
-            AND master_price_list.pi_active = 'Y'
+            AND master_price_list.pi_shown = 'Y'
             AND detail_price_list.pidd_payment_type = 9942
             AND cs_trans_id = :transId
             AND cs_preorder = :preOrder
@@ -503,7 +503,7 @@ class CartService {
                     Sequelize.where(Sequelize.col(`"product->singular_relation_price_list->master_price_list"."pi_id"`), {
                         [Op.eq]: Sequelize.literal(`cs_pi_id`)
                     }),
-                    Sequelize.where(Sequelize.col(`"product->singular_relation_price_list->master_price_list"."pi_active"`), {
+                    Sequelize.where(Sequelize.col(`"product->singular_relation_price_list->master_price_list"."pi_shown"`), {
                         [Op.eq]: 'Y'
                     }),
                 ]

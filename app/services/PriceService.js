@@ -32,6 +32,9 @@ class PriceService {
                 }),
                 Sequelize.where(Sequelize.literal(`"master_price_list"."pi_ptnrg_id"`), {
                     [Op.eq]: groupId
+                }),
+                Sequelize.where(Sequelize.col(`"master_price_list"."pi_shown"`), {
+                    [Op.eq]: 'Y'
                 })
             ],
         })

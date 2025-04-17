@@ -201,7 +201,6 @@ class ProductService {
                 pt_code: param.product_code,
                 pt_shown: 'Y'
             },
-            logging: false
         })
 
         return result

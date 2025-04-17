@@ -42,7 +42,8 @@ module.exports = (sequelize, DataTypes) => {
     pi_end_date: DataTypes.DATE,
     pi_active: DataTypes.STRING,
     pi_dt: DataTypes.DATE,
-    pi_ptnrg_id: DataTypes.INTEGER
+    pi_ptnrg_id: DataTypes.INTEGER,
+    pi_shown: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',
@@ -67,12 +68,12 @@ module.exports = (sequelize, DataTypes) => {
       priceListGroup(partnerGroupId) {
         return {
           pi_ptnrg_id: partnerGroupId,
-          pi_active: 'Y'
+          pi_shown: 'Y'
         }
       },
       activePriceList: {
         where: {
-          pi_active: 'Y'
+          pi_shown: 'Y'
         }
       }
     }
