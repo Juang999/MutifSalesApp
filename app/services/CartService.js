@@ -596,7 +596,7 @@ class CartService {
     }
 
     inputIntoCart = async (body, dataUser, preOrder, transaction) => {
-        let result = await ChartSales.create({
+        await ChartSales.create({
             cs_oid: uuidv4(),
             cs_userid: dataUser.userid,
             cs_pt_id: body.productId,
@@ -619,8 +619,6 @@ class CartService {
                 insertQuery(realSql, bind, 1);
             }
         })
-
-        return result;
     }
 
     updateCart = async (cartSalesOid, quantity, transId, transaction) => {

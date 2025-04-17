@@ -205,8 +205,6 @@ class ProductService {
 
         return result
     }
-
-    
 }
 
 module.exports = new ProductService();

@@ -68,6 +68,7 @@ class SalesV2Controller {
 
     getDetailDataCart = async (req, res) => {
             try {
+                await this.expireData(Auth.user().userid);
                 let dataCart = await CartService.getDetailDataCart(req.params.product_id, Auth.user().userid, 'N');
 
                 if (!dataCart) {

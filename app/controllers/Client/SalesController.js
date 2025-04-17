@@ -8,6 +8,7 @@ const {
 } = require('../../services/ServiceContainer');
 const {v4: uuidv4} = require('uuid');
 const {serverSetting} = require('../../../helper/Helper');
+const {expireData} = require('./SalesV2Controller');
 
 class SalesController {
     inputIntoChart = async (req, res) => {
@@ -22,6 +23,8 @@ class SalesController {
             } = body;
         
             let transaction = await sequelize.transaction(async t => {
+                await expireData(userid);
+
                 let [dataQtyProduct, dataCart] = await Promise.all([
                     InventoryService.getDataInventory(inventoryOid, t),
                     CartService.findDataCart(productId, inventoryOid, userid, 'N'), 
@@ -88,11 +91,13 @@ class SalesController {
         }
     }
 
-    getDataChart = (req, res) => {
-        let {userid} = Auth.user();
+    getDataChart = async (req, res) => {
+        try {
+            let {userid} = Auth.user();
+            await expireData(userid);
 
-        CartService.retrieveDataCart(userid, 'D', 'N')
-        .then(result => {
+            let result = await CartService.retrieveDataCart(userid, 'D', 'N');
+
             res.status(200)
                 .json({
                     status: 'success',
@@ -100,18 +105,17 @@ class SalesController {
                     data: result,
                     error: null
                 })
-        })
-        .catch(err => {
-            errorLog('GET CHART', err.message)
-
+        } catch (error) {
+            errorLog('GET CHART', error.message)
+    
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
-        })
+        }
     }
 
     updateChart = (req, res) => {
@@ -120,6 +124,8 @@ class SalesController {
         let {qty} = req.body;
 
         sequelize.transaction(async t => {
+            await expireData(userid);
+
             let {dataValues: dataCart} = await CartService.findDataCartByOid(cart_oid, userid);
             let {dataValues: dataInventory} = await InventoryService.getDataInventory(dataCart.cs_invc_oid, t)
 
@@ -164,6 +170,8 @@ class SalesController {
         let {userid: userId, usernama: userName} = Auth.user();
 
         sequelize.transaction(async t => {
+            await expireData(userId)
+
             let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N');
 
             for (const {dataValues: singularDataCart} of dataCart) {
@@ -209,11 +217,13 @@ class SalesController {
             })
     }
 
-    readyToCheckout = (req, res) => {
-        let {userid, ptnrg_id} = Auth.user();
+    readyToCheckout = async (req, res) => {
+        try {
+            let {userid, ptnrg_id} = Auth.user();
+            await expireData(userid);
 
-        CartService.retrieveDataToCheckout(userid, ptnrg_id, 'D', 'N')
-        .then(result => {
+            let result = await CartService.retrieveDataToCheckout(userid, ptnrg_id, 'D', 'N');
+
             res.status(200)
                 .json({
                     status: 'success',
@@ -221,18 +231,17 @@ class SalesController {
                     data: result,
                     error: null
                 })
-        })
-        .catch(err => {
-            errorLog('GET DETAIL USER', err.message)
+        } catch (error) {
+            errorLog('GET DETAIL USER', error.message)
 
             res.status(400)
                 .json({
                     status: 'failed',
                     message: 'error',
                     data: null,
-                    error: err.message
+                    error: error.message
                 })
-        })
+        }
     }
 
     updatePaymentStatus = async (req, res) => {
