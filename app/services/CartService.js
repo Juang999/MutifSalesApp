@@ -555,7 +555,9 @@ class CartService {
                 [Sequelize.literal(`(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))`), 'available_quantity'],
                 [Sequelize.literal(`CAST("detail_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("detail_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                [Sequelize.literal(`CASE WHEN "product"."pt_weight" IS NULL THEN 600 ELSE CAST("product"."pt_weight" AS BIGINT) END`), 'weight']
+                [Sequelize.literal(`CASE WHEN "product"."pt_weight" IS NULL THEN 600 ELSE CAST("product"."pt_weight" AS BIGINT) END`), 'pt_weight'],
+                [Sequelize.literal(`CASE WHEN "product"."pt_height" IS NULL THEN 600 ELSE CAST("product"."pt_height" AS BIGINT) END`), 'pt_height'],
+                [Sequelize.literal(`CASE WHEN "product"."pt_width" IS NULL THEN 600 ELSE CAST("product"."pt_width" AS BIGINT) END`), 'pt_width'],
             ],
             include: [
                 {
@@ -594,7 +596,9 @@ class CartService {
                 'available_quantity',
                 Sequelize.col(`"detail_relation_price_list->singular_detail_price_list"."pidd_price"`),
                 Sequelize.col(`"detail_relation_price_list->singular_detail_price_list"."pidd_disc"`),
-                Sequelize.col(`"product"."pt_weight"`)
+                Sequelize.col(`"product"."pt_weight"`),
+                Sequelize.col(`"product"."pt_height"`),
+                Sequelize.col(`"product"."pt_width"`),
             ]
         })
 
