@@ -179,90 +179,11 @@ class CartService {
                                     ]
                                 }
                             ]
-                        }, {
-                            model: ChartSales,
-                            as: 'chart_sales',
-                            attributes: [
-                                'cs_oid',
-                                [Sequelize.literal('"chart_sales->product"."pt_desc_jubelio"'), 'product_name'],
-                                [Sequelize.literal('"chart_sales->product"."pt_code"'), 'product_code'],
-                                [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'chart_quantity'],
-                                [Sequelize.literal('(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))'), 'available_quantity'],
-                                [Sequelize.literal(`CAST("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
-                                [Sequelize.literal(`ROUND("chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                                [Sequelize.literal(`CASE WHEN "chart_sales->product"."pt_weight" IS NULL THEN 600 ELSE CAST("chart_sales->product"."pt_weight" AS INTEGER) END`), 'pt_weight']
-                            ],
-                            include: [
-                                {
-                                    model: PtMstr,
-                                    as: 'product',
-                                    attributes: [],
-                                    include: [
-                                        {
-                                            model: PidDet,
-                                            as: 'singular_relation_price_list',
-                                            attributes: [],
-                                            include: [
-                                                {
-                                                    model: PiMstr,
-                                                    as: 'master_price_list',
-                                                    attributes: [],
-                                                    where: {
-                                                        pi_ptnrg_id: groupId,
-                                                        pi_shown: 'Y'
-                                                    }
-                                                }, {
-                                                    model: PiddDet,
-                                                    as: 'singular_detail_price_list',
-                                                    attributes: [],
-                                                    where: {
-                                                        pidd_payment_type: 9942
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    ],
-                                    where: {
-                                        pt_shown: 'Y'
-                                    }
-                                }
-                            ],
-                            where: {
-                                cs_preorder: preOrder,
-                                cs_trans_id: transId,
-                            }
                         }
                     ],
                     where: {
                         userid: userId
                     },
-                    group: [
-                        'userid',
-                        Sequelize.col('"detail_partner"."ptnr_id"'),
-                        Sequelize.col('"detail_partner"."ptnr_name"'),
-                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_3"'),
-                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_2"'),
-                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_line_1"'),
-                        Sequelize.col('"detail_partner->singular_partner_address->singular_contact_addr"."ptnrac_phone_1"'),
-                        Sequelize.col('"detail_partner->singular_partner_address->singular_contact_addr"."ptnrac_email"'),
-                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_prov_id"'),
-                        Sequelize.col('"detail_partner->singular_partner_address->singular_province"."prop_name"'),
-                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_city_id"'),
-                        Sequelize.col(`"detail_partner->singular_partner_address->singular_city"."kota_name"`),
-                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kec_id"'),
-                        Sequelize.col(`"detail_partner->singular_partner_address->singular_kecamatan"."kec_name"`),
-                        Sequelize.col('"detail_partner->singular_partner_address"."ptnra_kel_id"'),
-                        Sequelize.col(`"detail_partner->singular_partner_address->singular_kelurahan"."kel_name"`),
-                        Sequelize.col('"chart_sales"."cs_oid"'),
-                        Sequelize.literal('"chart_sales->product"."pt_desc_jubelio"'),
-                        Sequelize.literal('"chart_sales->product"."pt_code"'),
-                        Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_price"'),
-                        Sequelize.literal('"chart_sales->product->singular_relation_price_list->singular_detail_price_list"."pidd_disc"'),
-                        Sequelize.literal('"chart_sales->product"."pt_weight"')
-                    ],
-                    logging: (sqlCommand) => {
-                        console.info(sqlCommand)
-                    }
                 })
 
         return result;
@@ -618,6 +539,61 @@ class CartService {
 
                 insertQuery(realSql, bind, 1);
             }
+        })
+
+        return result;
+    }
+
+    getDataCartForCheckout = async (userId) => {
+        let result = await ChartSales.findAll({
+            attributes: [
+                [Sequelize.col(`"product"."pt_desc_jubelio"`), 'product_name'],
+                [Sequelize.col(`"product"."pt_code"`), 'product_code'],
+                [Sequelize.literal(`CAST(SUM(cs_qty) AS INTEGER)`), 'chart_quantity'],
+                [Sequelize.literal(`(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))`), 'available_quantity'],
+                [Sequelize.literal(`CAST("detail_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+                [Sequelize.literal(`ROUND("detail_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+                [Sequelize.literal(`CAST("product"."pt_weight" AS BIGINT)`), 'weight']
+            ],
+            include: [
+                {
+                    model: PtMstr,
+                    as: 'product',
+                    attributes: []
+                }, {
+                    model: PidDet,
+                    as: 'detail_relation_price_list',
+                    attributes: [],
+                    include: [
+                        {
+                            model: PiddDet,
+                            as: 'singular_detail_price_list',
+                            attributes: [],
+                            where: {
+                                pidd_payment_type: 9942
+                            }
+                        }
+                    ],
+                    where: {
+                        pid_pi_oid: {
+                            [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = "cs_pi_id")`)
+                        }
+                    }
+                }
+            ],
+            where: {
+                cs_userid: userId,
+                cs_trans_id: 'D',
+            },
+            group: [
+                'cs_pt_id',
+                Sequelize.col(`"product"."pt_desc_jubelio"`),
+                Sequelize.col(`"product"."pt_code"`),
+                'available_quantity',
+                Sequelize.col(`"detail_relation_price_list->singular_detail_price_list"."pidd_price"`),
+                Sequelize.col(`"detail_relation_price_list->singular_detail_price_list"."pidd_disc"`),
+                Sequelize.col(`"product"."pt_weight"`)
+            ]
         })
 
         return result;

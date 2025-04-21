@@ -222,13 +222,18 @@ class SalesController {
             let {userid, ptnrg_id} = Auth.user();
             await expireData(userid);
 
-            let result = await CartService.retrieveDataToCheckout(userid, ptnrg_id, 'D', 'N');
+            let [dataUser, dataCart] = await Promise.all([
+                CartService.retrieveDataToCheckout(userid, ptnrg_id, 'D', 'N'),
+                CartService.getDataCartForCheckout(userid)
+            ])
+
+            dataUser.dataValues.chart_sales = dataCart;
 
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: result,
+                    data: dataUser,
                     error: null
                 })
         } catch (error) {

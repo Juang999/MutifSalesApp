@@ -53,6 +53,12 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: 'trans_id',
         foreignKey: 'cs_trans_id'
       })
+
+      ChartSales.hasOne(models.PidDet, {
+        as: 'detail_relation_price_list',
+        sourceKey: 'cs_pt_id',
+        foreignKey: 'pid_pt_id'
+      })
     }
   }
   ChartSales.init({
