@@ -450,6 +450,8 @@ class CartService {
                 cs_trans_id: {
                     [Op.notIn]: ['X', 'C']
                 },
+                cs_deleted_at: null,
+                cs_deleted_by: null
             }
         })
 
@@ -553,7 +555,7 @@ class CartService {
                 [Sequelize.literal(`(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))`), 'available_quantity'],
                 [Sequelize.literal(`CAST("detail_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("detail_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
-                [Sequelize.literal(`CAST("product"."pt_weight" AS BIGINT)`), 'weight']
+                [Sequelize.literal(`CASE WHEN "product"."pt_weight" IS NULL THEN 600 ELSE CAST("product"."pt_weight" AS BIGINT) END`), 'weight']
             ],
             include: [
                 {
@@ -606,6 +608,8 @@ class CartService {
             cs_trans_id: 'D',
             cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_deleted_at: null,
+            cs_deleted_by: null
         }, {
             where: {
                 cs_oid: cartSalesOid
