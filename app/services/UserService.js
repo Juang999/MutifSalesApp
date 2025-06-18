@@ -18,7 +18,8 @@ class UserService {
                 'password',
                 'groupid',
                 'user_ptnr_id',
-                [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id']
+                [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'ptnrg_id'],
+                'user_flashsale'
             ],
             include: [
                 {

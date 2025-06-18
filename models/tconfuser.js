@@ -76,6 +76,7 @@ module.exports = (sequelize, DataTypes) => {
     user_imei: DataTypes.STRING,
     nik_id: DataTypes.STRING,
     user_ptnrg_id: DataTypes.INTEGER,
+    user_flashsale: DataTypes.BOOLEAN,
     // user_group_id: DataTypes.INTEGER,
     // username: DataTypes.STRING,
     // api_token: DataTypes.STRING,

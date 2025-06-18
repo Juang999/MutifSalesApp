@@ -35,6 +35,18 @@ class AuthController {
                 return;
             }
 
+            if (user.dataValues.user_flashsale != true) {
+                res.status(400)
+                    .json({
+                        status: 'fales',
+                        message: 'Unauthorized',
+                        data: null,
+                        error: null
+                    })
+
+                return;
+            }
+
             let token = this.createToken(user.dataValues);
             await UserService.insertToken(user.dataValues.userid, token);
 
