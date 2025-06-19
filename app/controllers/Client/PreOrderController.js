@@ -8,7 +8,7 @@ const {CartService, InventoryService} = require('../../services/ServiceContainer
 
 class PreOrderController {
     index = async (req, res) => {
-        CartService.retrieveDataCart(Auth.user().userid, 'Y')
+        CartService.retrieveDataCart(Auth.user().userid, 'Y', Auth.user().groupid)
         .then(result => {
             res.status(200)
                 .json({
