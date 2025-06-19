@@ -130,7 +130,7 @@ class PriceService {
                     [Op.eq]: entityId
                 }),
                 Sequelize.where(Sequelize.literal(`"master_price_list"."pi_oid"`), {
-                    [Op.in]: ['75606dee-e498-4a5e-9858-568dfb1fb117', '83415091-54cc-4fd1-8e10-0dac3561fb9c', '80c389eb-dd3a-409c-81b3-c236e98f2c32']
+                    [Op.in]: ['2493473d-f084-4150-a6ed-7c121a240608', '0fd554aa-f8e8-44b1-b8fa-15e4e9753013', '37aecb7a-e6e2-4bbc-a4d2-818e9954de81']
                 }),
                 Sequelize.where(Sequelize.col(`"master_price_list"."pi_shown"`), {
                     [Op.eq]: 'Y'
