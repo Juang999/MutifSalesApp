@@ -102,6 +102,44 @@ class PriceService {
 
         return result;
     }
+
+    getPriceFlashSale = async (productId, entityId) => {
+        const result = await PidDet.findOne({
+            attributes: [
+                [Sequelize.literal(`master_price_list.pi_id`), 'pi_id'],
+                [Sequelize.col(`master_price_list.pi_desc`), 'pricelist_name'],
+                [Sequelize.literal(`CAST("singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
+                [Sequelize.literal(`ROUND("singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
+            ],
+            include: [
+                {
+                    model: PiMstr,
+                    as: 'master_price_list',
+                    attributes: [],
+                }, {
+                    model: PiddDet.scope('creditPaymentType'),
+                    as: 'singular_detail_price_list',
+                    attributes: []
+                }
+            ],
+            where: [
+                Sequelize.where(Sequelize.col('pid_pt_id'), {
+                    [Op.eq]: productId,
+                }),
+                Sequelize.where(Sequelize.literal(`"master_price_list"."pi_en_id"`), {
+                    [Op.eq]: entityId
+                }),
+                Sequelize.where(Sequelize.literal(`"master_price_list"."pi_oid"`), {
+                    [Op.in]: ['75606dee-e498-4a5e-9858-568dfb1fb117', '83415091-54cc-4fd1-8e10-0dac3561fb9c', '80c389eb-dd3a-409c-81b3-c236e98f2c32']
+                }),
+                Sequelize.where(Sequelize.col(`"master_price_list"."pi_shown"`), {
+                    [Op.eq]: 'Y'
+                })
+            ],
+        })
+
+        return result;
+    }
 }
 
 module.exports = new PriceService();
