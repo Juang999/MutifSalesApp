@@ -98,7 +98,7 @@ class CheckoutController {
                 sq_ptnr_id_sold: user.user_ptnr_id,
                 sq_ptnr_id_bill: user.user_ptnr_id,
                 sq_date: moment().format('YYYY-MM-DD HH:mm:ss'),
-                sq_credit_term: 999,
+                sq_credit_term: 303,
                 sq_taxable: 'N',
                 sq_tax_class: 9949,
                 sq_si_id: 992,
