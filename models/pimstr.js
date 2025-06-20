@@ -43,7 +43,8 @@ module.exports = (sequelize, DataTypes) => {
     pi_active: DataTypes.STRING,
     pi_dt: DataTypes.DATE,
     pi_ptnrg_id: DataTypes.INTEGER,
-    pi_shown: DataTypes.STRING
+    pi_shown: DataTypes.STRING,
+    pi_flashsale: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',

@@ -4,9 +4,9 @@ const {index, indexFlashSale, getProductWithGetDescQty, detail, detailFlashSale,
 const {Middleware} = require('../../app/Kernel');
 
 router.get('/', [Middleware.CheckLoginMiddleware], index);
-router.get('/flash-sale-jumbo', indexFlashSale);
+router.get('/flash-sale-jumbo', [Middleware.CheckLoginMiddleware], indexFlashSale);
 router.get('/:product_code/detail', [Middleware.CheckLoginMiddleware], detail);
-router.get('/flash-sale-jumbo/:product_code/detail', detailFlashSale);
+router.get('/flash-sale-jumbo/:product_code/detail', [Middleware.CheckLoginMiddleware], detailFlashSale);
 router.get('/getdesc-qty', getProductWithGetDescQty);
 router.get('/getdesc-qty/:product_code/detail', getDetailProductWithGetDescQty);
 

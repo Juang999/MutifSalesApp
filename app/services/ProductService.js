@@ -1,4 +1,5 @@
 const {
+    PiMstr,
     PtMstr, EnMstr, 
     LocMstr,PiddDet, 
     InvcMstr, PidDet, 
@@ -7,7 +8,7 @@ const {
 const {Op} = require('sequelize');
 
 class ProductService {
-    getProduct = async (query, groupId) => {
+    getProduct = async (query, groupId, isFlashSale) => {
         let productName = (query.search) ? query.search : '';
 
         let result = await InvcMstr.findAll({
@@ -37,13 +38,17 @@ class ProductService {
                             as: 'master_category',
                             attributes: []
                         }, {
-                            model: PidDet.scope({method: ['priceListGroup', groupId]}),
+                            model: PidDet,
                             as: 'singular_relation_price_list',
                             attributes: [],
                             include: [
                                 {
                                     model: PiddDet.scope('creditPaymentType'),
                                     as: 'singular_detail_price_list',
+                                    attributes: []
+                                }, {
+                                    model: PiMstr,
+                                    as: 'master_price_list',
                                     attributes: []
                                 }
                             ]
@@ -58,6 +63,15 @@ class ProductService {
                     }),
                     Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_shown"`), {
                         [Op.eq]: `Y`
+                    }),
+                    Sequelize.where(Sequelize.literal(`"product_knowledge->singular_relation_price_list->master_price_list"."pi_ptnrg_id"`), {
+                        [Op.eq]: groupId
+                    }),
+                    Sequelize.where(Sequelize.literal(`"product_knowledge->singular_relation_price_list->master_price_list"."pi_shown"`), {
+                        [Op.eq]: 'Y'
+                    }),
+                    Sequelize.where(Sequelize.literal(`"product_knowledge->singular_relation_price_list->master_price_list"."pi_flashsale"`), {
+                        [Op.eq]: isFlashSale
                     }),
                 ],
                 [Op.or]: [
@@ -114,6 +128,9 @@ class ProductService {
             order: [
                 ['qty', 'DESC']
             ],
+            logging: (sqlCommand) => {
+                console.info(sqlCommand)
+            }
         })
 
         return result;

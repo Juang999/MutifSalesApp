@@ -13,7 +13,7 @@ class ProductV3Controller {
             partnerGroupId = ptnrg_id;
         }
 
-        ProductService.getProduct(req.query, partnerGroupId)
+        ProductService.getProduct(req.query, partnerGroupId, 'N')
         .then(result => {
             res.status(200)
                 .json({
@@ -37,7 +37,14 @@ class ProductV3Controller {
     }
 
     indexFlashSale = (req, res) => {
-        ProductService.getProductFlashSale(req.query)
+        let {ptnrg_id} = Auth.user();
+        let partnerGroupId = 9916;
+
+        if (ptnrg_id != null) {
+            partnerGroupId = ptnrg_id;
+        }
+
+        ProductService.getProduct(req.query, partnerGroupId, 'Y')
         .then(result => {
             res.status(200)
                 .json({
@@ -48,7 +55,7 @@ class ProductV3Controller {
                 })
         })
         .catch(err => {
-            errorLog('GET PRODUCT', err.message);
+            errorLog('GET PRODUCT FLASH SALE JUMBO', err.message);
 
             res.status(400)
                 .json({
@@ -132,7 +139,7 @@ class ProductV3Controller {
                 return;
             }
 
-            let dataPrice = await PriceService.getPrice(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id, partnerGroupId)
+            let dataPrice = await PriceService.getPrice(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id, partnerGroupId, 'N')
 
             if (!dataPrice) {
                 res.status(404)
@@ -185,6 +192,13 @@ class ProductV3Controller {
 
     detailFlashSale = async (req, res) => {
         try {
+            let {ptnrg_id} = Auth.user();
+            let partnerGroupId = 9916;
+    
+            if (ptnrg_id != null) {
+                partnerGroupId = ptnrg_id;
+            }
+
             let dataProduct = await ProductService.getDetailProduct(req.params)
 
             if (!dataProduct) {
@@ -199,7 +213,7 @@ class ProductV3Controller {
                 return;
             }
 
-            let dataPrice = await PriceService.getPriceFlashSale(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id)
+            let dataPrice = await PriceService.getPrice(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id, partnerGroupId, 'Y')
 
             if (!dataPrice) {
                 res.status(404)
@@ -238,7 +252,7 @@ class ProductV3Controller {
                     error: null
                 })
         } catch (error) {
-            await errorLog('GET DETAIL PRODUCT', `USER: ${Auth.user().usernama} | GROUP: ${Auth.user().groupid} | DETAIL ${req.params.product_code} | ${error.message}`)
+            await errorLog('GET DETAIL PRODUCT FLASH SALE JUMBO', `USER: ${Auth.user().usernama} | GROUP: ${Auth.user().groupid} | DETAIL ${req.params.product_code} | ${error.message}`)
 
             res.status(400)
                 .json({
