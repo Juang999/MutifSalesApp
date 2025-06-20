@@ -131,9 +131,6 @@ class PriceService {
                 }),
                 Sequelize.where(Sequelize.literal(`"master_price_list"."pi_oid"`), {
                     [Op.in]: ['2493473d-f084-4150-a6ed-7c121a240608', '0fd554aa-f8e8-44b1-b8fa-15e4e9753013', '37aecb7a-e6e2-4bbc-a4d2-818e9954de81']
-                }),
-                Sequelize.where(Sequelize.col(`"master_price_list"."pi_shown"`), {
-                    [Op.eq]: 'Y'
                 })
             ],
         })
