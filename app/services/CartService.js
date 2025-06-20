@@ -16,7 +16,7 @@ const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOu
 
 class CartService {
     retrieveDataCart = async (userId, preOrder, groupId, isFlashSale) => {
-        let result = await ChartSales.scope('showCart').findAll({
+        let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
                 ['cs_pt_en_id', 'entity_id'],
@@ -60,10 +60,6 @@ class CartService {
                     model: TransStatus,
                     as: 'status_transaction',
                     attributes: []
-                }, {
-                    model: InvcMstr.scope({method: ['matchEntityWithLocation', Sequelize.literal(`"product"."pt_en_id"`)]}),
-                    as: 'qty_location',
-                    attributes: [],
                 }
             ],
             where: {
@@ -72,6 +68,7 @@ class CartService {
                 cs_trans_id: {
                     [Op.in]: ['D', 'E']
                 },
+                cs_flashsale: isFlashSale,
                 cs_deleted_at: null,
                 [Op.and]: [
                     Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_ptnrg_id"`), {
@@ -96,6 +93,7 @@ class CartService {
                 'transaction_code',
                 'transaction_status',
             ],
+            subQuery: false,
         })
 
         return result;

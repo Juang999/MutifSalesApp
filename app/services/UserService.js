@@ -31,9 +31,11 @@ class UserService {
             where: {
                 usernama: username,
                 password: password,
-                user_ptnr_id: {
-                    [Op.in]: Sequelize.literal("(SELECT ptnr_id FROM public.ptnr_mstr WHERE ptnr_is_emp = 'Y')")
-                }
+                [Op.and]: [
+                    Sequelize.where(Sequelize.literal(`"detail_partner"."ptnr_is_emp"`), {
+                        [Op.eq]: 'Y'
+                    })
+                ]
             }
         })
 

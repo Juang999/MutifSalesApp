@@ -93,10 +93,10 @@ class SalesController {
 
     getDataChart = async (req, res) => {
         try {
-            let {userid, groupid} = Auth.user();
+            let {userid, ptnrg_id} = Auth.user();
             await expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'D', groupid, 'N');
+            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id, 'N');
 
             res.status(200)
                 .json({
