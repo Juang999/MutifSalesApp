@@ -35,6 +35,7 @@ app.use('/client/product', require('./routes/Client/product'));
 app.use('/client/shipment', require('./routes/Client/shipment'));
 app.use('/client/wishlist', require('./routes/Client/wishlist'));
 app.use('/client/pre-order', require('./routes/Client/preorder'));
+app.use('/client/flash-sale-jumbo', require('./routes/Client/cartflashsale'));
 
 // routes V2 for client
 app.use('/V2/client/sales', require('./routes/Client/salesV2'));

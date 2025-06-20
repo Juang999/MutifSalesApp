@@ -52,7 +52,7 @@ class SalesController {
                     let bodyCart = {productId, entityId, inventoryOid, priceListId, quantity: parseInt(quantity)};
 
                     await Promise.all([
-                        CartService.inputIntoCart(bodyCart, dataUser, 'N', t),
+                        CartService.inputIntoCart(bodyCart, dataUser, 'N', 'N', t),
                         InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
                     ])
                 } else {
@@ -93,10 +93,10 @@ class SalesController {
 
     getDataChart = async (req, res) => {
         try {
-            let {userid} = Auth.user();
+            let {userid, groupid} = Auth.user();
             await expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'D', 'N');
+            let result = await CartService.retrieveDataCart(userid, 'D', groupid, 'N');
 
             res.status(200)
                 .json({
@@ -106,7 +106,7 @@ class SalesController {
                     error: null
                 })
         } catch (error) {
-            errorLog('GET CHART', error.message)
+            errorLog('GET CART', error.message)
     
             res.status(400)
                 .json({
@@ -130,7 +130,6 @@ class SalesController {
             let {dataValues: dataInventory} = await InventoryService.getDataInventory(dataCart.cs_invc_oid, t)
 
             if (parseInt(qty) > parseInt(dataCart.cs_qty)) {
-                console.info(qty)
                 await this.increaseQtyCart(dataCart, dataInventory, qty, t);
             } else if (parseInt(qty) < parseInt(dataCart.cs_qty) && parseInt(qty) != 0) {
                 await this.decreaseDataCart(dataCart, dataInventory, qty, t);
@@ -172,7 +171,7 @@ class SalesController {
         sequelize.transaction(async t => {
             await expireData(userId)
 
-            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N');
+            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N', 'N');
 
             for (const {dataValues: singularDataCart} of dataCart) {
                 let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularDataCart.cs_invc_oid, t);
@@ -205,16 +204,6 @@ class SalesController {
                     error: err.message
                 })
         })
-    }
-
-    buyBack = async (req, res) => {
-        res.status(200)
-            .json({
-                status:'success',
-                message: 'ok',
-                data: 'berhasil membeli kembali',
-                error: null
-            })
     }
 
     readyToCheckout = async (req, res) => {

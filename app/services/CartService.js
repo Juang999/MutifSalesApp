@@ -15,7 +15,7 @@ const {Op} = require('sequelize');
 const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOut');
 
 class CartService {
-    retrieveDataCart = async (userId, preOrder, groupId) => {
+    retrieveDataCart = async (userId, preOrder, groupId, isFlashSale) => {
         let result = await ChartSales.scope('showCart').findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -40,13 +40,17 @@ class CartService {
                     attributes: [],
                     include: [
                         {
-                            model: PidDet.scope({method: ['priceListGroup', groupId]}),
+                            model: PidDet,
                             as: 'singular_relation_price_list',
                             attributes: [],
                             include: [
                                 {
                                     model: PiddDet.scope('creditPaymentType'),
                                     as: 'singular_detail_price_list',
+                                    attributes: []
+                                }, {
+                                    model: PiMstr,
+                                    as: 'master_price_list',
                                     attributes: []
                                 }
                             ]
@@ -68,7 +72,18 @@ class CartService {
                 cs_trans_id: {
                     [Op.in]: ['D', 'E']
                 },
-                cs_deleted_at: null
+                cs_deleted_at: null,
+                [Op.and]: [
+                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_ptnrg_id"`), {
+                        [Op.eq]: groupId
+                    }),
+                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_shown"`), {
+                        [Op.eq]: 'Y'
+                    }),
+                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_flashsale"`), {
+                        [Op.eq]: isFlashSale
+                    })
+                ]
             },
             group: [
                 'cs_pt_id',
@@ -100,7 +115,7 @@ class CartService {
         return result;
     }
 
-    retrieveDataCartThatShouldBeExpired = async (userId, preOrder) => {
+    retrieveDataCartThatShouldBeExpired = async (userId, preOrder, isFlashSale) => {
         let result = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -113,6 +128,9 @@ class CartService {
                 }),
                 Sequelize.where(Sequelize.col(`cs_preorder`), {
                     [Op.eq]: preOrder
+                }),
+                Sequelize.where(Sequelize.col(`cs_flashsale`), {
+                    [Op.eq]: isFlashSale
                 }),
                 Sequelize.where(Sequelize.col(`cs_trans_id`), {
                     [Op.not]: 'E'
@@ -246,7 +264,7 @@ class CartService {
         return result;
     }
 
-    retrieveDataCartByProductId = async (productId, userId, preOrder) => {
+    retrieveDataCartByProductId = async (productId, userId, preOrder, isFlashSale) => {
         let result = await ChartSales.scope('showCart').findAll({
             attributes: [
                 'cs_oid',
@@ -258,6 +276,7 @@ class CartService {
                 cs_pt_id: productId,
                 cs_userid: userId,
                 cs_preorder: preOrder,
+                cs_flashsale: isFlashSale
             },
         })
 
@@ -518,7 +537,7 @@ class CartService {
         return result;
     }
 
-    inputIntoCart = async (body, dataUser, preOrder, transaction) => {
+    inputIntoCart = async (body, dataUser, preOrder, isFlashSale, transaction) => {
         let result = await ChartSales.create({
             cs_oid: uuidv4(),
             cs_userid: dataUser.userid,
@@ -532,7 +551,8 @@ class CartService {
             cs_created_by: dataUser.username,
             cs_updated_by: dataUser.username,
             cs_trans_id: 'D',
-            cs_preorder: preOrder
+            cs_preorder: preOrder,
+            cs_flashsale: isFlashSale
         }, {
             individualHooks: true,
             transaction,

@@ -79,7 +79,8 @@ module.exports = (sequelize, DataTypes) => {
     cs_updated_by: DataTypes.STRING,
     cs_preorder: DataTypes.STRING,
     cs_deleted_at: DataTypes.DATE,
-    cs_deleted_by: DataTypes.STRING
+    cs_deleted_by: DataTypes.STRING,
+    cs_flashsale: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',

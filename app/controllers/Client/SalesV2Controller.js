@@ -10,7 +10,7 @@ class SalesV2Controller {
 
             await this.expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id)
+            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id, 'N')
             res.status(200)
                 .json({
                     status: 'success',
@@ -175,7 +175,7 @@ class SalesV2Controller {
     }
 
     expireData = async (userId) => {
-        let data = await CartService.retrieveDataCartThatShouldBeExpired(userId, 'N');
+        let data = await CartService.retrieveDataCartThatShouldBeExpired(userId, 'N', 'N');
 
         if (data.length != 0) {
             await sequelize.transaction(async t => {
