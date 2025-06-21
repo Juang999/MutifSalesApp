@@ -7,8 +7,8 @@ class Auth {
         let token = get('token');
 
         if (token != null) {
-            let {userid, usernama, password, groupid, user_ptnr_id, ptnrg_id} = verify(get('token'), config.parsed.ACCESS_TOKEN_SECRET);
-            return {userid, usernama, password, groupid, user_ptnr_id, ptnrg_id};
+            let {userid, usernama, password, groupid, user_ptnr_id, ptnrg_id, user_flashsale} = verify(get('token'), config.parsed.ACCESS_TOKEN_SECRET);
+            return {userid, usernama, password, groupid, user_ptnr_id, ptnrg_id, user_flashsale};
         } else {
             return {
                 userid: null, 
@@ -16,7 +16,8 @@ class Auth {
                 password: null, 
                 groupid: null, 
                 user_ptnr_id: null, 
-                ptnrg_id: null
+                ptnrg_id: null,
+                user_flashsale: null
             }
         }
 

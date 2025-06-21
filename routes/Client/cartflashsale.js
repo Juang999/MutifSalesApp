@@ -8,11 +8,11 @@ const {
 } = require('../../app/controllers/Client/CartFlashSaleController');
 const { checkOut } = require('../../app/controllers/Client/CheckOutFlashSaleController');
 
-router.get('/', [Middleware.AuthMiddleware], getDataChart);
-router.get('/ready-to-checkout', [Middleware.AuthMiddleware], readyToCheckout);
-router.delete('/:product_id/delete', [Middleware.AuthMiddleware], deleteChart);
-router.post('/checkout', [Middleware.AuthMiddleware, Requests.SalesRequests.CheckoutRequest], checkOut);
-router.post('/input', [Middleware.AuthMiddleware, Requests.SalesRequests.InputChartRequest], inputIntoChart);
-router.patch('/:cart_oid/update', [Middleware.AuthMiddleware, Requests.SalesRequests.UpdateChartRequest], updateChart);
+router.get('/', [Middleware.AuthMiddleware, Middleware.FlashSaleMiddleware], getDataChart);
+router.get('/ready-to-checkout', [Middleware.AuthMiddleware, Middleware.FlashSaleMiddleware], readyToCheckout);
+router.delete('/:product_id/delete', [Middleware.AuthMiddleware, Middleware.FlashSaleMiddleware], deleteChart);
+router.post('/checkout', [Middleware.AuthMiddleware, Middleware.FlashSaleMiddleware, Requests.SalesRequests.CheckoutRequest], checkOut);
+router.post('/input', [Middleware.AuthMiddleware, Middleware.FlashSaleMiddleware, Requests.SalesRequests.InputChartRequest], inputIntoChart);
+router.patch('/:cart_oid/update', [Middleware.AuthMiddleware, Middleware.FlashSaleMiddleware, Requests.SalesRequests.UpdateChartRequest], updateChart);
 
 module.exports = router;
