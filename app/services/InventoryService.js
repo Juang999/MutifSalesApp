@@ -1,5 +1,6 @@
 const {
-    InvcMstr, 
+    EnMstr,
+    InvcMstr, LocMstr,
     InvcdDet, PtMstr, 
     Sequelize, sequelize
 } = require('../../models')
@@ -47,6 +48,76 @@ class InventoryService {
         })
 
         return result
+    }
+
+    getStockByPartnumber = async (partnumber) => {
+        let result = await InvcdDet.findAll({
+            attributes: [
+                [Sequelize.literal(`"relation_location"."invc_oid"`), 'invc_oid'],
+                [Sequelize.col(`"location"."loc_desc"`), 'data_location'],
+                [Sequelize.col(`"entity_product"."en_desc"`), 'entity'],
+                ['invcd_loc_id', 'invc_loc_id'],
+                [Sequelize.literal(`COUNT(invcd_oid)`), 'qty_available']
+            ],
+            include: [
+                {
+                    model: InvcMstr,
+                    as: 'relation_location',
+                    attributes: []
+                }, {
+                    model: LocMstr,
+                    as: 'location',
+                    attributes: []
+                }, {
+                    model: EnMstr,
+                    as: 'entity_product',
+                    attributes: []
+                }
+            ],
+            where: {
+                [Op.and]: [
+                    Sequelize.where(Sequelize.col(`invcd_pt_id`), {
+                        [Op.eq]: Sequelize.literal(`(SELECT pt_id FROM public.pt_mstr WHERE pt_code = :partnumber)`)
+                    }),
+                    Sequelize.where(Sequelize.col(`"relation_location"."invc_pt_id"`), {
+                        [Op.eq]: Sequelize.literal(`(SELECT pt_id FROM public.pt_mstr WHERE pt_code = :partnumber)`)
+                    }),
+                    Sequelize.where(Sequelize.col(`invcd_qrbarcode`), {
+                        [Op.not]: null
+                    }),
+                    Sequelize.where(Sequelize.col(`invcd_qty`), {
+                        [Op.eq]: 1
+                    }),
+                ],
+                [Op.or]: [
+                    {
+                        invcd_loc_id: {
+                            [Op.in]: [1002718, 1000555]
+                        }
+                    }, {
+                        invcd_loc_id: {
+                            [Op.in]: [2002719, 2000556]
+                        }
+                    }, {
+                        invcd_loc_id: {
+                            [Op.in]: [3002720, 3000557]
+                        }
+                    }
+                ]
+            },
+            group: [
+                'invc_oid',
+                'data_location',
+                'entity',
+                'invc_loc_id',
+                'invcd_loc_id',
+            ],
+            replacements: {
+                partnumber
+            }
+        });
+
+        return result;
     }
 
     checkExistanceUnique = async (serialNumber, partNumber, productId) => {

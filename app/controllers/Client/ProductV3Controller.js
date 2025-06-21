@@ -1,7 +1,7 @@
 const Auth = require('../../../helper/Auth');
 const Page = require('../../../helper/Page');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
-const {ProductService, PriceService, GetDescService} = require('../../services/ServiceContainer');
+const {ProductService, PriceService, InventoryService, GetDescService} = require('../../services/ServiceContainer');
 const {v4: uuidv4} = require('uuid')
 
 class ProductV3Controller {
@@ -44,7 +44,7 @@ class ProductV3Controller {
             partnerGroupId = ptnrg_id;
         }
 
-        ProductService.getProduct(req.query, partnerGroupId, 'Y')
+        ProductService.getProductFlashSale(req.query, partnerGroupId)
         .then(result => {
             res.status(200)
                 .json({
@@ -194,12 +194,15 @@ class ProductV3Controller {
         try {
             let {ptnrg_id} = Auth.user();
             let partnerGroupId = 9916;
-    
+
             if (ptnrg_id != null) {
                 partnerGroupId = ptnrg_id;
             }
 
-            let dataProduct = await ProductService.getDetailProduct(req.params)
+            let [dataProduct, dataStock] = await Promise.all([
+                ProductService.getDetailproductFlashSale(req.params.product_code),
+                InventoryService.getStockByPartnumber(req.params.product_code)
+            ])
 
             if (!dataProduct) {
                 res.status(404)
@@ -241,7 +244,7 @@ class ProductV3Controller {
                 product_height: dataProduct.dataValues.product_height,
                 product_width: dataProduct.dataValues.product_width,
                 product_length: dataProduct.dataValues.product_length,
-                product_quantity: dataProduct.dataValues.product_quantity.map(({dataValues}) => dataValues)
+                product_quantity: dataStock.map(({dataValues}) => dataValues)
             }
 
             res.status(200)
