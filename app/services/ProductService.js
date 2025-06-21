@@ -22,6 +22,7 @@ class ProductService {
                 [Sequelize.literal(`CAST("product_knowledge->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'price'],
                 [Sequelize.literal(`ROUND("product_knowledge->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                 [Sequelize.literal(`CAST(SUM(invc_qty_available) AS BIGINT)`), 'qty'],
+                [Sequelize.literal(`'N'`), 'flashsale'],
             ],
             include: [
                 {
@@ -150,6 +151,7 @@ class ProductService {
                 [Sequelize.literal(`CAST("detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'price'],
                 [Sequelize.literal(`ROUND("detail_inventory->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                 [Sequelize.literal(`COUNT(invcd_qty)`), 'qty'],
+                [Sequelize.literal(`'Y'`), 'flashsale'],
             ],
         include: [
                 {
@@ -252,6 +254,7 @@ class ProductService {
                 [Sequelize.literal('CAST(pt_height AS INTEGER)'), 'product_height'],
                 [Sequelize.literal('CAST(pt_width AS INTEGER)'), 'product_width'],
                 [Sequelize.literal('CAST(pt_length AS INTEGER)'), 'product_length'],
+                [Sequelize.literal(`'N'`), 'flashsale'],
             ],
             include: [
                 {
@@ -339,6 +342,7 @@ class ProductService {
                 [Sequelize.literal('CAST(pt_height AS INTEGER)'), 'product_height'],
                 [Sequelize.literal('CAST(pt_width AS INTEGER)'), 'product_width'],
                 [Sequelize.literal('CAST(pt_length AS INTEGER)'), 'product_length'],
+                [Sequelize.literal(`'Y'`), 'flashsale'],
             ],
             where: {
                 pt_code: partnumber

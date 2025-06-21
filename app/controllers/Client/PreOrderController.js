@@ -86,7 +86,7 @@ class PreOrderController {
         try {
             let {userid: userId, usernama: userName} = Auth.user();
 
-            let dataCart = await CartService.retrieveDataCartByProductId(req.params.product_id, userId, 'Y');
+            let dataCart = await CartService.retrieveDataCartByProductId(req.params.product_id, userId, 'Y', 'N');
 
             if (!dataCart) {
                 res.status(404)

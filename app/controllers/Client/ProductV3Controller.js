@@ -154,6 +154,7 @@ class ProductV3Controller {
             }
 
             let result = {
+                flashsale: dataProduct.dataValues.flashsale,
                 product_id: dataProduct.dataValues.product_id,
                 product_name: dataProduct.dataValues.product_name,
                 product_code: dataProduct.dataValues.product_code,
@@ -231,6 +232,7 @@ class ProductV3Controller {
             }
 
             let result = {
+                flashsale: dataProduct.dataValues.flashsale,
                 product_id: dataProduct.dataValues.product_id,
                 product_name: dataProduct.dataValues.product_name,
                 product_code: dataProduct.dataValues.product_code,
