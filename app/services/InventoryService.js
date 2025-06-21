@@ -88,6 +88,9 @@ class InventoryService {
                     Sequelize.where(Sequelize.col(`invcd_qty`), {
                         [Op.eq]: 1
                     }),
+                    Sequelize.where(Sequelize.col(`invcd_booking`), {
+                        [Op.not]: true
+                    }),
                 ],
                 [Op.or]: [
                     {
