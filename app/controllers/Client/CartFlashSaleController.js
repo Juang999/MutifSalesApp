@@ -1,13 +1,9 @@
-const moment = require('moment');
 const Auth = require('../../../helper/Auth');
 const { sequelize } = require('../../../models');
-const { info, errorV2: errorLog } = require('../../../helper/Logging');
+const { errorV2: errorLog } = require('../../../helper/Logging');
 const {
     InventoryService, CartService, 
-    SalesQuotationService, SalesOrderService
 } = require('../../services/ServiceContainer');
-const { v4: uuidv4 } = require('uuid');
-const { serverSetting } = require('../../../helper/Helper');
 const { expireData } = require('./SalesV2Controller');
 
 class CartFlashSaleController {
@@ -25,12 +21,13 @@ class CartFlashSaleController {
             let transaction = await sequelize.transaction(async t => {
                 await expireData(userid);
 
-                let [dataQtyProduct, dataCart] = await Promise.all([
+                let [dataQtyProduct, qtySerials, dataCart] = await Promise.all([
                     InventoryService.getDataInventory(inventoryOid, t),
+                    InventoryService.qtySerials(productId, inventoryOid),
                     CartService.findDataCart(productId, inventoryOid, userid, 'N'), 
                 ]);
 
-                if (parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity) < 0) {
+                if (parseInt(qtySerials) - parseInt(quantity) < 0) {
                     return {
                         statusCode: 409,
                         json: {
@@ -53,6 +50,7 @@ class CartFlashSaleController {
 
                     await Promise.all([
                         CartService.inputIntoCart(bodyCart, dataUser, 'N', 'Y', t),
+                        InventoryService.bookSerials(productId, inventoryOid, quantity, t),
                         InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
                     ])
                 } else {
@@ -61,6 +59,7 @@ class CartFlashSaleController {
 
                     await Promise.all([
                         CartService.updateCart(cartSalesOid, cartQty, dataCart.dataValues.cs_trans_id, t),
+                        InventoryService.bookSerials(productId, inventoryOid, quantity, t),
                         InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
                     ])
                 }
@@ -215,6 +214,7 @@ class CartFlashSaleController {
         if (dataCartSales.cs_trans_id == 'D') {
             await Promise.all([
                 InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, qtyInventory, transaction),
+                InventoryService.releaseSerials(dataCartSales.cs_pt_id, dataCartSales.cs_invc_oid, dataCartSales.cs_qty, transaction),
                 CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
             ])
         } else {

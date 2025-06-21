@@ -266,6 +266,7 @@ class CartService {
         let result = await ChartSales.scope('showCart').findAll({
             attributes: [
                 'cs_oid',
+                'cs_pt_id',
                 [Sequelize.literal('CAST(cs_qty AS INTEGER)'), 'cs_qty'],
                 'cs_invc_oid',
                 'cs_trans_id'

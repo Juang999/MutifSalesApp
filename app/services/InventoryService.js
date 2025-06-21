@@ -5,7 +5,7 @@ const {
     Sequelize, sequelize
 } = require('../../models')
 const moment = require('moment');
-const {Op} = require('sequelize');
+const {Op, where} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOut');
 
@@ -314,6 +314,54 @@ class InventoryService {
         })
 
         return data;
+    }
+
+    bookSerials = async (productId, invcOid, qty, transaction) => {
+        await InvcdDet.update({
+            invcd_booking: true
+        }, {
+            where: {
+                invcd_oid: {
+                    [Op.in]: Sequelize.literal(`(SELECT invcd_oid FROM public.invcd_det WHERE invcd_pt_id = ${productId} AND invcd_loc_id = (select invc_loc_id FROM public.invc_mstr WHERE invc_oid = '${invcOid}') AND invcd_booking IS NULL LIMIT ${qty})`)
+                }
+            },
+            transaction,
+            logging: (sqlCommand) => {
+                console.info(sqlCommand)
+            }
+        })
+    }
+
+    releaseSerials = async (productId, invcOid, qty, transaction) => {
+        await InvcdDet.update({
+            invcd_booking: null
+        }, {
+            where: {
+                invcd_oid: {
+                    [Op.in]: Sequelize.literal(`(SELECT invcd_oid FROM public.invcd_det WHERE invcd_pt_id = ${productId} AND invcd_loc_id = (select invc_loc_id FROM public.invc_mstr WHERE invc_oid = '${invcOid}') AND invcd_booking = TRUE LIMIT ${qty})`)
+                }
+            },
+            transaction,
+        })
+    }
+
+    qtySerials = async (productId, invcOid) => {
+        let result = await InvcdDet.count({
+            where: {
+                invcd_pt_id: productId,
+                invcd_loc_id: {
+                    [Op.eq]: Sequelize.literal(`( SELECT invc_loc_id FROM public.invc_mstr WHERE invc_oid = :inventorymaster_oid )`)
+                },
+                invcd_booking: {
+                    [Op.not]: true
+                }
+            },
+            replacements: {
+                inventorymaster_oid: invcOid
+            }
+        })
+
+        return result;
     }
 }
 
