@@ -214,6 +214,7 @@ class CartService {
                 [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
+                ['cs_flashsale', 'flashsale'],
             ],
             include: [
                 {
@@ -248,6 +249,11 @@ class CartService {
                 cs_userid: userid,
                 cs_preorder: preOrder,
                 cs_trans_id: transId,
+                [Op.and]: [
+                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_id"`), {
+                        [Op.eq]: Sequelize.literal(`cs_pi_id`)
+                    })
+                ]
             },
             group: [
                 'product_id',
@@ -255,7 +261,12 @@ class CartService {
                 'price',
                 'discount',
                 'photo',
+                'flashsale',
+                'cs_pi_id'
             ],
+            logging: (sqlCommand) => {
+                console.info(sqlCommand)
+            },
             limit: 15,
         })
 
