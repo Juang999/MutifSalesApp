@@ -212,9 +212,9 @@ class SalesController {
             await expireData(userid);
 
             let [dataUser, dataCart] = await Promise.all([
-                CartService.retrieveDataToCheckout(userid, ptnrg_id, 'D', 'N'),
-                CartService.getDataCartForCheckout(userid)
-            ])
+                CartService.retrieveDataToCheckout(userid),
+                CartService.getDataCartForCheckout(userid, 'N')
+            ]);
 
             dataUser.dataValues.chart_sales = dataCart;
 

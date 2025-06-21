@@ -221,6 +221,38 @@ class CartFlashSaleController {
             await CartService.deleteDataCart(dataCartSales.cs_oid, dataUser, transaction)
         }
     }
+
+    readyToCheckout = async (req, res) => {
+            try {
+                let {userid} = Auth.user();
+                await expireData(userid);
+    
+                let [dataUser, dataCart] = await Promise.all([
+                    CartService.retrieveDataToCheckout(userid),
+                    CartService.getDataCartForCheckout(userid, 'Y')
+                ]);
+    
+                dataUser.dataValues.chart_sales = dataCart;
+    
+                res.status(200)
+                    .json({
+                        status: 'success',
+                        message: 'ok',
+                        data: dataUser,
+                        error: null
+                    })
+            } catch (error) {
+                errorLog('GET DETAIL USER', error.message)
+    
+                res.status(400)
+                    .json({
+                        status: 'failed',
+                        message: 'error',
+                        data: null,
+                        error: error.message
+                    })
+            }
+        }
 }
 
 module.exports = new CartFlashSaleController();

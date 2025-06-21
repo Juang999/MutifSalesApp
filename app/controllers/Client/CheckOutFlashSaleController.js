@@ -15,8 +15,8 @@ class CheckoutController {
         sequelize.transaction(async t => {
             let [dataLocation, dataHeaderSq, dataBodySq] = await Promise.all([
                 PartnerService.getLocationPartner(dataUser.user_ptnr_id),
-                CartService.getDataHeaderSalesQuotation(dataUser.userid, 'N', 'N'), 
-                CartService.getDataDetailSalesQuotation(dataUser.userid, 'N', 'N')
+                CartService.getDataHeaderSalesQuotation(dataUser.userid, 'N', 'Y'), 
+                CartService.getDataDetailSalesQuotation(dataUser.userid, 'N', 'Y')
             ])
 
             if (dataHeaderSq.length == 0) {
