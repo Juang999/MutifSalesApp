@@ -306,6 +306,7 @@ class CartService {
             AND master_price_list.pi_ptnrg_id = :group_id
             AND master_price_list.pi_shown = 'Y'
             AND detail_price_list.pidd_payment_type = 9942
+            AND master_price_list.pi_id = cs_pi_id
             AND cs_trans_id = :transId
             AND cs_preorder = :preOrder
             `, {
