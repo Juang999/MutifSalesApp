@@ -322,7 +322,12 @@ class InventoryService {
         }, {
             where: {
                 invcd_oid: {
-                    [Op.in]: Sequelize.literal(`(SELECT invcd_oid FROM public.invcd_det WHERE invcd_pt_id = ${productId} AND invcd_loc_id = (select invc_loc_id FROM public.invc_mstr WHERE invc_oid = '${invcOid}') AND invcd_booking IS NULL LIMIT ${qty})`)
+                    [Op.in]: Sequelize.literal(`(SELECT invcd_oid FROM public.invcd_det WHERE invcd_pt_id = ${productId} AND invcd_loc_id = (select invc_loc_id FROM public.invc_mstr WHERE invc_oid = '${invcOid}') AND invcd_booking IS NULL AND invcd_qty = 1 AND invcd_status != 'reserved' LIMIT ${qty})`)
+                },
+                invcd_qty: 1,
+                invcd_booking: null,
+                invcd_status: {
+                    [Op.not]: 'reserved'
                 }
             },
             transaction,
