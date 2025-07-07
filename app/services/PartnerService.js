@@ -1,4 +1,4 @@
-const {DbgGroup, DbgdDet, LocMstr, Sequelize} = require('../../models');
+const {DbgGroup, DbgdDet, LocMstr, PtnrMstr, Sequelize} = require('../../models');
 
 class PartnerService {
     getLocationPartner = async (partnerId) => {
@@ -18,6 +18,17 @@ class PartnerService {
                 ['dbgd_ptnr_id', 'ASC']
             ]
         })
+
+        return result;
+    }
+
+    getPartnerReference = async (partnerCode) => {
+        let result = await PtnrMstr.findOne({
+            attributes: ['ptnr_id', 'ptnr_code', 'ptnr_name'],
+            where: {
+                ptnr_code: partnerCode
+            }
+        });
 
         return result;
     }

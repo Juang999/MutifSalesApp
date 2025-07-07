@@ -60,7 +60,7 @@ class SalesController {
                     let cartQty = (dataCart.dataValues.cs_trans_id == 'E') ? parseInt(quantity) : parseInt(dataCart.dataValues.cs_qty) + parseInt(quantity);
 
                     await Promise.all([
-                        CartService.updateCart(cartSalesOid, cartQty, dataCart.dataValues.cs_trans_id, t),
+                        CartService.updateCart(cartSalesOid, cartQty, 'D', t),
                         InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
                     ])
                 }
@@ -412,7 +412,7 @@ class SalesController {
 
         await Promise.all([
             InventoryService.bookProductQuantity(dataInventory.invc_oid, qtyInventory, transaction),
-            CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction)
+            CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), 'D', transaction)
         ])
 
     }

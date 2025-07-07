@@ -16,8 +16,27 @@ class CheckoutController {
             let [dataLocation, dataHeaderSq, dataBodySq] = await Promise.all([
                 PartnerService.getLocationPartner(dataUser.user_ptnr_id),
                 CartService.getDataHeaderSalesQuotation(dataUser.userid, 'N', 'N'), 
-                CartService.getDataDetailSalesQuotation(dataUser.userid, 'N', 'N')
+                CartService.getDataDetailSalesQuotation(dataUser.userid, 'N', 'N'),
             ])
+
+            let dataPartner = null;
+            if (req.body.reference_code) {
+                let resultDataPartner = await PartnerService.getPartnerReference(req.body.reference_code);
+
+                if (resultDataPartner == null) {
+                    return {
+                        statusCode: 404,
+                        json: {
+                            status: 'failed',
+                            message: 'partner not found',
+                            data: null,
+                            error: null
+                        }
+                    }
+                } else {
+                    dataPartner = resultDataPartner;
+                }
+            }
 
             if (dataHeaderSq.length == 0) {
                 return {
@@ -31,7 +50,7 @@ class CheckoutController {
                 }
             }
 
-            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataLocation, dataUser);
+            let headerSalesQuotation = await this.generateHeaderSalesQuotation(dataHeaderSq, req.body, dataLocation, dataUser, dataPartner);
             let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
             headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
@@ -69,7 +88,7 @@ class CheckoutController {
         })
     }
 
-    generateHeaderSalesQuotation = async (dataHeader, formBody, dataLocation, user) => {
+    generateHeaderSalesQuotation = async (dataHeader, formBody, dataLocation, user, partnerReference) => {
         let sequenceNumber = 0;
         let totalSQofTheMonth = await SalesQuotationService.countDataSalesQuotation();
         let {dataValues: dataServer} = await ServerSetting.get(['server_code']);
@@ -143,7 +162,8 @@ class CheckoutController {
                 sq_shipping_name: shippingName,
                 sq_midtrans_inv_number: formBody.invoice_number,
                 sq_midtrans_inv_status: 'pending',
-                sq_shipping_service: shippingService
+                sq_shipping_service: shippingService,
+                sq_partner_reference_id: (partnerReference != null) ? partnerReference.dataValues.ptnr_id : null,
             }
         });
 

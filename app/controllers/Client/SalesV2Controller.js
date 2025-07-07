@@ -169,7 +169,7 @@ class SalesV2Controller {
 
         await Promise.all([
             InventoryService.bookProductQuantity(dataInventory.invc_oid, qtyInventory, transaction),
-            CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), transaction)
+            CartService.updateCart(dataCartSales.cs_oid, parseInt(quantity), 'D', transaction)
         ])
 
     }
@@ -181,7 +181,7 @@ class SalesV2Controller {
             await sequelize.transaction(async t => {
                 for (const {dataValues: singularData} of data) {
                     let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularData.cs_invc_oid, t);
-    
+
                     await this.expireDataChart(singularData, dataInventory, t);
                 }
             })

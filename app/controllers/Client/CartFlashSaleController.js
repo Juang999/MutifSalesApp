@@ -58,7 +58,7 @@ class CartFlashSaleController {
                     let cartQty = (dataCart.dataValues.cs_trans_id == 'E') ? parseInt(quantity) : parseInt(dataCart.dataValues.cs_qty) + parseInt(quantity);
 
                     await Promise.all([
-                        CartService.updateCart(cartSalesOid, cartQty, dataCart.dataValues.cs_trans_id, t),
+                        CartService.updateCart(cartSalesOid, cartQty, 'D', t),
                         InventoryService.bookSerials(productId, inventoryOid, quantity, t),
                         InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
                     ])
