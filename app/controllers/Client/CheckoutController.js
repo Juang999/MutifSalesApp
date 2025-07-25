@@ -20,7 +20,7 @@ class CheckoutController {
             ])
 
             let dataPartner = null;
-            if (req.body.referral_code) {
+            if (req.body.referral_code && req.body.referral_code != '-') {
                 let resultDataPartner = await PartnerService.getPartnerReference(req.body.referral_code);
 
                 if (resultDataPartner == null) {
