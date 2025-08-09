@@ -54,8 +54,9 @@ class CheckoutController {
             let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
             headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
-            if (req.body.transaction_type == '4') {
+            if (req.body.transaction_type == 'Y') {
                 headerSalesQuotation[0]['sq_dropshipper'] = 'Y';
+                headerSalesQuotation[0]['sq_total'] = parseInt(headerSalesQuotation[0]['sq_total']) + 7500;
                 detailSalesQuotation.push(this.packingCharges(headerSalesQuotation[0], dataUser));
             }
 
