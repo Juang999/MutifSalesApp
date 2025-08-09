@@ -1,5 +1,5 @@
 const {
-    TransStatus,
+    TransStatus, PtnrgGrp,
     PiddDet, TConfUser,
     ChartSales, PiMstr,
     PtnrMstr, InvcMstr,
@@ -148,6 +148,8 @@ class CartService {
                     attributes: [
                         [Sequelize.col('"detail_partner"."ptnr_id"'), 'ptnr_id'],
                         [Sequelize.literal('"detail_partner"."ptnr_name"'), 'ptnr_name'],
+                        [Sequelize.literal(`"detail_partner"."ptnr_ptnrg_id"`), 'group_id'],
+                        [Sequelize.literal(`"detail_partner->group_partner"."ptnrg_name"`), 'group_name'],
                         [Sequelize.literal(`CONCAT("detail_partner->singular_partner_address"."ptnra_line_3", ', ', "detail_partner->singular_partner_address"."ptnra_line_2", ', ', "detail_partner->singular_partner_address"."ptnra_line_1")`), 'ptnr_address'],
                         [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_phone_1"`), 'phone'],
                         [Sequelize.literal(`"detail_partner->singular_partner_address->singular_contact_address"."ptnrac_email"`), 'email'],
@@ -167,6 +169,10 @@ class CartService {
                             attributes: [],
                             include: [
                                 {
+                                    model: PtnrgGrp,
+                                    as: 'group_partner',
+                                    attributes: []
+                                }, {
                                     model: PtnraAddr,
                                     as: 'singular_partner_address',
                                     attributes: [],
@@ -264,9 +270,6 @@ class CartService {
                 'flashsale',
                 'cs_pi_id'
             ],
-            logging: (sqlCommand) => {
-                console.info(sqlCommand)
-            },
             limit: 15,
         })
 
