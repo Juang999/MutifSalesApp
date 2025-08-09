@@ -245,7 +245,7 @@ class CheckoutController {
         }
     }
 
-    packingCharges = async (dataHeader, dataUser) => {
+    packingCharges = (dataHeader, dataUser) => {
         let result = {
                 sqd_oid: uuidv4(),
                 sqd_dom_id: 1,
