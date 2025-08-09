@@ -54,8 +54,7 @@ class CheckoutController {
             let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
             headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
-            if (req.body.transaction_type == 'Y') {
-                headerSalesQuotation[0]['sq_dropshipper'] = 'Y';
+            if (req.body.transaction_type == 'Y' && dataUser.groupid == 9911) {
                 headerSalesQuotation[0]['sq_total'] = parseInt(headerSalesQuotation[0]['sq_total']) + 7500;
                 detailSalesQuotation.push(this.packingCharges(headerSalesQuotation[0], dataUser));
             }
@@ -162,6 +161,7 @@ class CheckoutController {
                 sq_ptsfr_loc_to_id: dataValues.loc_id,
                 sq_ptsfr_loc_git: dataValues.loc_git,
                 sq_en_to_id: 0,
+                sq_dropshipper: formBody.transaction_type,
                 sq_trans_rmks: (formBody.remarks) ? formBody.remarks : null,
                 sq_pi_area_id: 1,
                 sq_dg_group: 'N',
