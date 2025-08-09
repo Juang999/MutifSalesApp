@@ -54,6 +54,11 @@ class CheckoutController {
             let detailSalesQuotation = this.generateDetailSalesQuotation(dataBodySq, headerSalesQuotation, dataUser);
             headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
+            if (req.body.transaction_type == '4') {
+                headerSalesQuotation[0]['sq_dropshipper'] = 'Y';
+                detailSalesQuotation.push(this.packingCharges(headerSalesQuotation[0], dataUser));
+            }
+
             await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
             this.sleep(1000)
             await SalesQuotationService.bulkInsertDetailSalesQuotation(detailSalesQuotation, t);
@@ -156,7 +161,7 @@ class CheckoutController {
                 sq_ptsfr_loc_to_id: dataValues.loc_id,
                 sq_ptsfr_loc_git: dataValues.loc_git,
                 sq_en_to_id: 0,
-                sq_dropshipper: 'N',
+                sq_trans_rmks: (formBody.remarks) ? formBody.remarks : null,
                 sq_pi_area_id: 1,
                 sq_dg_group: 'N',
                 sq_shipping_name: shippingName,
@@ -238,6 +243,45 @@ class CheckoutController {
         const now = new Date().getTime();
         while (new Date().getTime() < now + milliseconds) {
         }
+    }
+
+    packingCharges = async (dataHeader, dataUser) => {
+        let result = {
+                sqd_oid: uuidv4(),
+                sqd_dom_id: 1,
+                sqd_en_id: dataHeader.sq_en_id,
+                sqd_add_by: dataUser.usernama,
+                sqd_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                sqd_sq_oid: dataHeader.sq_oid,
+                sqd_seq: 0,
+                sqd_si_id: 992,
+                sqd_pt_id: 105,
+                sqd_qty: 1,
+                sqd_qty_allocated: 0,
+                sqd_is_additional_charge: 'N',
+                sqd_um: 9964,
+                sqd_cost: 1,
+                sqd_price: 7500,
+                sqd_disc: 0,
+                sqd_sales_ac_id: 13,
+                sqd_sales_sb_id: 0,
+                sqd_sales_cc_id: 0,
+                sqd_um_conv: 1,
+                sqd_qty_real: 1,
+                sqd_taxable: 'N',
+                sqd_tax_inc: 'N',
+                sqd_tax_class: 9949,
+                sqd_dt: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
+                sqd_payment: 0,
+                sqd_dp: 0,
+                sqd_sales_unit: 0,
+                sqd_loc_id: 100043,
+                sqd_ppn_type: 'E',
+                sqd_invc_oid: 'e1aaf876-4636-44fa-a1d7-6436a2885266',
+                sqd_need_date: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
+            };
+
+        return result;
     }
 }
 

@@ -7,7 +7,9 @@ const schemaValidate = Joi.object({
     shipping_cost: Joi.number().required(),
     invoice_number: Joi.string().required(),
     is_consigment: Joi.string().required(),
-    referral_code: Joi.string().optional()
+    referral_code: Joi.string().optional(),
+    transaction_type: Joi.string().optional(),
+    remarks: Joi.string().optional(),
 })
 
 const CheckoutRequest = (req, res, next) => {
