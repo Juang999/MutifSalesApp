@@ -143,7 +143,11 @@ module.exports = (sequelize, DataTypes) => {
     sq_midtrans_inv_status: DataTypes.STRING,
     sq_shipping_service: DataTypes.STRING,
     sq_partner_reference_id: DataTypes.INTEGER,
-    sq_packing_charges: DataTypes.INTEGER
+    sq_packing_charges: DataTypes.INTEGER,
+    sq_first_name: DataTypes.STRING,
+    sq_last_name: DataTypes.STRING,
+    sq_full_address: DataTypes.STRING,
+    sq_city: DataTypes.STRING,
   }, {
     sequelize,
     schema: 'public',

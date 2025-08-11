@@ -10,6 +10,10 @@ const schemaValidate = Joi.object({
     referral_code: Joi.string().optional(),
     transaction_type: Joi.string().optional(),
     remarks: Joi.string().optional(),
+    first_name: Joi.string().optional(),
+    last_name: Joi.string().optional(),
+    full_address: Joi.string().required(),
+    city: Joi.string().required(),
 })
 
 const CheckoutRequest = (req, res, next) => {
