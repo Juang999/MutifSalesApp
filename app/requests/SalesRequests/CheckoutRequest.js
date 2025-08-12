@@ -12,8 +12,10 @@ const schemaValidate = Joi.object({
     remarks: Joi.string().optional(),
     first_name: Joi.string().optional(),
     last_name: Joi.string().optional(),
-    full_address: Joi.string().required(),
+    address: Joi.string().required(),
     city: Joi.string().required(),
+    email: Joi.string().email().optional(),
+    phone: Joi.string().optional(),
 })
 
 const CheckoutRequest = (req, res, next) => {

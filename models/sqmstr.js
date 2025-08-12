@@ -148,6 +148,8 @@ module.exports = (sequelize, DataTypes) => {
     sq_last_name: DataTypes.STRING,
     sq_full_address: DataTypes.STRING,
     sq_city: DataTypes.STRING,
+    sq_email: DataTypes.STRING,
+    sq_phone_number: DataTypes.STRING,
   }, {
     sequelize,
     schema: 'public',

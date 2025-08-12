@@ -172,8 +172,10 @@ class CheckoutController {
                 sq_partner_reference_id: (partnerReference != null) ? partnerReference.dataValues.ptnr_id : null,
                 sq_first_name: formBody.first_name,
                 sq_last_name: formBody.last_name,
-                sq_full_address: formBody.full_address,
+                sq_full_address: formBody.address,
                 sq_city: formBody.city,
+                sq_email: formBody.email || null,
+                sq_phone_number: formBody.phone || null,
             }
         });
 
