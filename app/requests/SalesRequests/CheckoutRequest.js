@@ -14,7 +14,7 @@ const schemaValidate = Joi.object({
     last_name: Joi.string().optional(),
     address: Joi.string().required(),
     city: Joi.string().required(),
-    email: Joi.string().email().optional(),
+    email: Joi.string().optional(),
     phone: Joi.string().optional(),
 })
 
