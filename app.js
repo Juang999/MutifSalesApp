@@ -26,6 +26,7 @@ app.use('/users', require('./routes/users'));
 // routes for staff
 app.use('/staff/auth', require('./routes/Staff/auth'));
 app.use('/staff/partner', require('./routes/Staff/partner'));
+app.use('/staff/sales-quotation', require('./routes/Staff/sales-quotation'));
 
 // routes for client
 app.use('/client/sales', require('./routes/Client/sales'));

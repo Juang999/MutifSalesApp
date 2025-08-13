@@ -42,6 +42,30 @@ module.exports = (sequelize, DataTypes) => {
         targetKey: 'code_id',
         foreignKey:'sq_pay_type'
       })
+
+      SqMstr.belongsTo(models.LocMstr, {
+        as: 'origin_location',
+        targetKey: 'loc_id',
+        foreignKey: 'sq_ptsfr_loc_id'
+      })
+
+      SqMstr.belongsTo(models.LocMstr, {
+        as: 'destination_location',
+        targetKey: 'loc_id',
+        foreignKey: 'sq_ptsfr_loc_to_id'
+      })
+
+      SqMstr.belongsTo(models.LocMstr, {
+        as: 'git_location',
+        targetKey: 'loc_id',
+        foreignKey: 'sq_ptsfr_loc_git'
+      })
+
+      SqMstr.belongsTo(models.TransStatus, {
+        as: 'status',
+        targetKey: 'trans_id',
+        foreignKey: 'sq_trans_id'
+      })
     }
   }
   SqMstr.init({
