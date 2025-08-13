@@ -16,6 +16,7 @@ const schemaValidate = Joi.object({
     city: Joi.string().optional().allow('', null),
     email: Joi.string().optional().allow('', null),
     phone: Joi.string().optional().allow('', null),
+    resi_link: Joi.string().optional().allow('', null),
 })
 
 const CheckoutRequest = (req, res, next) => {

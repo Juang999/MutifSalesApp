@@ -176,6 +176,7 @@ class CheckoutController {
                 sq_city: formBody.city,
                 sq_email: formBody.email || null,
                 sq_phone_number: formBody.phone || null,
+                sq_link_resi: formBody.resi_link || null,
             }
         });
 
