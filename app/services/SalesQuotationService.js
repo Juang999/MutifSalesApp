@@ -455,6 +455,7 @@ class SalesQuotationService {
                 ['sq_shipping_service', 'shipping_service'],
                 ['sq_shipping_charges', 'shipping_charges'],
                 ['sq_midtrans_inv_status', 'status'],
+                ['sq_link_resi', 'resi_link']
             ],
             include: [
                 {
@@ -511,6 +512,7 @@ class SalesQuotationService {
             shipping_service: (result) ? result.dataValues.shipping_service : null,
             shipping_charges: (result) ? result.dataValues.shipping_charges : null,
             status: (result) ? result.dataValues.status : null,
+            resi_link: (result) ? result.dataValues.resi_link : null,
         };
     }
 

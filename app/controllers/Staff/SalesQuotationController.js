@@ -53,6 +53,7 @@ class SalesQuotationController {
                         shipping_service: headerInvoice.shipping_service,
                         shipping_charges: headerInvoice.shipping_charges,
                         status: headerInvoice.status,
+                        resi_link: headerInvoice.resi_link,
                         products: detailInvoice
                     },
                     error: null
