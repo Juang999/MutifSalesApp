@@ -5,7 +5,11 @@ const moment = require('moment');
 
 class SalesQuotationController {
     getDataSalesQuotation = ( req, res ) => {
-        let search = req.query.search || '';
+        let search = {
+            invoice: req.query.invoice || '',
+            dropshipper: req.query.dropshipper || '',
+            payment_type: req.query.payment_type || '',
+        };
         let startDate = req.query.start_date || moment().startOf('month').format('YYYY-MM-DD');
         let endDate = req.query.end_date || moment().endOf('month').format('YYYY-MM-DD');
 
@@ -31,9 +35,10 @@ class SalesQuotationController {
     getDetailDataSalesQuotation = (req, res) => {
         Promise.all([
             SalesQuotationService.adminGetHeaderInvoice(req.params.invoice_number), 
-            SalesQuotationService.adminGetDetailInvoice(req.params.invoice_number)
+            SalesQuotationService.adminGetDetailInvoice(req.params.invoice_number),
+            SalesQuotationService.adminGetSalesQuotationCode(req.params.invoice_number)
         ])
-        .then(([headerInvoice, detailInvoice]) => {
+        .then(([headerInvoice, detailInvoice, salesQuotationCode]) => {
             res.status(200)
                 .json({
                     status: 'success',
@@ -48,12 +53,15 @@ class SalesQuotationController {
                         sales_person: headerInvoice.sales_person,
                         dropshipper: headerInvoice.dropshipper,
                         remarks: headerInvoice.remarks,
+                        first_name: headerInvoice.first_name,
+                        last_name: headerInvoice.last_name,
                         payment_type: headerInvoice.payment_type,
                         shipping_name: headerInvoice.shipping_name,
                         shipping_service: headerInvoice.shipping_service,
                         shipping_charges: headerInvoice.shipping_charges,
                         status: headerInvoice.status,
                         resi_link: headerInvoice.resi_link,
+                        sq_codes: salesQuotationCode,
                         products: detailInvoice
                     },
                     error: null

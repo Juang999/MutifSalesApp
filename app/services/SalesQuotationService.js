@@ -366,7 +366,26 @@ class SalesQuotationService {
     }
 
     getAllHeaderSalesQuotation = async (search, startDate, endDate) => {
-        console.info(startDate, endDate);
+        let where = [
+                Sequelize.where(Sequelize.literal(`DATE("sq_add_date")`), {
+                    [Op.between]: [startDate, endDate]
+                }),
+                Sequelize.where(Sequelize.col(`"sq_midtrans_inv_number"`), {
+                    [Op.iLike]: `%${search.invoice}%`
+                }),
+            ]
+
+        if (search.dropshipper) {
+            where.push(Sequelize.where(Sequelize.col(`"sq_dropshipper"`), {
+                [Op.eq]: search.dropshipper
+            }))
+        }
+
+        if (search.payment_type) {
+            where.push(Sequelize.where(Sequelize.col(`"sq_pay_type"`), {
+                [Op.eq]: search.payment_type
+            }))
+        }
 
         const result = await SqMstr.findAll({
             attributes: [
@@ -409,11 +428,7 @@ class SalesQuotationService {
                     attributes: []
                 }
             ],
-            where: [
-                Sequelize.where(Sequelize.literal(`DATE("sq_add_date")`), {
-                    [Op.between]: [startDate, endDate]
-                })
-            ],
+            where,
             // order: [
             //     ['sq_add_date', 'DESC']
             // ],
@@ -448,6 +463,8 @@ class SalesQuotationService {
                 [Sequelize.literal(`CASE WHEN sq_dropshipper = 'Y' THEN sq_phone_number ELSE "bill_to->singular_partner_address->singular_contact_address"."ptnrac_phone_1" END`), 'phone'],
                 [Sequelize.literal(`CASE WHEN sq_dropshipper = 'Y' THEN sq_email ELSE "bill_to->singular_partner_address->singular_contact_address"."ptnrac_email" END`), 'email'],
                 'sq_dropshipper',
+                'sq_first_name',
+                'sq_last_name',
                 'sq_trans_rmks',
                 [Sequelize.col(`"pay_type"."code_name"`), 'payment_type'],
                 [Sequelize.col('"sales_person"."ptnr_name"'), 'sales_name'],
@@ -507,6 +524,8 @@ class SalesQuotationService {
             sales_person: (result) ? result.dataValues.sales_name : null,
             dropshipper: (result) ? result.dataValues.sq_dropshipper : null,
             remarks: (result) ? result.dataValues.sq_trans_rmks : null,
+            first_name: (result) ? result.dataValues.sq_first_name : null,
+            last_name: (result) ? result.dataValues.sq_last_name : null,
             payment_type: (result) ? result.dataValues.payment_type : null,
             shipping_name: (result) ? result.dataValues.shipping_name : null,
             shipping_service: (result) ? result.dataValues.shipping_service : null,
@@ -548,6 +567,18 @@ class SalesQuotationService {
             ],
             replacements: {
                 invoice_number: invoiceNumber
+            },
+            logging: false
+        })
+
+        return result;
+    }
+
+    adminGetSalesQuotationCode = async (invoiceNumber) => {
+        let result = await SqMstr.findAll({
+            attributes: ['sq_code'],
+            where: {
+                sq_midtrans_inv_number: invoiceNumber
             },
             logging: false
         })
