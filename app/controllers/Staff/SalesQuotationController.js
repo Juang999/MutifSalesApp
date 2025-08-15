@@ -33,37 +33,15 @@ class SalesQuotationController {
     }
 
     getDetailDataSalesQuotation = (req, res) => {
-        Promise.all([
-            SalesQuotationService.adminGetHeaderInvoice(req.params.invoice_number), 
-            SalesQuotationService.adminGetDetailInvoice(req.params.invoice_number),
-            SalesQuotationService.adminGetSalesQuotationCode(req.params.invoice_number)
-        ])
-        .then(([headerInvoice, detailInvoice, salesQuotationCode]) => {
+        SalesQuotationService.adminGetDetailSalesQuotation(req.params.sq_oid)
+        .then(result => {
+            console.info(result.detail_sales_quotation)
+
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: {
-                        invoice: headerInvoice.invoice,
-                        date: headerInvoice.date,
-                        partner_name: headerInvoice.partner_name,
-                        partner_address: headerInvoice.partner_address,
-                        partner_phone: headerInvoice.partner_phone,
-                        partner_email: headerInvoice.partner_email,
-                        sales_person: headerInvoice.sales_person,
-                        dropshipper: headerInvoice.dropshipper,
-                        remarks: headerInvoice.remarks,
-                        first_name: headerInvoice.first_name,
-                        last_name: headerInvoice.last_name,
-                        payment_type: headerInvoice.payment_type,
-                        shipping_name: headerInvoice.shipping_name,
-                        shipping_service: headerInvoice.shipping_service,
-                        shipping_charges: headerInvoice.shipping_charges,
-                        status: headerInvoice.status,
-                        resi_link: headerInvoice.resi_link,
-                        sq_codes: salesQuotationCode,
-                        products: detailInvoice
-                    },
+                    data: result,
                     error: null
                 })
         })

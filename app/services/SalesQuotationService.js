@@ -1,6 +1,7 @@
 const moment = require('moment');
 const {Op} = require('sequelize');
 const {
+    EnMstr,
     TransStatus,
     CodeMstr, PtMstr,
     Sequelize, LocMstr,
@@ -389,13 +390,17 @@ class SalesQuotationService {
 
         const result = await SqMstr.findAll({
             attributes: [
+                'sq_oid',
                 ['sq_midtrans_inv_number', 'invoice'],
+                'sq_code',
                 'sq_add_by',
-                [Sequelize.literal(`MAX(sq_add_date)`), 'sq_add_date'],
+                [Sequelize.literal(`"entity"."en_desc"`), 'en_desc'],
                 [Sequelize.col(`"sold_to".""ptnr_name"`), 'sold_to_name'],
                 [Sequelize.col(`"bill_to".""ptnr_name"`), 'bill_to_name'],
                 [Sequelize.col(`"sales_person".""ptnr_name"`), 'sales_name'],
                 'sq_trans_rmks',
+                'sq_first_name',
+                'sq_last_name',
                 'sq_dropshipper',
                 'sq_booking',
                 'sq_cons',
@@ -426,46 +431,37 @@ class SalesQuotationService {
                     model: TransStatus,
                     as: 'status',
                     attributes: []
+                }, {
+                    model: EnMstr,
+                    as: 'entity',
+                    attributes: []
                 }
             ],
             where,
             order: [
                 ['sq_add_date', 'DESC']
             ],
-            group: [
-                'sq_midtrans_inv_number',
-                'sq_add_by',
-                'sq_trans_rmks',
-                'sq_dropshipper',
-                'sq_booking',
-                'sq_cons',
-                'sq_midtrans_inv_status',
-                'sq_shipping_name',
-                'sq_shipping_service',
-                Sequelize.col(`"sold_to".""ptnr_name"`),
-                Sequelize.col(`"bill_to".""ptnr_name"`),
-                Sequelize.col(`"sales_person".""ptnr_name"`),
-                Sequelize.literal(`"pay_type"."code_name"`),
-                Sequelize.literal(`"status"."trans_desc"`),
-            ]
         });
 
         return result;
     }
 
-    adminGetHeaderInvoice = async (invoiceNumber) => {
+    adminGetDetailSalesQuotation = async (sqOid) => {
         let result = await SqMstr.findOne({
             attributes: [
+                'sq_oid',
                 ['sq_midtrans_inv_number', 'invoice'],
+                'sq_code',
+                [Sequelize.literal(`"entity"."en_desc"`), 'en_desc'],
                 [Sequelize.literal(`DATE(sq_add_date)`), 'date'],
                 [Sequelize.col(`bill_to.ptnr_name`), 'partner_name'],
-                [Sequelize.literal(`CASE WHEN sq_dropshipper = 'Y' THEN sq_full_address ELSE CONCAT("bill_to->singular_partner_address"."ptnra_line_3", ', ', "bill_to->singular_partner_address"."ptnra_line_2", ', ', "bill_to->singular_partner_address"."ptnra_line_1") END`), 'partner_address'],
-                [Sequelize.literal(`CASE WHEN sq_dropshipper = 'Y' THEN sq_phone_number ELSE "bill_to->singular_partner_address->singular_contact_address"."ptnrac_phone_1" END`), 'phone'],
-                [Sequelize.literal(`CASE WHEN sq_dropshipper = 'Y' THEN sq_email ELSE "bill_to->singular_partner_address->singular_contact_address"."ptnrac_email" END`), 'email'],
-                'sq_dropshipper',
-                'sq_first_name',
-                'sq_last_name',
-                'sq_trans_rmks',
+                [Sequelize.literal(`CASE WHEN "SqMstr"."sq_dropshipper" = 'Y' THEN sq_full_address ELSE CONCAT("bill_to->singular_partner_address"."ptnra_line_3", ', ', "bill_to->singular_partner_address"."ptnra_line_2", ', ', "bill_to->singular_partner_address"."ptnra_line_1") END`), 'partner_address'],
+                [Sequelize.literal(`CASE WHEN "SqMstr"."sq_dropshipper" = 'Y' THEN sq_phone_number ELSE "bill_to->singular_partner_address->singular_contact_address"."ptnrac_phone_1" END`), 'partner_phone'],
+                [Sequelize.literal(`CASE WHEN "SqMstr"."sq_dropshipper" = 'Y' THEN sq_email ELSE "bill_to->singular_partner_address->singular_contact_address"."ptnrac_email" END`), 'partner_email'],
+                [Sequelize.literal('"SqMstr"."sq_dropshipper"'), 'dropshipper'],
+                ['sq_first_name', 'first_name'],
+                ['sq_last_name', 'last_name'],
+                ['sq_trans_rmks', 'trans_rmks'],
                 [Sequelize.col(`"pay_type"."code_name"`), 'payment_type'],
                 [Sequelize.col('"sales_person"."ptnr_name"'), 'sales_name'],
                 ['sq_shipping_name', 'shipping_name'],
@@ -504,84 +500,36 @@ class SalesQuotationService {
                     model: CodeMstr,
                     as: 'pay_type',
                     attributes: []
-                }
-            ],
-            where: {
-                sq_midtrans_inv_number: invoiceNumber,
-            },
-            logging: false
-        }) 
-
-        console.info(result)
-
-        return {
-            invoice: (result) ? result.dataValues.invoice : null,
-            date: (result) ? result.dataValues.date : null,
-            partner_name: (result) ? result.dataValues.partner_name : null,
-            partner_address: (result) ? result.dataValues.partner_address : null,
-            partner_phone: (result) ? result.dataValues.phone : null,
-            partner_email: (result) ? result.dataValues.email : null,
-            sales_person: (result) ? result.dataValues.sales_name : null,
-            dropshipper: (result) ? result.dataValues.sq_dropshipper : null,
-            remarks: (result) ? result.dataValues.sq_trans_rmks : null,
-            first_name: (result) ? result.dataValues.sq_first_name : null,
-            last_name: (result) ? result.dataValues.sq_last_name : null,
-            payment_type: (result) ? result.dataValues.payment_type : null,
-            shipping_name: (result) ? result.dataValues.shipping_name : null,
-            shipping_service: (result) ? result.dataValues.shipping_service : null,
-            shipping_charges: (result) ? result.dataValues.shipping_charges : null,
-            status: (result) ? result.dataValues.status : null,
-            resi_link: (result) ? result.dataValues.resi_link : null,
-        };
-    }
-
-    adminGetDetailInvoice = async (invoiceNumber) => {
-        let result = await SqdDet.findAll({
-            attributes: [
-                [Sequelize.literal('CASE WHEN sqd_pt_id = 105 THEN "product"."pt_desc1" ELSE "product"."pt_desc_jubelio" END'), 'product_name'],
-                [Sequelize.col('product.pt_code'), 'product_code'],
-                [Sequelize.col('product.pt_weight'), 'weight'],
-                [Sequelize.literal('CAST(SUM(sqd_qty) AS INTEGER)'), 'qty_product'],
-                [Sequelize.literal('CAST(SUM(sqd_price) AS INTEGER)'), 'price'],
-                [Sequelize.literal('ROUND(sqd_disc, 2)'), 'discount'],
-                [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/thumbnail/', "product"."pt_code", '.jpg')`), 'image'],
-            ],
-            include: [
-                {
-                    model: PtMstr,
-                    as: 'product',
+                }, {
+                    model: EnMstr,
+                    as: 'entity',
                     attributes: []
+                }, {
+                    model: SqdDet,
+                    as: 'products',
+                    attributes: [
+                        'sqd_oid',
+                        [Sequelize.literal('CASE WHEN pt_desc_jubelio IS NOT NULL THEN "products->product"."pt_desc_jubelio" ELSE "products->product"."pt_desc1" END'), 'product_name'],
+                        [Sequelize.literal('"products->product"."pt_code"'), 'product_code'],
+                        [Sequelize.literal('"products->product"."pt_weight"'), 'weight'],
+                        [Sequelize.literal('"products"."sqd_qty"'), 'qty_product'],
+                        [Sequelize.literal('"products"."sqd_price"'), 'price'],
+                        [Sequelize.literal('ROUND("products"."sqd_disc", 2)'), 'discount'],
+                        [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/thumbnail/', "products->product"."pt_code", '.jpg')`), 'image'],
+                    ],
+                    include: [
+                        {
+                            model: PtMstr,
+                            as: 'product',
+                            attributes: []
+                        }
+                    ]
                 }
             ],
             where: {
-                sqd_sq_oid: {
-                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = :invoice_number)`)
-                }
+                sq_oid: sqOid,
             },
-            group: [
-                'product_name',
-                'product_code',
-                'weight',
-                'discount',
-                'image'
-            ],
-            replacements: {
-                invoice_number: invoiceNumber
-            },
-            logging: false
-        })
-
-        return result;
-    }
-
-    adminGetSalesQuotationCode = async (invoiceNumber) => {
-        let result = await SqMstr.findAll({
-            attributes: ['sq_code'],
-            where: {
-                sq_midtrans_inv_number: invoiceNumber
-            },
-            logging: false
-        })
+        }) 
 
         return result;
     }

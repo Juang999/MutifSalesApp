@@ -19,6 +19,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'sqd_sq_oid'
       })
 
+      SqMstr.hasMany(models.SqdDet, {
+        as: 'products',
+        sourceKey: 'sq_oid',
+        foreignKey: 'sqd_sq_oid'
+      })
+
       SqMstr.belongsTo(models.PtnrMstr, {
         as: 'sold_to',
         targetKey: 'ptnr_id',
@@ -65,6 +71,12 @@ module.exports = (sequelize, DataTypes) => {
         as: 'status',
         targetKey: 'trans_id',
         foreignKey: 'sq_trans_id'
+      })
+
+      SqMstr.belongsTo(models.EnMstr, {
+        as: 'entity',
+        targetKey: 'en_id',
+        foreignKey: 'sq_en_id'
       })
     }
   }
