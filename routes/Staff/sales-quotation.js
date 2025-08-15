@@ -4,6 +4,6 @@ const { getDataSalesQuotation, getDetailDataSalesQuotation } = require('../../ap
 const AdminMiddleware = require('../../app/middleware/AdminMiddleware');
 
 router.get('/all', [AdminMiddleware], getDataSalesQuotation);
-router.get('/:sq_oid/detail', [AdminMiddleware], getDetailDataSalesQuotation);
+router.get('/:invoice_number/detail', [AdminMiddleware], getDetailDataSalesQuotation);
 
 module.exports = router;
