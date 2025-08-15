@@ -429,9 +429,9 @@ class SalesQuotationService {
                 }
             ],
             where,
-            // order: [
-            //     ['sq_add_date', 'DESC']
-            // ],
+            order: [
+                ['sq_add_date', 'DESC']
+            ],
             group: [
                 'sq_midtrans_inv_number',
                 'sq_add_by',
