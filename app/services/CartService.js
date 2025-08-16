@@ -20,7 +20,7 @@ class CartService {
             attributes: [
                 ['cs_pt_id', 'product_id'],
                 ['cs_pt_en_id', 'entity_id'],
-                [Sequelize.col(`"product"."pt_desc_jubelio"`), 'product_name'],
+                [Sequelize.col(`"product"."pt_desc1"`), 'product_name'],
                 [Sequelize.col(`"product"."pt_code"`), 'product_code'],
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'chart_quantity'],
                 [Sequelize.literal('(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))'), 'available_quantity'],
@@ -215,7 +215,7 @@ class CartService {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
-                [Sequelize.col('"product"."pt_desc_jubelio"'), 'product_name'],
+                [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
                 [Sequelize.literal('CAST(SUM(cs_qty) AS INTEGER)'), 'quantity'],
                 [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
                 [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
@@ -589,7 +589,7 @@ class CartService {
     getDataCartForCheckout = async (userId, isFlashSale) => {
         let result = await ChartSales.findAll({
             attributes: [
-                [Sequelize.col(`"product"."pt_desc_jubelio"`), 'product_name'],
+                [Sequelize.col(`"product"."pt_desc1"`), 'product_name'],
                 [Sequelize.col(`"product"."pt_code"`), 'product_code'],
                 [Sequelize.literal(`CAST(SUM(cs_qty) AS INTEGER)`), 'chart_quantity'],
                 [Sequelize.literal(`(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))`), 'available_quantity'],
@@ -632,7 +632,7 @@ class CartService {
             },
             group: [
                 'cs_pt_id',
-                Sequelize.col(`"product"."pt_desc_jubelio"`),
+                Sequelize.col(`"product"."pt_desc1"`),
                 Sequelize.col(`"product"."pt_code"`),
                 'available_quantity',
                 Sequelize.col(`"detail_relation_price_list->singular_detail_price_list"."pidd_price"`),

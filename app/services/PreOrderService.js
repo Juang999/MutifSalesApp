@@ -13,7 +13,7 @@ class PreOrderService {
         let result = await Wishlist.findAll({
                         attributes: [
                             'wl_oid',
-                            [Sequelize.col('"product"."pt_desc_jubelio"'), 'product_name'],
+                            [Sequelize.col('"product"."pt_desc1"'), 'product_name'],
                             [Sequelize.col('"product"."pt_code"'), 'product_code'],
                             [Sequelize.literal('CAST(wl_qty AS BIGINT)'), 'wishlist_quantity'],
                             [Sequelize.literal('CAST("inventory_product"."invc_qty_available" AS BIGINT)'), 'available_quantity'],

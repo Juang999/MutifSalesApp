@@ -123,7 +123,7 @@ class SalesQuotationService {
     getDetailInvoice = async (invoiceNumber, ptnrId) => {
         let result = await SqdDet.findAll({
             attributes: [
-                [Sequelize.col('product.pt_desc_jubelio'), 'product_name'],
+                [Sequelize.col('product.pt_desc1'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
                 [Sequelize.col('product.pt_weight'), 'weight'],
                 [Sequelize.literal('CAST(SUM(sqd_qty) AS INTEGER)'), 'qty_product'],
@@ -551,7 +551,7 @@ class SalesQuotationService {
     adminGetDetailInvoice = async (invoiceNumber) => {
         let result = await SqdDet.findAll({
             attributes: [
-                [Sequelize.literal('CASE WHEN sqd_pt_id = 105 THEN "product"."pt_desc1" ELSE "product"."pt_desc_jubelio" END'), 'product_name'],
+                [Sequelize.literal('CASE WHEN sqd_pt_id = 105 THEN "product"."pt_desc1" ELSE "product"."pt_desc1" END'), 'product_name'],
                 [Sequelize.col('product.pt_code'), 'product_code'],
                 [Sequelize.literal('CASE WHEN "product"."pt_weight" IS NOT NULL THEN "product"."pt_weight" ELSE 600 END'), 'weight'],
                 [Sequelize.literal('CAST(SUM(sqd_qty) AS INTEGER)'), 'qty_product'],
