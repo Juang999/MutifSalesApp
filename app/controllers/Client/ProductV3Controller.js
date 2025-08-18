@@ -7,9 +7,9 @@ const {v4: uuidv4} = require('uuid')
 class ProductV3Controller {
     index = (req, res) => {
         let {ptnrg_id} = Auth.user();
-        let partnerGroupId = 9912;
+        let partnerGroupId = 357;
 
-        if (ptnrg_id != null) {
+        if (ptnrg_id != null && ptnrg_id != 9912) {
             partnerGroupId = ptnrg_id;
         }
 
