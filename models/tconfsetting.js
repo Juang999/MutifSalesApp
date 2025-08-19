@@ -24,7 +24,8 @@ module.exports = (sequelize, DataTypes) => {
     http_foto: DataTypes.STRING,
     version_code: DataTypes.STRING,
     version_id: DataTypes.STRING,
-    serv_code: DataTypes.STRING
+    serv_code: DataTypes.STRING,
+    so_directly: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',

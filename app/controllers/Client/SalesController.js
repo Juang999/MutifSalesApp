@@ -1,6 +1,6 @@
 const moment = require('moment');
 const Auth = require('../../../helper/Auth');
-const {sequelize} = require('../../../models');
+const {sequelize, TConfSetting} = require('../../../models');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
 const {
     InventoryService, CartService, 
@@ -258,7 +258,10 @@ class SalesController {
                 }
             } else {
                 await SalesQuotationService.updatePaymentStatus(invoice, payment_status, 'D', t);
-                await this.salesOrder(invoice);
+
+                if (await this.configurationSoDirectly() == 'N') {
+                    await this.salesOrder(invoice);
+                }
             }
 
             return {
@@ -587,6 +590,14 @@ class SalesController {
         const now = new Date().getTime();
         while (new Date().getTime() < now + milliseconds) {
         }
+    }
+
+    configurationSoDirectly = async () => {
+        let result = await TConfSetting.findOne({
+            attributes: ['so_directly']
+        });
+
+        return result.dataValues.so_directly;
     }
 }
 

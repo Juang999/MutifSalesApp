@@ -220,7 +220,6 @@ class SalesQuotationService {
             ],
             where: {
                 sq_midtrans_inv_number: invoiceNumber,
-                sq_midtrans_inv_status: 'settlement'
             }
         })
 
@@ -264,7 +263,7 @@ class SalesQuotationService {
             ],
             where: {
                 sqd_sq_oid: {
-                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = '${invoiceNumber}' AND sq_midtrans_inv_status = 'settlement')`)
+                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = '${invoiceNumber}')`)
                 }
             }
         });
@@ -519,8 +518,6 @@ class SalesQuotationService {
             },
             logging: false
         }) 
-
-        console.info(result)
 
         return {
             invoice: (result) ? result.dataValues.invoice : null,
