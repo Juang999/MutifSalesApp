@@ -82,7 +82,7 @@ class ProductService {
                                 [Op.eq]: Sequelize.literal(`"product_knowledge"."pt_en_id"`)
                             }),
                             Sequelize.where(Sequelize.col(`invc_loc_id`), {
-                                [Op.in]: [1002718, 1000555]
+                                [Op.in]: [1002718]
                             }),
                             Sequelize.where(Sequelize.col(`invc_qty_available`), {
                                 [Op.gte]: 0
@@ -95,7 +95,7 @@ class ProductService {
                                 [Op.eq]: Sequelize.literal(`"product_knowledge"."pt_en_id"`)
                             }),
                             Sequelize.where(Sequelize.col(`invc_loc_id`), {
-                                [Op.in]: [2002719, 2000556]
+                                [Op.in]: [2002719]
                             }),
                             Sequelize.where(Sequelize.col(`invc_qty_available`), {
                                 [Op.gte]: 0
@@ -107,7 +107,7 @@ class ProductService {
                                 [Op.eq]: Sequelize.literal(`"product_knowledge"."pt_en_id"`)
                             }),
                             Sequelize.where(Sequelize.col(`invc_loc_id`), {
-                                [Op.in]: [3002720, 3000557]
+                                [Op.in]: [3002720]
                             }),
                             Sequelize.where(Sequelize.col(`invc_qty_available`), {
                                 [Op.gte]: 0
@@ -210,15 +210,15 @@ class ProductService {
                 [Op.or]: [
                     {
                         invcd_loc_id: {
-                            [Op.in]: [1002718, 1000555]
+                            [Op.in]: [1002718]
                         }
                     }, {
                         invcd_loc_id: {
-                            [Op.in]: [2002719, 2000556]
+                            [Op.in]: [2002719]
                         }
                     }, {
                         invcd_loc_id: {
-                            [Op.in]: [3002720, 3000557]
+                            [Op.in]: [3002720]
                         }
                     }
                 ]
@@ -283,7 +283,7 @@ class ProductService {
                                         [Op.eq]: Sequelize.literal(`"pt_en_id"`)
                                     }),
                                     Sequelize.where(Sequelize.col(`invc_loc_id`), {
-                                        [Op.in]: [1002718, 1000555]
+                                        [Op.in]: [1002718]
                                     }),
                                     Sequelize.where(Sequelize.col(`invc_qty_available`), {
                                         [Op.gte]: 0
@@ -296,7 +296,7 @@ class ProductService {
                                         [Op.eq]: Sequelize.literal(`"pt_en_id"`)
                                     }),
                                     Sequelize.where(Sequelize.col(`invc_loc_id`), {
-                                        [Op.in]: [2002719, 2000556]
+                                        [Op.in]: [2002719]
                                     }),
                                     Sequelize.where(Sequelize.col(`invc_qty_available`), {
                                         [Op.gte]: 0
@@ -308,7 +308,7 @@ class ProductService {
                                         [Op.eq]: Sequelize.literal(`"pt_en_id"`)
                                     }),
                                     Sequelize.where(Sequelize.col(`invc_loc_id`), {
-                                        [Op.in]: [3002720, 3000557]
+                                        [Op.in]: [3002720]
                                     }),
                                     Sequelize.where(Sequelize.col(`invc_qty_available`), {
                                         [Op.gte]: 0
