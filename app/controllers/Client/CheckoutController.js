@@ -129,7 +129,7 @@ class CheckoutController {
                 sq_tax_class: 9949,
                 sq_si_id: 992,
                 sq_type: 'R',
-                sq_sales_person: formBody.sales_person_id,
+                sq_sales_person: (formBody.sales_person_id) ? formBody.sales_person_id : user.user_ptnr_id,
                 sq_pi_id: dataValues.cs_pi_id,
                 sq_pay_type: formBody.payment_type,
                 sq_pay_method: formBody.payment_method,
