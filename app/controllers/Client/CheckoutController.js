@@ -312,7 +312,7 @@ class CheckoutController {
             let resultDataDetail = this.generateDetailSalesOrder(detailSalesQuotation, resultDataHeader);
 
             await SalesOrderService.createHeaderOrder(resultDataHeader, t);
-            this.sleep(5000)
+            this.sleep(1000)
             await SalesOrderService.createDetailOrder(resultDataDetail, t);
 
             info(`CREATE SALES ORDER`, 'SALES ORDER ALREADY CREATED!', resultDataHeader);
