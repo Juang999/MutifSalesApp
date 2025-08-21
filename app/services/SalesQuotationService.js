@@ -199,6 +199,8 @@ class SalesQuotationService {
                 'sq_ar_cc_id',
                 'sq_dp',
                 'sq_pi_id',
+                'sq_tran_id',
+                'sq_trans_rmks',
                 'sq_disc_header',
                 'sq_total',
                 'sq_cu_id',
