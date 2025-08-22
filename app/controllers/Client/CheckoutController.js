@@ -6,7 +6,11 @@ const {sequelize, TConfSetting} = require('../../../models');
 const ServerSetting = require('../../../helper/SettingServer');
 const {info, errorV2: errorLog} = require('../../../helper/Logging');
 const {errorResponse, serverSetting} = require('../../../helper/Helper');
-const {CartService, SalesQuotationService, PartnerService, SalesOrderService} = require('../../services/ServiceContainer');
+const {
+    PartnerService, 
+    CartService, SalesQuotationService, 
+    SalesOrderService, InventoryService,
+} = require('../../services/ServiceContainer');
 
 class CheckoutController {
     checkOut = async (req, res) => {
@@ -57,7 +61,7 @@ class CheckoutController {
 
             if (req.body.transaction_type == 'Y' && dataUser.ptnrg_id == 9911) {
                 headerSalesQuotation[0]['sq_total'] = parseInt(headerSalesQuotation[0]['sq_total']) + 7500;
-                detailSalesQuotation.push(this.packingCharges(headerSalesQuotation[0], dataUser));
+                detailSalesQuotation.push(this.packingCharges(headerSalesQuotation[0], dataUser, t));
             }
 
             await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
@@ -255,7 +259,27 @@ class CheckoutController {
         }
     }
 
-    packingCharges = (dataHeader, dataUser) => {
+    packingCharges = async (dataHeader, dataUser, transaction) => {
+        let packingChargeOid = null;
+        let packingChargeId = null;
+
+        switch (dataHeader.sq_en_id) {
+            case 1:
+                packingChargeOid = 'e1aaf876-4636-44fa-a1d7-6436a2885266';
+                packingChargeId = 105;
+                break;
+            case 2:
+                packingChargeOid = '361817b9-2822-46b7-bd78-ae9a5a5a8174';
+                packingChargeId = 2023753;
+                break;
+            case 3:
+                packingChargeOid = 'cce96fea-792f-4088-b9e8-91f17d0c26ef';
+                packingChargeId = 3023757;
+                break;
+        }
+
+        await InventoryService.bookQty(packingChargeOid, 1, transaction);
+
         let result = {
                 sqd_oid: uuidv4(),
                 sqd_dom_id: 1,
@@ -265,7 +289,7 @@ class CheckoutController {
                 sqd_sq_oid: dataHeader.sq_oid,
                 sqd_seq: 0,
                 sqd_si_id: 992,
-                sqd_pt_id: 105,
+                sqd_pt_id: packingChargeId,
                 sqd_qty: 1,
                 sqd_qty_allocated: 0,
                 sqd_is_additional_charge: 'N',
@@ -287,7 +311,7 @@ class CheckoutController {
                 sqd_sales_unit: 0,
                 sqd_loc_id: 100043,
                 sqd_ppn_type: 'E',
-                sqd_invc_oid: 'e1aaf876-4636-44fa-a1d7-6436a2885266',
+                sqd_invc_oid: packingChargeOid,
                 sqd_need_date: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
             };
 
