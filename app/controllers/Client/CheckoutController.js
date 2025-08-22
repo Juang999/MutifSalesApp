@@ -263,19 +263,15 @@ class CheckoutController {
         let packingChargeOid = null;
         let packingChargeId = null;
 
-        switch (dataHeader.sq_en_id) {
-            case 1:
-                packingChargeOid = 'e1aaf876-4636-44fa-a1d7-6436a2885266';
-                packingChargeId = 105;
-                break;
-            case 2:
-                packingChargeOid = '361817b9-2822-46b7-bd78-ae9a5a5a8174';
-                packingChargeId = 2023753;
-                break;
-            case 3:
-                packingChargeOid = 'cce96fea-792f-4088-b9e8-91f17d0c26ef';
-                packingChargeId = 3023757;
-                break;
+        if (dataHeader.sq_en_id == 1) {
+            packingChargeOid = 'e1aaf876-4636-44fa-a1d7-6436a2885266';
+            packingChargeId = 105;
+        } else if (dataHeader.sq_en_id == 2) {
+            packingChargeOid = '361817b9-2822-46b7-bd78-ae9a5a5a8174';
+            packingChargeId = 2023753;
+        } else if (dataHeader.sq_en_id == 3) {
+            packingChargeOid = 'cce96fea-792f-4088-b9e8-91f17d0c26ef';
+            packingChargeId = 3023757;
         }
 
         await InventoryService.bookQty(packingChargeOid, 1, transaction);
