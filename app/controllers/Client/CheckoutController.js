@@ -61,7 +61,7 @@ class CheckoutController {
 
             if (req.body.transaction_type == 'Y' && dataUser.ptnrg_id == 9911) {
                 headerSalesQuotation[0]['sq_total'] = parseInt(headerSalesQuotation[0]['sq_total']) + 7500;
-                detailSalesQuotation.push(this.packingCharges(headerSalesQuotation[0], dataUser, t));
+                detailSalesQuotation.push(await this.packingCharges(headerSalesQuotation[0], dataUser, t));
             }
 
             await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
