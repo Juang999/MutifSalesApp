@@ -94,9 +94,16 @@ class SalesController {
     getDataChart = async (req, res) => {
         try {
             let {userid, ptnrg_id} = Auth.user();
+
+            groupId = ptnrg_id;
+
+            if (ptnrg_id != 9911) {
+                ptnrg_id = 998;
+            }
+
             await expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id, 'N');
+            let result = await CartService.retrieveDataCart(userid, 'N', groupId, 'N');
 
             res.status(200)
                 .json({
