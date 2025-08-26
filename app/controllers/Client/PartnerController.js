@@ -8,6 +8,7 @@ const {
 const moment = require('moment');
 const {Op} = require('sequelize');
 const Auth = require('../../../helper/Auth');
+const {PartnerService} = require('../../services/ServiceContainer');
 
 class PartnerController {
     getDistributor = (req, res) => {
@@ -293,6 +294,28 @@ class PartnerController {
             })
 
         return data;
+    }
+
+    getDataPartner = (req, res) => {
+        PartnerService.getDataPartnerByEntity(req.params.entity_id)
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
     }
 }
 
