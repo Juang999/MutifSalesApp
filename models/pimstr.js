@@ -44,7 +44,8 @@ module.exports = (sequelize, DataTypes) => {
     pi_dt: DataTypes.DATE,
     pi_ptnrg_id: DataTypes.INTEGER,
     pi_shown: DataTypes.STRING,
-    pi_flashsale: DataTypes.STRING
+    pi_flashsale: DataTypes.STRING,
+    pi_spesific_priece: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',

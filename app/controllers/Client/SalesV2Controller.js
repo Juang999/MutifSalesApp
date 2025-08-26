@@ -10,7 +10,7 @@ class SalesV2Controller {
 
             await this.expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id, 'N')
+            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id, 'N', 'N')
             res.status(200)
                 .json({
                     status: 'success',
@@ -39,8 +39,8 @@ class SalesV2Controller {
             await this.expireData(userid);
 
             let [subTotalPrice, dataCart] = await Promise.all([
-                CartService.getSubTotalPriceCart(userid, 'D', 'N', ptnrg_id), 
-                CartService.retrieveLimitedDataCart(userid, 'D', 'N', ptnrg_id)
+                CartService.getSubTotalPriceCart(userid, 'D', 'N', ptnrg_id, 'N'), 
+                CartService.retrieveLimitedDataCart(userid, 'D', 'N', ptnrg_id, 'N')
             ]);
 
             res.status(200)

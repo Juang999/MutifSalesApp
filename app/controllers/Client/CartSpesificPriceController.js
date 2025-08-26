@@ -6,16 +6,16 @@ const {
 } = require('../../services/ServiceContainer');
 const { expireData } = require('./SalesV2Controller');
 
-class CartFlashSaleController {
-inputIntoChart = async (req, res) => {
+class CartSpesificPriceController {
+    inputIntoChart = async (req, res) => {
         try {
             const {body} = req;
             const {userid, usernama: username} = Auth.user();
 
             const {
                 pi_id: priceListId,
-                pt_id: productId, en_id: entityId,
-                invc_oid: inventoryOid, qty: quantity,
+                pt_id: productId, en_id: entityId, 
+                invc_oid: inventoryOid, qty: quantity, 
             } = body;
         
             let transaction = await sequelize.transaction(async t => {
@@ -95,7 +95,7 @@ inputIntoChart = async (req, res) => {
             let {userid, ptnrg_id} = Auth.user();
             await expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id, 'Y', 'N');
+            let result = await CartService.retrieveDataCart(userid, 'N', ptnrg_id, 'N', 'Y');
 
             res.status(200)
                 .json({
@@ -170,7 +170,7 @@ inputIntoChart = async (req, res) => {
         sequelize.transaction(async t => {
             await expireData(userId)
 
-            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N', 'Y', 'N');
+            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N', 'N', 'Y');
 
             for (const {dataValues: singularDataCart} of dataCart) {
                 let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularDataCart.cs_invc_oid, t);
@@ -229,7 +229,7 @@ inputIntoChart = async (req, res) => {
     
                 let [dataUser, dataCart] = await Promise.all([
                     CartService.retrieveDataToCheckout(userid),
-                    CartService.getDataCartForCheckout(userid, 'Y', 'N')
+                    CartService.getDataCartForCheckout(userid, 'N', 'Y')
                 ]);
     
                 dataUser.dataValues.chart_sales = dataCart;
@@ -255,4 +255,4 @@ inputIntoChart = async (req, res) => {
     }
 }
 
-module.exports = new CartFlashSaleController();
+module.exports = new CartSpesificPriceController();

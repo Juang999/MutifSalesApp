@@ -8,7 +8,7 @@ const {
 const {Op} = require('sequelize');
 
 class ProductService {
-    getProduct = async (query, groupId, isFlashSale) => {
+    getProduct = async (query, groupId, isFlashSale, spesificPrice) => {
         let productName = (query.search) ? query.search : '';
 
         let result = await InvcMstr.findAll({
@@ -73,6 +73,9 @@ class ProductService {
                     }),
                     Sequelize.where(Sequelize.literal(`"product_knowledge->singular_relation_price_list->master_price_list"."pi_flashsale"`), {
                         [Op.eq]: isFlashSale
+                    }),
+                    Sequelize.where(Sequelize.literal(`"product_knowledge->singular_relation_price_list->master_price_list"."pi_spesific_price"`), {
+                        [Op.eq]: spesificPrice
                     }),
                 ],
                 [Op.or]: [

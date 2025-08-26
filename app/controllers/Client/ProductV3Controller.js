@@ -13,7 +13,7 @@ class ProductV3Controller {
             partnerGroupId = priceListGroup;
         }
 
-        ProductService.getProduct(req.query, partnerGroupId, 'N')
+        ProductService.getProduct(req.query, partnerGroupId, 'N', 'N')
         .then(result => {
             res.status(200)
                 .json({
@@ -56,6 +56,37 @@ class ProductV3Controller {
         })
         .catch(err => {
             errorLog('GET PRODUCT FLASH SALE JUMBO', err.message);
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: 'Server Error!'
+                })
+        })
+    }
+
+    indexAnotherProgram = (req, res) => {
+        let {ptnrg_id} = Auth.user();
+        let partnerGroupId = 9911;
+
+        if (ptnrg_id != null) {
+            partnerGroupId = ptnrg_id;
+        }
+
+        ProductService.getProduct(req.query, partnerGroupId, 'N', 'Y')
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        })
+        .catch(err => {
+            errorLog('GET PRODUCT', err.message);
 
             res.status(400)
                 .json({
@@ -113,7 +144,6 @@ class ProductV3Controller {
                     error: 'Server Error!'
                 })
         })
-
     }
 
     detail = async (req, res) => {
@@ -258,6 +288,81 @@ class ProductV3Controller {
                 })
         } catch (error) {
             await errorLog('GET DETAIL PRODUCT FLASH SALE JUMBO', `USER: ${Auth.user().usernama} | GROUP: ${Auth.user().groupid} | DETAIL ${req.params.product_code} | ${error.message}`)
+
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: error.message
+                })
+        }
+    }
+
+    detailAotherProgram = async (req, res) => {
+        try {
+            let {ptnrg_id} = Auth.user();
+            let partnerGroupId = 9911;
+
+            if (ptnrg_id != null) {
+                partnerGroupId = ptnrg_id;
+            }
+
+            let dataProduct = await ProductService.getDetailProduct(req.params)
+
+            if (!dataProduct) {
+                res.status(404)
+                    .json({
+                        status: 'not found',
+                        message: 'not found',
+                        data: null,
+                        error: 'not found'
+                    });
+
+                return;
+            }
+
+            let dataPrice = await PriceService.getPrice(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id, partnerGroupId, 'N', 'Y')
+
+            if (!dataPrice) {
+                res.status(404)
+                    .json({
+                        status: 'not found',
+                        message: 'not found',
+                        data: null,
+                        error: 'not found'
+                    });
+
+                return;
+            }
+
+            let result = {
+                flashsale: dataProduct.dataValues.flashsale,
+                product_id: dataProduct.dataValues.product_id,
+                product_name: dataProduct.dataValues.product_name,
+                product_code: dataProduct.dataValues.product_code,
+                pt_en_id: dataProduct.dataValues.pt_en_id,
+                pricelist_name: dataPrice.dataValues.pricelist_name,
+                pi_id: dataPrice.dataValues.pi_id,
+                price: dataPrice.dataValues.price,
+                discount: dataPrice.dataValues.discount,
+                photo: `https://cdn.mutif.biz.id/detail/${dataProduct.dataValues.product_code}.jpg`,
+                product_weight: dataProduct.dataValues.product_weight,
+                product_height: dataProduct.dataValues.product_height,
+                product_width: dataProduct.dataValues.product_width,
+                product_length: dataProduct.dataValues.product_length,
+                product_quantity: dataProduct.dataValues.product_quantity.map(({dataValues}) => dataValues)
+            }
+
+            res.status(200)
+                .json({
+                    status:'success',
+                    message: 'ok',
+                    data: result,
+                    error: null
+                })
+        } catch (error) {
+            await errorLog('GET DETAIL PRODUCT', `USER: ${Auth.user().usernama} | GROUP: ${Auth.user().groupid} | DETAIL ${req.params.product_code} | ${error.message}`)
 
             res.status(400)
                 .json({

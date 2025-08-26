@@ -27,7 +27,7 @@ class SalesController {
 
                 let [dataQtyProduct, dataCart] = await Promise.all([
                     InventoryService.getDataInventory(inventoryOid, t),
-                    CartService.findDataCart(productId, inventoryOid, userid, 'N'), 
+                    CartService.findDataCart(productId, inventoryOid, userid, 'N', 'N'), 
                 ]);
 
                 if (parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity) < 0) {
@@ -103,7 +103,7 @@ class SalesController {
 
             await expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'N', groupId, 'N');
+            let result = await CartService.retrieveDataCart(userid, 'N', groupId, 'N', 'N');
 
             res.status(200)
                 .json({
@@ -178,7 +178,7 @@ class SalesController {
         sequelize.transaction(async t => {
             await expireData(userId)
 
-            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N', 'N');
+            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N', 'N', 'N');
 
             for (const {dataValues: singularDataCart} of dataCart) {
                 let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularDataCart.cs_invc_oid, t);
@@ -220,7 +220,7 @@ class SalesController {
 
             let [dataUser, dataCart] = await Promise.all([
                 CartService.retrieveDataToCheckout(userid),
-                CartService.getDataCartForCheckout(userid, 'N')
+                CartService.getDataCartForCheckout(userid, 'N', 'N')
             ]);
 
             dataUser.dataValues.chart_sales = dataCart;

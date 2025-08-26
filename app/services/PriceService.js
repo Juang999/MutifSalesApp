@@ -4,7 +4,7 @@ const {
 const {Op} = require('sequelize')
 
 class PriceService {
-    getPrice = async (productId, entityId, groupId, isFlashSale) => {
+    getPrice = async (productId, entityId, groupId, isFlashSale, spesificPrice) => {
         const result = await PidDet.findOne({
             attributes: [
                 [Sequelize.literal(`master_price_list.pi_id`), 'pi_id'],
@@ -38,6 +38,9 @@ class PriceService {
                 }),
                 Sequelize.where(Sequelize.col(`"master_price_list"."pi_flashsale"`), {
                     [Op.eq]: isFlashSale
+                }),
+                Sequelize.where(Sequelize.col(`"master_price_list"."pi_spesific_price"`), {
+                    [Op.eq]: spesificPrice
                 })
             ],
         })
