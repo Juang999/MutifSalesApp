@@ -54,6 +54,29 @@ class PartnerService {
 
         return result;
     }
+
+    getDataSalesByEntity = async (entityId) => {
+        let result = await PtnrMstr.findAll({
+            attributes: [
+                ['ptnr_id', 'id'], 
+                ['ptnr_name', 'partner_name'],
+                [Sequelize.col(`group_partner.ptnrg_desc`), 'group_name']
+            ],
+            include: [
+                {
+                    model: PtnrgGrp,
+                    as: 'group_partner',
+                    attributes: []
+                }
+            ],
+            where: {
+                ptnr_en_id: entityId,
+                ptnr_is_emp: 'Y'
+            }
+        });
+
+        return result;
+    }
 }
 
 module.exports = new PartnerService();

@@ -1,9 +1,15 @@
 const {Router} = require('express');
 const router = Router();
-const {getDistributor, getDistributorPartner, getOrderPartner, getLimitAndDeposit, getDetailSalesOrder, getDataPartner} = require('../../app/controllers/Client/PartnerController');
 const {Middleware, Requests} = require('../../app/Kernel');
+const {
+    getDataSales,
+    getOrderPartner, getLimitAndDeposit, 
+    getDetailSalesOrder, getDataPartner, 
+    getDistributor, getDistributorPartner, 
+} = require('../../app/controllers/Client/PartnerController');
 
 router.get('/distributor', getDistributor);
+router.get('/:entity_id/sales', getDataSales);
 router.get('/:entity_id/partners', getDataPartner);
 router.get('/distributor/:ptnr_id/order-agent', getOrderPartner);
 router.get('/distributor/:ptnr_id/partners', getDistributorPartner);
