@@ -6,12 +6,11 @@ const {v4: uuidv4} = require('uuid')
 
 class ProductV3Controller {
     index = (req, res) => {
-        let {ptnrg_id} = Auth.user();
         let priceListGroup = req.query.group_id;
         let partnerGroupId = 9911;
 
         if (priceListGroup != null) {
-            partnerGroupId = ptnrg_id;
+            partnerGroupId = priceListGroup;
         }
 
         ProductService.getProduct(req.query, partnerGroupId, 'N')
@@ -119,12 +118,11 @@ class ProductV3Controller {
 
     detail = async (req, res) => {
         try {
-            let {ptnrg_id} = Auth.user();
             let priceListGroup = req.query.group_id;
             let partnerGroupId = 9911;
-    
+
             if (priceListGroup != null) {
-                partnerGroupId = ptnrg_id;
+                partnerGroupId = priceListGroup;
             }
 
             let dataProduct = await ProductService.getDetailProduct(req.params)
