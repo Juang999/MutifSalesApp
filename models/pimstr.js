@@ -18,6 +18,12 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: 'pi_oid',
         targetKey: 'pid_pi_oid'
       })
+
+      PiMstr.belongsTo(models.PtnrgGrp, {
+        as: 'group_pricelist',
+        targetKey: 'ptnrg_id',
+        foreignKey: 'pi_ptnrg_id'
+      })
     }
   }
   PiMstr.init({
@@ -45,7 +51,7 @@ module.exports = (sequelize, DataTypes) => {
     pi_ptnrg_id: DataTypes.INTEGER,
     pi_shown: DataTypes.STRING,
     pi_flashsale: DataTypes.STRING,
-    pi_spesific_priece: DataTypes.STRING
+    pi_spesific_price: DataTypes.STRING
   }, {
     sequelize,
     schema: 'public',

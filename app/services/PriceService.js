@@ -1,5 +1,5 @@
 const {
-    PiMstr, PidDet, PiddDet, Sequelize, sequelize, PtMstr
+    PiMstr, PidDet, PiddDet, Sequelize, sequelize, PtMstr, PtnrgGrp
 } = require('../../models');
 const {Op} = require('sequelize')
 
@@ -149,14 +149,49 @@ class PriceService {
             attributes: [
                 'pi_oid',
                 ['pi_id', 'pricelist_id'],
-                ['pi_desc', 'pricelist_desc']
+                ['pi_desc', 'pricelist_desc'],
+                ['pi_shown', 'show'],
+                ['pi_flashsale', 'flashsale'],
+                ['pi_spesific_price', 'show_in_another_program'],
+                [Sequelize.literal(`"group_pricelist"."ptnrg_name"`), 'group_name']
+            ],
+            include: [
+                {
+                    model: PtnrgGrp,
+                    as: 'group_pricelist',
+                    attributes: []
+                }
             ],
             where: {
                 pi_desc: {
                     [Op.iLike]: `%${search}%`
                 }
+            },
+            order: [
+                ['pi_shown', 'ASC']
+            ]
+        });
+
+        return result;
+    }
+
+    updateStatusPriceList = async (isShown, isFlashSale, isAnotherProgram, priceListOid) => {
+        console.info(isShown, isFlashSale, isAnotherProgram, priceListOid)
+
+        let result = await PiMstr.update({
+            pi_shown: isShown,
+            pi_flashsale: isFlashSale,
+            pi_spesific_price: isAnotherProgram
+        }, {
+            where: {
+                pi_oid: priceListOid
+            },
+            logging: (sqlCommand) => {
+                console.info(sqlCommand)
             }
-        })
+        });
+
+        return result;
     }
 }
 
