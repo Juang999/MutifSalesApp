@@ -166,9 +166,15 @@ class PriceService {
                 pi_desc: {
                     [Op.iLike]: `%${search}%`
                 },
-                pi_shown: {
-                    [Op.not]: 'Y'
-                }
+                [Op.or]: [
+                    {
+                        pi_shown: 'N'
+                    }, {
+                        pi_shown: {
+                            [Op.is]: null
+                        }
+                    }
+                ]
             },
             order: [
                 ['pi_shown', 'ASC']
