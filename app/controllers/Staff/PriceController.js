@@ -4,14 +4,21 @@ const {info, error: errorLog} = require('../../../helper/Logging');
 class PriceController {
     index = (req, res) => {
         let search = (req.query.price_name) ? req.query.price_name : '';
+        let searchActive = (req.query.price_active) ? req.query.price_active : '';
 
-        PriceService.retrievePriceName(search)
-        .then(result => {
+        Promise.all([
+            PriceService.retrievePriceName(search),
+            PriceService.retrieveActivePriceName(searchActive)
+        ])
+        .then(([allData, activeData]) => {
             res.status(200)
                 .json({
                     status: 'success',
                     message: 'ok',
-                    data: result,
+                    data: {
+                        active: activeData,
+                        data: allData
+                    },
                     error: null
                 })
         })

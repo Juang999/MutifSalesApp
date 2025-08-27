@@ -175,6 +175,38 @@ class PriceService {
         return result;
     }
 
+    retrieveActivePriceName = async ( search ) => {
+        const result = await PiMstr.findAll({
+            attributes: [
+                'pi_oid',
+                ['pi_id', 'pricelist_id'],
+                ['pi_desc', 'pricelist_desc'],
+                ['pi_shown', 'show'],
+                ['pi_flashsale', 'flashsale'],
+                ['pi_spesific_price', 'show_in_another_program'],
+                [Sequelize.literal(`"group_pricelist"."ptnrg_name"`), 'group_name']
+            ],
+            include: [
+                {
+                    model: PtnrgGrp,
+                    as: 'group_pricelist',
+                    attributes: []
+                }
+            ],
+            where: {
+                pi_desc: {
+                    [Op.iLike]: `%${search}%`
+                },
+                pi_shown: 'Y'
+            },
+            order: [
+                ['pi_shown', 'ASC']
+            ]
+        });
+
+        return result;
+    }
+
     updateStatusPriceList = async (isShown, isFlashSale, isAnotherProgram, priceListOid) => {
         console.info(isShown, isFlashSale, isAnotherProgram, priceListOid)
 
