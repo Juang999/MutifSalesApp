@@ -165,6 +165,9 @@ class PriceService {
             where: {
                 pi_desc: {
                     [Op.iLike]: `%${search}%`
+                },
+                pi_shown: {
+                    [Op.not]: 'Y'
                 }
             },
             order: [
