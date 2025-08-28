@@ -579,7 +579,8 @@ class CartService {
             cs_trans_id: 'D',
             cs_preorder: preOrder,
             cs_flashsale: isFlashSale,
-            cs_spesific_price: isSpesificPrice
+            cs_spesific_price: isSpesificPrice,
+            cs_ready_to_checkout: 'N'
         }, {
             individualHooks: true,
             transaction,
