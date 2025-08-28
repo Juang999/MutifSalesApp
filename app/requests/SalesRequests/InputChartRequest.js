@@ -6,6 +6,7 @@ const validation = Joi.object({
     invc_oid: Joi.string().required(),
     qty: Joi.number().required(),
     pi_id: Joi.number().required(),
+    spesific_program: Joi.string().required()
 })
 
 const InputChartRequest = (req, res, next) => {

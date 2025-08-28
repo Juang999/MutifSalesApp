@@ -4,6 +4,7 @@ const {Middleware, Requests} = require('../../app/Kernel')
 const {checkOut} = require('../../app/controllers/Client/CheckoutController');
 const {
     invoiceNumberSequence, 
+    markProduckForCheckout,
     updateChart, deleteChart, 
     inputIntoChart, getDataChart, 
     readyToCheckout, updatePaymentStatus,
@@ -18,6 +19,7 @@ router.get('/chart/', [Middleware.AuthMiddleware], getDataChart);
 router.get('/ready-to-checkout', [Middleware.AuthMiddleware], readyToCheckout);
 router.post('/checkout', [Middleware.AuthMiddleware, Requests.SalesRequests.CheckoutRequest], checkOut);
 router.delete('/chart/:product_id/delete', [Middleware.AuthMiddleware], deleteChart);
+router.patch('/cart/product-id/:product_id/spesific-program/:spesific_program/mark-product', [Middleware.AuthMiddleware], markProduckForCheckout);
 
 /**
  * payment-system section

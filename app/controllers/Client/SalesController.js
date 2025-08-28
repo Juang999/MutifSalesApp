@@ -17,8 +17,8 @@ class SalesController {
             const {userid, usernama: username} = Auth.user();
 
             const {
-                pi_id: priceListId,
                 pt_id: productId, en_id: entityId, 
+                pi_id: priceListId, spesific_program,
                 invc_oid: inventoryOid, qty: quantity, 
             } = body;
         
@@ -27,7 +27,7 @@ class SalesController {
 
                 let [dataQtyProduct, dataCart] = await Promise.all([
                     InventoryService.getDataInventory(inventoryOid, t),
-                    CartService.findDataCart(productId, inventoryOid, userid, 'N', 'N'), 
+                    CartService.findDataCart(productId, inventoryOid, userid, 'N', spesific_program), 
                 ]);
 
                 if (parseInt(dataQtyProduct.dataValues.qty_available) - parseInt(quantity) < 0) {
@@ -52,7 +52,7 @@ class SalesController {
                     let bodyCart = {productId, entityId, inventoryOid, priceListId, quantity: parseInt(quantity)};
 
                     await Promise.all([
-                        CartService.inputIntoCart(bodyCart, dataUser, 'N', 'N', t),
+                        CartService.inputIntoCart(bodyCart, dataUser, 'N', 'N', t, spesific_program),
                         InventoryService.bookProductQuantity(inventoryOid, qtyInventory, t)
                     ])
                 } else {
@@ -103,7 +103,7 @@ class SalesController {
 
             await expireData(userid);
 
-            let result = await CartService.retrieveDataCart(userid, 'N', groupId, 'N', 'N');
+            let result = await CartService.retrieveDataCart(userid, 'N', groupId, 'N');
 
             res.status(200)
                 .json({
@@ -385,6 +385,28 @@ class SalesController {
                     data: {invoice_number: invoiceNumber},
                     error: null
                 }) 
+        })
+        .catch(err => {
+            res.status(400)
+                .json({
+                    status: 'failed',
+                    message: 'error',
+                    data: null,
+                    error: err.message
+                })
+        })
+    }
+
+    markProduckForCheckout = (req, res) => {
+        CartService.markProductForCheckout(req.params.product_id, req.params.spesific_program)
+        .then(result => {
+            res.status(200)
+                .json({
+                    status: 'success',
+                    message: 'marked',
+                    data: result,
+                    erro: null
+                })
         })
         .catch(err => {
             res.status(400)

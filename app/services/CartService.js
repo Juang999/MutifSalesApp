@@ -15,7 +15,7 @@ const {Op} = require('sequelize');
 const {insertBulkQuery, insertQuery} = require('../../helper/InputQueryIntoSqlOut');
 
 class CartService {
-    retrieveDataCart = async (userId, preOrder, groupId, isFlashSale, spesificPrice) => {
+    retrieveDataCart = async (userId, preOrder, groupId, isFlashSale) => {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -32,6 +32,8 @@ class CartService {
                 [Sequelize.col(`cs_trans_id`), 'transaction_code'],
                 [Sequelize.col(`"status_transaction"."trans_desc"`), 'transaction_status'],
                 [Sequelize.literal('MAX(cs_created_at)'), 'created_at'],
+                ['cs_spesific_price', 'spesific_program'],
+                ['cs_ready_to_checkout', 'marked_to_checkout']
             ],
             include: [
                 {
@@ -70,16 +72,9 @@ class CartService {
                 },
                 cs_flashsale: isFlashSale,
                 cs_deleted_at: null,
-                cs_spesific_price: spesificPrice,
                 [Op.and]: [
-                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_ptnrg_id"`), {
-                        [Op.eq]: groupId
-                    }),
-                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_shown"`), {
-                        [Op.eq]: 'Y'
-                    }),
-                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_flashsale"`), {
-                        [Op.eq]: isFlashSale
+                    Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_id"`), {
+                        [Op.eq]: Sequelize.col('cs_pi_id')
                     })
                 ]
             },
@@ -93,6 +88,8 @@ class CartService {
                 'entity_id',
                 'transaction_code',
                 'transaction_status',
+                'spesific_program',
+                'marked_to_checkout'
             ],
             subQuery: false,
         })
@@ -330,7 +327,7 @@ class CartService {
         return subTotal;
     }
 
-    getDataHeaderSalesQuotation = async (userId, entityId, preOrder, isFlashSale, spesificPrice) => {
+    getDataHeaderSalesQuotation = async (userId, entityId, preOrder, isFlashSale) => {
         let result = await ChartSales.findAll({
             attributes: [
                 'cs_pt_en_id',
@@ -373,9 +370,6 @@ class CartService {
                     Sequelize.where(Sequelize.col('cs_userid'), {
                         [Op.eq]: userId
                     }),
-                    Sequelize.where(Sequelize.col('cs_spesific_price'), {
-                        [Op.eq]: spesificPrice
-                    }),
                     Sequelize.where(Sequelize.col('cs_trans_id'), {
                         [Op.eq]: 'D'
                     }),
@@ -384,6 +378,9 @@ class CartService {
                     }),
                     Sequelize.where(Sequelize.col('cs_flashsale'), {
                         [Op.eq]: isFlashSale
+                    }),
+                    Sequelize.where(Sequelize.col('cs_ready_to_checkout'), {
+                        [Op.eq]: 'Y'
                     }),
                     Sequelize.where(Sequelize.col(`"product->singular_relation_price_list"."pid_pi_oid"`), {
                         [Op.eq]: Sequelize.literal(`(SELECT pi_oid FROM public.pi_mstr WHERE pi_id = cs_pi_id)`)
@@ -402,7 +399,7 @@ class CartService {
         return result;
     }
 
-    getDataDetailSalesQuotation = async (userId, preOrder, isFlashSale, spesificPrice) => {
+    getDataDetailSalesQuotation = async (userId, preOrder, isFlashSale) => {
         let dataProducts = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -458,9 +455,6 @@ class CartService {
                 [Op.and]: [
                     Sequelize.where(Sequelize.col(`cs_userid`), {
                         [Op.eq]: userId
-                    }),
-                    Sequelize.where(Sequelize.col(`cs_spesific_price`), {
-                        [Op.eq]: spesificPrice
                     }),
                     Sequelize.where(Sequelize.col(`cs_preorder`), {
                         [Op.eq]: preOrder
@@ -643,6 +637,7 @@ class CartService {
                 cs_trans_id: 'D',
                 cs_flashsale: isFlashSale,
                 cs_spesific_price: spesificPrice,
+                cs_ready_to_checkout: 'Y'
             },
             group: [
                 'cs_pt_id',
@@ -747,6 +742,19 @@ class CartService {
             },
             individualHooks: true
         })
+    }
+
+    markProductForCheckout = async (productId, spesificPrice) => {
+        let result = await ChartSales.update({
+            cs_ready_to_checkout: Sequelize.literal(`CASE WHEN cs_ready_to_checkout = 'Y' THEN 'N' ELSE 'Y' END`)
+        }, {
+            where: {
+                cs_pt_id: productId,
+                cs_spesific_price: spesificPrice
+            }
+        });
+
+        return result;
     }
 }
 

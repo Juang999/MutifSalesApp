@@ -206,7 +206,7 @@ class CheckoutController {
 
         let result = dataBody.map(({dataValues: dataDetail}) => {
             let [dataHeaderSalesQuotation] = headerSalesQuotation.filter(item => {
-                return item.sq_en_id == dataDetail.en_id && item.sq_ptsfr_loc_id == dataDetail.location_id
+                return item.sq_en_id == dataDetail.en_id && item.sq_ptsfr_loc_id == dataDetail.location_id && item.sq_pi_id == dataDetail.cs_pi_id
             })
 
             let data = {
