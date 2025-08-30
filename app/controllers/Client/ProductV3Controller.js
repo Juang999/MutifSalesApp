@@ -169,7 +169,7 @@ class ProductV3Controller {
                 return;
             }
 
-            let dataPrice = await PriceService.getPrice(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id, partnerGroupId, 'N')
+            let dataPrice = await PriceService.getPrice(dataProduct.dataValues.product_id, dataProduct.dataValues.pt_en_id, partnerGroupId, 'N', 'N')
 
             if (!dataPrice) {
                 res.status(404)
