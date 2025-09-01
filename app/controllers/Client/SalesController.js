@@ -172,13 +172,13 @@ class SalesController {
     }
 
     deleteChart = async (req, res) => {
-        let {product_id} = req.params;
+        let {product_id, spesific_program} = req.params;
         let {userid: userId, usernama: userName} = Auth.user();
 
         sequelize.transaction(async t => {
             await expireData(userId)
 
-            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N', 'N', 'N');
+            let dataCart = await CartService.retrieveDataCartByProductId(product_id, userId, 'N', 'N', spesific_program);
 
             for (const {dataValues: singularDataCart} of dataCart) {
                 let {dataValues: dataInventory} = await InventoryService.getDataInventory(singularDataCart.cs_invc_oid, t);

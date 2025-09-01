@@ -18,7 +18,7 @@ router.post('/chart/input', [Middleware.AuthMiddleware, Requests.SalesRequests.I
 router.get('/chart/', [Middleware.AuthMiddleware], getDataChart);
 router.get('/ready-to-checkout', [Middleware.AuthMiddleware], readyToCheckout);
 router.post('/checkout', [Middleware.AuthMiddleware, Requests.SalesRequests.CheckoutRequest], checkOut);
-router.delete('/chart/:product_id/delete', [Middleware.AuthMiddleware], deleteChart);
+router.delete('/chart/:product_id/:spesific_program/spesific-program/delete', [Middleware.AuthMiddleware], deleteChart);
 router.patch('/cart/product-id/:product_id/spesific-program/:spesific_program/mark-product', [Middleware.AuthMiddleware], markProduckForCheckout);
 
 /**
