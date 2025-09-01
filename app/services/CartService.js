@@ -465,6 +465,9 @@ class CartService {
                     Sequelize.where(Sequelize.col(`cs_flashsale`), {
                         [Op.eq]: isFlashSale
                     }),
+                    Sequelize.where(Sequelize.col(`cs_ready_to_checkout`), {
+                        [Op.eq]: 'Y'
+                    }),
                     Sequelize.where(Sequelize.col(`"product->singular_relation_price_list->master_price_list"."pi_id"`), {
                         [Op.eq]: Sequelize.literal(`cs_pi_id`)
                     }),
