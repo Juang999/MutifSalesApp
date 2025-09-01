@@ -20,8 +20,8 @@ class CheckoutController {
         try {
             let [dataLocation, dataHeaderSq, dataBodySq] = await Promise.all([
                 PartnerService.getLocationPartner(dataUser.user_ptnr_id),
-                CartService.getDataHeaderSalesQuotation(dataUser.userid, 'N', 'N', 'N'), 
-                CartService.getDataDetailSalesQuotation(dataUser.userid, 'N', 'N', 'N'),
+                CartService.getDataHeaderSalesQuotation(dataUser.userid, req.body.entity_id, 'N', 'N', 'N'), 
+                CartService.getDataDetailSalesQuotation(dataUser.userid, req.body.entity_id, 'N', 'N', 'N'),
             ])
 
             let dataPartner = null;
@@ -125,15 +125,15 @@ class CheckoutController {
                 sq_add_by: user.usernama,
                 sq_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_code: salesQuotationCode,
-                sq_ptnr_id_sold: user.user_ptnr_id,
-                sq_ptnr_id_bill: user.user_ptnr_id,
+                sq_ptnr_id_sold: formBody.sold_to_id,
+                sq_ptnr_id_bill: formBody.sold_to_id,
                 sq_date: moment().format('YYYY-MM-DD HH:mm:ss'),
                 sq_credit_term: 303,
                 sq_taxable: 'N',
                 sq_tax_class: 9949,
                 sq_si_id: 992,
                 sq_type: 'R',
-                sq_sales_person: (formBody.sales_person_id) ? formBody.sales_person_id : user.user_ptnr_id,
+                sq_sales_person: (formBody.sales_person_id) ? formBody.sales_person_id : formBody.sold_to_id,
                 sq_pi_id: dataValues.cs_pi_id,
                 sq_pay_type: formBody.payment_type,
                 sq_pay_method: formBody.payment_method,
@@ -287,6 +287,7 @@ class CheckoutController {
                 sqd_si_id: 992,
                 sqd_pt_id: packingChargeId,
                 sqd_qty: 1,
+                sqd_qty_booking: 1,
                 sqd_qty_allocated: 0,
                 sqd_is_additional_charge: 'N',
                 sqd_um: 9964,

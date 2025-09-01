@@ -379,6 +379,9 @@ class CartService {
                     Sequelize.where(Sequelize.col('cs_flashsale'), {
                         [Op.eq]: isFlashSale
                     }),
+                    Sequelize.where(Sequelize.col('cs_pt_en_id'), {
+                        [Op.eq]: entityId
+                    }),
                     Sequelize.where(Sequelize.col('cs_ready_to_checkout'), {
                         [Op.eq]: 'Y'
                     }),
@@ -399,7 +402,7 @@ class CartService {
         return result;
     }
 
-    getDataDetailSalesQuotation = async (userId, preOrder, isFlashSale) => {
+    getDataDetailSalesQuotation = async (userId, entityId, preOrder, isFlashSale) => {
         let dataProducts = await ChartSales.findAll({
             attributes: [
                 'cs_oid',
@@ -453,6 +456,7 @@ class CartService {
                 cs_userid: userId,
                 cs_preorder: preOrder,
                 cs_trans_id: 'D',
+                cs_pt_en_id: entityId,
                 [Op.and]: [
                     Sequelize.where(Sequelize.col(`cs_userid`), {
                         [Op.eq]: userId

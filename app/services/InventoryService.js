@@ -278,12 +278,7 @@ class InventoryService {
                 invc_oid: inventoryOid
             },
             individualHooks: true,
-            transaction,
-            logging: async (sqlCommand, {bind}) => {
-                let realSql = sqlCommand.split(': ')[1]
-
-                await insertQuery(realSql, bind, 1);
-            }
+            transaction
         })
 
         return result;
@@ -331,9 +326,6 @@ class InventoryService {
                 }
             },
             transaction,
-            logging: (sqlCommand) => {
-                console.info(sqlCommand)
-            }
         })
     }
 

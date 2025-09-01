@@ -9,7 +9,7 @@ class ProductV3Controller {
         let priceListGroup = req.query.group_id;
         let partnerGroupId = 9911;
 
-        if (priceListGroup != null && priceListGroup != '') {
+        if (priceListGroup != null && !isNaN(parseInt(priceListGroup))) {
             partnerGroupId = priceListGroup;
         }
 
@@ -151,7 +151,7 @@ class ProductV3Controller {
             let priceListGroup = req.query.group_id;
             let partnerGroupId = 9911;
 
-            if (priceListGroup != null && priceListGroup != '') {
+            if (priceListGroup != null && !isNaN(parseInt(priceListGroup))) {
                 partnerGroupId = priceListGroup;
             }
 
