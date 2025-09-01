@@ -594,7 +594,7 @@ class CartService {
         return result;
     }
 
-    getDataCartForCheckout = async (userId, isFlashSale, spesificPrice) => {
+    getDataCartForCheckout = async (userId, isFlashSale) => {
         let result = await ChartSales.findAll({
             attributes: [
                 [Sequelize.col(`"product"."pt_desc1"`), 'product_name'],
@@ -637,7 +637,6 @@ class CartService {
                 cs_userid: userId,
                 cs_trans_id: 'D',
                 cs_flashsale: isFlashSale,
-                cs_spesific_price: spesificPrice,
                 cs_ready_to_checkout: 'Y'
             },
             group: [

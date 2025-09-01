@@ -220,7 +220,7 @@ class SalesController {
 
             let [dataUser, dataCart] = await Promise.all([
                 CartService.retrieveDataToCheckout(userid),
-                CartService.getDataCartForCheckout(userid, 'N', 'N')
+                CartService.getDataCartForCheckout(userid, 'N')
             ]);
 
             dataUser.dataValues.chart_sales = dataCart;
