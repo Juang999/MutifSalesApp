@@ -151,7 +151,7 @@ class ProductV3Controller {
             let priceListGroup = req.query.group_id;
             let partnerGroupId = 9911;
 
-            if (priceListGroup != null) {
+            if (priceListGroup != null && priceListGroup != '') {
                 partnerGroupId = priceListGroup;
             }
 
