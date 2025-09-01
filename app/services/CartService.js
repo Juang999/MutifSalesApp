@@ -405,6 +405,7 @@ class CartService {
                 'cs_oid',
                 'cs_pt_id',
                 ['cs_pt_en_id', 'en_id'],
+                'cs_pi_id',
                 [Sequelize.literal(`CAST("product->singular_table_cost"."invct_cost" AS BIGINT)`), 'total_cost'],
                 [Sequelize.literal(`CAST("product->singular_relation_price_list->singular_detail_price_list"."pidd_price" AS BIGINT)`), 'total_price'],
                 [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
