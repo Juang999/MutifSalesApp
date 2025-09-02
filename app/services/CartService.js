@@ -209,7 +209,7 @@ class CartService {
         return result;
     }
 
-    retrieveLimitedDataCart = async (userid, transId, preOrder, groupId, spesificPrice) => {
+    retrieveLimitedDataCart = async (userid, transId, preOrder, groupId) => {
         let result = await ChartSales.findAll({
             attributes: [
                 ['cs_pt_id', 'product_id'],
@@ -219,6 +219,7 @@ class CartService {
                 [Sequelize.literal(`ROUND("product->singular_relation_price_list->singular_detail_price_list"."pidd_disc", 2)`), 'discount'],
                 [Sequelize.literal(`CONCAT('https://cdn.mutif.biz.id/detail/', "product"."pt_code", '.jpg')`), 'photo'],
                 ['cs_flashsale', 'flashsale'],
+                ['cs_spesific_price', 'spesific_program']
             ],
             include: [
                 {
@@ -253,7 +254,6 @@ class CartService {
                 cs_userid: userid,
                 cs_preorder: preOrder,
                 cs_trans_id: transId,
-                cs_spesific_price: spesificPrice,
                 [Op.and]: [
                     Sequelize.where(Sequelize.literal(`"product->singular_relation_price_list->master_price_list"."pi_id"`), {
                         [Op.eq]: Sequelize.literal(`cs_pi_id`)
@@ -267,7 +267,8 @@ class CartService {
                 'discount',
                 'photo',
                 'flashsale',
-                'cs_pi_id'
+                'cs_pi_id',
+                'spesific_program'
             ],
             limit: 15,
         })
@@ -296,7 +297,7 @@ class CartService {
         return result;
     }
 
-    getSubTotalPriceCart = async (userid, transId, preOrder, groupId, spesificPrice) => {
+    getSubTotalPriceCart = async (userid, transId, preOrder, groupId) => {
         let [subTotal] = await sequelize.query(`
             SELECT 
                 CAST(SUM("cs_qty" * ("detail_price_list"."pidd_price" - ("detail_price_list"."pidd_price" * "detail_price_list"."pidd_disc"))) AS BIGINT) 
@@ -312,13 +313,11 @@ class CartService {
             AND master_price_list.pi_id = cs_pi_id
             AND cs_trans_id = :transId
             AND cs_preorder = :preOrder
-            AND cs_spesific_price = :spesificPrice
             `, {
                 replacements: {
                     userid,
                     transId,
                     preOrder,
-                    spesificPrice,
                     group_id: groupId
                 },
                 logging: false
