@@ -297,7 +297,9 @@ class PartnerController {
     }
 
     getDataPartner = (req, res) => {
-        PartnerService.getDataPartnerByEntity(req.params.entity_id)
+        let search = req.query.search_name || '';
+
+        PartnerService.getDataPartnerByEntity(req.params.entity_id, search)
         .then(result => {
             res.status(200)
                 .json({

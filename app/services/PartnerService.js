@@ -33,7 +33,7 @@ class PartnerService {
         return result;
     }
 
-    getDataPartnerByEntity = async (entityId) => {
+    getDataPartnerByEntity = async (entityId, search) => {
         let result = await PtnrMstr.findAll({
             attributes: [
                 ['ptnr_id', 'id'], 
@@ -48,7 +48,10 @@ class PartnerService {
                 }
             ],
             where: {
-                ptnr_en_id: entityId
+                ptnr_en_id: entityId,
+                ptnr_name: {
+                    [Op.iLike]: `%${search}%`
+                }
             }
         });
 
