@@ -1,4 +1,5 @@
 const {DbgGroup, DbgdDet, LocMstr, PtnrMstr, Sequelize, PtnrgGrp} = require('../../models');
+const { Op } = require('sequelize');
 
 class PartnerService {
     getLocationPartner = async (partnerId) => {
