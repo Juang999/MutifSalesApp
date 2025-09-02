@@ -52,7 +52,8 @@ class PartnerService {
                 ptnr_en_id: entityId,
                 ptnr_name: {
                     [Op.iLike]: `%${search}%`
-                }
+                },
+                ptnr_active: 'Y'
             }
         });
 
