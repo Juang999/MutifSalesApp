@@ -607,6 +607,7 @@ class CartService {
             attributes: [
                 [Sequelize.col(`"product"."pt_desc1"`), 'product_name'],
                 [Sequelize.col(`"product"."pt_code"`), 'product_code'],
+                ['cs_pt_en_id', 'entity_id'],
                 [Sequelize.literal(`CAST(SUM(cs_qty) AS INTEGER)`), 'chart_quantity'],
                 [Sequelize.literal(`(SELECT * FROM ambil_data(cs_pt_id, cs_pt_en_id))`), 'available_quantity'],
                 [Sequelize.literal(`CAST("detail_relation_price_list->singular_detail_price_list"."pidd_price" AS INTEGER)`), 'price'],
@@ -652,6 +653,7 @@ class CartService {
                 Sequelize.col(`"product"."pt_desc1"`),
                 Sequelize.col(`"product"."pt_code"`),
                 'available_quantity',
+                'entity_id',
                 Sequelize.col(`"detail_relation_price_list->singular_detail_price_list"."pidd_price"`),
                 Sequelize.col(`"detail_relation_price_list->singular_detail_price_list"."pidd_disc"`),
                 Sequelize.col(`"product"."pt_weight"`),
