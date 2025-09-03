@@ -133,6 +133,12 @@ class CartService {
                 }),
                 Sequelize.where(Sequelize.literal(`cs_created_at + INTERVAL '72 hours'`), {
                     [Op.lte]: moment().format('YYYY-MM-DD HH:mm:ss')
+                }),
+                Sequelize.where(Sequelize.col(`cs_deleted_at`), {
+                    [Op.is]: null
+                }),
+                Sequelize.where(Sequelize.col(`cs_deleted_by`), {
+                    [Op.is]: null
                 })
             ],
             logging: false
@@ -672,6 +678,28 @@ class CartService {
             cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             cs_deleted_at: null,
             cs_deleted_by: null
+        }, {
+            where: {
+                cs_oid: cartSalesOid
+            },
+            transaction,
+            individualHooks: true,
+            logging: (sqlCommand, {bind}) => {
+                let realSql = sqlCommand.split(": ")[1];
+
+                insertQuery(realSql, bind, 1);
+            }
+        })
+
+        return result;
+    }
+
+    expireCart = async (cartSalesOid, quantity, transId, transaction) => {
+        let result = await ChartSales.update({
+            cs_qty: quantity,
+            cs_trans_id: transId,
+            cs_created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
+            cs_updated_at: moment().format('YYYY-MM-DD HH:mm:ss'),
         }, {
             where: {
                 cs_oid: cartSalesOid

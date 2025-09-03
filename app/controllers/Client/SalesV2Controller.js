@@ -196,7 +196,7 @@ class SalesV2Controller {
 
         await Promise.all([
             InventoryService.bookProductQuantity(dataCartSales.cs_invc_oid, qtyInventory, transaction),
-            CartService.updateCart(dataCartSales.cs_oid, dataCartSales.cs_qty, 'E', transaction)
+            CartService.expireCart(dataCartSales.cs_oid, dataCartSales.cs_qty, 'E', transaction)
         ])
     }
 }
