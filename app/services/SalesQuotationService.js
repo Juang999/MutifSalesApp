@@ -154,28 +154,6 @@ class SalesQuotationService {
         })
 
         return result;
-
-        // let dataProducts = await this.getProducts(invoiceNumber, ptnrId);
-        // let result = [];
-
-        // if (dataProducts.length > 0) {
-        //     for (const {dataValues} of dataProducts) {
-        //         let imageProduct = await this.getImageProduct(dataValues.product_code);
-    
-        //         let photo = (imageProduct === '-') ? null : imageProduct;
-        //         result.push({
-        //             product_name: dataValues.product_name,
-        //             product_code: dataValues.product_code,
-        //             weight: dataValues.weight,
-        //             qty_product: dataValues.qty_product,
-        //             price: dataValues.price,
-        //             discount: dataValues.discount,
-        //             image: photo
-        //         })
-        //     }    
-        // }
-
-        // return result || null;
     }
 
     getHeaderSalesQuotation = async (invoiceNumber) => {
@@ -605,6 +583,23 @@ class SalesQuotationService {
             },
             logging: false
         })
+
+        return result;
+    }
+
+    findPackingCharge = async (invoiceNumber, productId) => {
+        let result = await SqdDet.findOne({
+            attributes: ['sqd_oid'],
+            where: {
+                sqd_sq_oid: {
+                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = :invoice_number)`)
+                },
+                sqd_pt_id: productId
+            },
+            replacements: {
+                invoice_number: invoiceNumber
+            }
+        });
 
         return result;
     }

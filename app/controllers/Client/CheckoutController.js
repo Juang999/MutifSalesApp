@@ -60,8 +60,12 @@ class CheckoutController {
             headerSalesQuotation[0]['sq_shipping_charges'] = req.body.shipping_cost;
 
             if (req.body.transaction_type == 'Y' && dataUser.ptnrg_id == 9911) {
-                headerSalesQuotation[0]['sq_total'] = parseInt(headerSalesQuotation[0]['sq_total']) + 7500;
-                detailSalesQuotation.push(await this.packingCharges(headerSalesQuotation[0], dataUser, t));
+                let dataPackingCharge = await this.packingCharges(headerSalesQuotation[0], dataUser, t);
+
+                if (dataPackingCharge != null) {
+                    headerSalesQuotation[0]['sq_total'] = parseInt(headerSalesQuotation[0]['sq_total']) + 7500;
+                    detailSalesQuotation.push(dataPackingCharge);
+                }
             }
 
             await SalesQuotationService.bulkInsertHeaderSalesQuotation(headerSalesQuotation, t);
@@ -274,45 +278,51 @@ class CheckoutController {
             packingChargeId = 3023757;
         }
 
-        await InventoryService.bookQty(packingChargeOid, 1, transaction);
+        let packingCharge = await SalesQuotationService.findPackingCharge(dataHeader.sq_midtrans_inv_number, packingChargeId);
 
-        let result = {
-                sqd_oid: uuidv4(),
-                sqd_dom_id: 1,
-                sqd_en_id: dataHeader.sq_en_id,
-                sqd_add_by: dataUser.usernama,
-                sqd_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
-                sqd_sq_oid: dataHeader.sq_oid,
-                sqd_seq: 0,
-                sqd_si_id: 992,
-                sqd_pt_id: packingChargeId,
-                sqd_qty: 1,
-                sqd_qty_booking: 1,
-                sqd_qty_allocated: 0,
-                sqd_is_additional_charge: 'N',
-                sqd_um: 9964,
-                sqd_cost: 1,
-                sqd_price: 7500,
-                sqd_disc: 0,
-                sqd_sales_ac_id: 13,
-                sqd_sales_sb_id: 0,
-                sqd_sales_cc_id: 0,
-                sqd_um_conv: 1,
-                sqd_qty_real: 1,
-                sqd_taxable: 'N',
-                sqd_tax_inc: 'N',
-                sqd_tax_class: 9949,
-                sqd_dt: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
-                sqd_payment: 0,
-                sqd_dp: 0,
-                sqd_sales_unit: 0,
-                sqd_loc_id: 100043,
-                sqd_ppn_type: 'E',
-                sqd_invc_oid: packingChargeOid,
-                sqd_need_date: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
-            };
+        if (packingCharge == null) {
+            await InventoryService.bookQty(packingChargeOid, 1, transaction);
+    
+            let result = {
+                    sqd_oid: uuidv4(),
+                    sqd_dom_id: 1,
+                    sqd_en_id: dataHeader.sq_en_id,
+                    sqd_add_by: dataUser.usernama,
+                    sqd_add_date: moment().format('YYYY-MM-DD HH:mm:ss'),
+                    sqd_sq_oid: dataHeader.sq_oid,
+                    sqd_seq: 0,
+                    sqd_si_id: 992,
+                    sqd_pt_id: packingChargeId,
+                    sqd_qty: 1,
+                    sqd_qty_booking: 1,
+                    sqd_qty_allocated: 0,
+                    sqd_is_additional_charge: 'N',
+                    sqd_um: 9964,
+                    sqd_cost: 1,
+                    sqd_price: 7500,
+                    sqd_disc: 0,
+                    sqd_sales_ac_id: 13,
+                    sqd_sales_sb_id: 0,
+                    sqd_sales_cc_id: 0,
+                    sqd_um_conv: 1,
+                    sqd_qty_real: 1,
+                    sqd_taxable: 'N',
+                    sqd_tax_inc: 'N',
+                    sqd_tax_class: 9949,
+                    sqd_dt: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
+                    sqd_payment: 0,
+                    sqd_dp: 0,
+                    sqd_sales_unit: 0,
+                    sqd_loc_id: 100043,
+                    sqd_ppn_type: 'E',
+                    sqd_invc_oid: packingChargeOid,
+                    sqd_need_date: moment().add(1, 'days').format('YYYY-MM-DD HH:mm:ss'),
+                };
 
-        return result;
+            return result;
+        } else {
+            return null;
+        }
     }
 
     salesOrder = async (invoiceNumber) => {
