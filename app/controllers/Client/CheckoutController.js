@@ -64,6 +64,7 @@ class CheckoutController {
 
                 if (dataPackingCharge != null) {
                     headerSalesQuotation[0]['sq_total'] = parseInt(headerSalesQuotation[0]['sq_total']) + 7500;
+                    headerSalesQuotation[0]['sq_terbilang'] = Bilangan.parse(parseInt(headerSalesQuotation[0]['sq_total']) + 7500)
                     detailSalesQuotation.push(dataPackingCharge);
                 }
             }
