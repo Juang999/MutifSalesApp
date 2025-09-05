@@ -68,11 +68,11 @@ class ProductV3Controller {
     }
 
     indexAnotherProgram = (req, res) => {
-        let {ptnrg_id} = Auth.user();
+        let priceListGroup = req.query.group_id;
         let partnerGroupId = 9911;
 
-        if (ptnrg_id != null) {
-            partnerGroupId = ptnrg_id;
+        if (priceListGroup != null && !isNaN(parseInt(priceListGroup))) {
+            partnerGroupId = priceListGroup;
         }
 
         ProductService.getProduct(req.query, partnerGroupId, 'N', 'Y')
@@ -301,11 +301,11 @@ class ProductV3Controller {
 
     detailAotherProgram = async (req, res) => {
         try {
-            let {ptnrg_id} = Auth.user();
+            let priceListGroup = req.query.group_id;
             let partnerGroupId = 9911;
 
-            if (ptnrg_id != null) {
-                partnerGroupId = ptnrg_id;
+            if (priceListGroup != null && !isNaN(parseInt(priceListGroup))) {
+                partnerGroupId = priceListGroup;
             }
 
             let dataProduct = await ProductService.getDetailProduct(req.params)
