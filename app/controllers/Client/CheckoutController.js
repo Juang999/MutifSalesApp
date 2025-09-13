@@ -77,7 +77,7 @@ class CheckoutController {
             await t.commit();
 
             if (await this.configurationSoDirectly() == 'Y') {
-                await this.salesOrder(req.body.invoice_number)
+                await this.salesOrder(req.body.invoice_number, headerSalesQuotation[0]['sq_en_id'])
             }
 
             info('CHECKOUT PRODUCTS', `${Auth.user().usernama} HAS CHECKED OUT!`, true);
@@ -327,16 +327,16 @@ class CheckoutController {
         }
     }
 
-    salesOrder = async (invoiceNumber) => {
+    salesOrder = async (invoiceNumber, entitySalesQuotationId) => {
         await sequelize.transaction(async t => {
             let [
-                headerSalesQuotation, 
+                headerSalesQuotation,
                 detailSalesQuotation,
                 totalData,
                 serverCode
             ] = await Promise.all([
-                SalesQuotationService.getHeaderSalesQuotation(invoiceNumber), 
-                SalesQuotationService.getDetailSalesQuotation(invoiceNumber),
+                SalesQuotationService.getHeaderSalesQuotation(invoiceNumber, entitySalesQuotationId), 
+                SalesQuotationService.getDetailSalesQuotation(invoiceNumber, entitySalesQuotationId),
                 SalesOrderService.generateTotalOrder(t),
                 serverSetting(['server_code'])
             ]);
@@ -423,7 +423,7 @@ class CheckoutController {
         let result = [];
 
         for (const {dataValues: dataDetail} of data) {
-            let [header] = dataHeader.filter(dataHeader1 => dataHeader1.so_sq_ref_oid == dataDetail.sqd_sq_oid);
+            let [header] = dataHeader.filter(singularDataHeader => singularDataHeader.so_sq_ref_oid == dataDetail.sqd_sq_oid);
 
             result.push({
                 sod_oid: uuidv4(),
@@ -461,7 +461,8 @@ class CheckoutController {
                 sod_invc_loc_id: dataDetail.sqd_invc_loc_id,
                 sod_sqd_oid: dataDetail.sqd_oid,
                 sod_qty_open: dataDetail.sqd_qty,
-                sod_qty_booked: dataDetail.sqd_qty
+                sod_qty_booked: dataDetail.sqd_qty,
+                sod_qty_shipment: dataDetail.sqd_qty_shipment
             })
         }
 

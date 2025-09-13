@@ -156,7 +156,7 @@ class SalesQuotationService {
         return result;
     }
 
-    getHeaderSalesQuotation = async (invoiceNumber) => {
+    getHeaderSalesQuotation = async (invoiceNumber, entityId) => {
         let result = await SqMstr.findAll({
             attributes: [
                 'sq_dom_id',
@@ -201,13 +201,14 @@ class SalesQuotationService {
             ],
             where: {
                 sq_midtrans_inv_number: invoiceNumber,
+                sq_en_id: entityId
             }
         })
 
         return result;
     }
 
-    getDetailSalesQuotation = async (invoiceNumber) => {
+    getDetailSalesQuotation = async (invoiceNumber, entityId) => {
         let result = await SqdDet.findAll({
             attributes: [
                 'sqd_dom_id',
@@ -244,8 +245,12 @@ class SalesQuotationService {
             ],
             where: {
                 sqd_sq_oid: {
-                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = '${invoiceNumber}')`)
+                    [Op.in]: Sequelize.literal(`(SELECT sq_oid FROM public.sq_mstr WHERE sq_midtrans_inv_number = :invoice_number AND sq_en_id = :entity_id)`)
                 }
+            },
+            replacements: {
+                invoice_number: invoiceNumber,
+                entity_id: entityId
             }
         });
 
