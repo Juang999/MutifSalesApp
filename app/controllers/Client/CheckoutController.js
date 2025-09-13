@@ -294,6 +294,7 @@ class CheckoutController {
                     sqd_seq: 0,
                     sqd_si_id: 992,
                     sqd_pt_id: packingChargeId,
+                    sqd_qty_shipment: 1,
                     sqd_qty: 1,
                     sqd_qty_booking: 1,
                     sqd_qty_allocated: 0,
