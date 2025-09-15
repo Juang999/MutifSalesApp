@@ -242,6 +242,7 @@ class SalesQuotationService {
                 'sqd_invc_loc_id',
                 'sqd_oid',
                 'sqd_sq_oid',
+                'sqd_qty_shipment'
             ],
             where: {
                 sqd_sq_oid: {
