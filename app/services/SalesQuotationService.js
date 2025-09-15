@@ -197,7 +197,8 @@ class SalesQuotationService {
                 'sq_code',
                 'sq_ptsfr_loc_id',
                 'sq_ptsfr_loc_to_id',
-                'sq_ptsfr_loc_git'
+                'sq_ptsfr_loc_git',
+                'sq_midtrans_inv_number',
             ],
             where: {
                 sq_midtrans_inv_number: invoiceNumber,

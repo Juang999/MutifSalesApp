@@ -385,6 +385,8 @@ class CheckoutController {
                 so_disc_header: dataHeader.sq_disc_header,
                 so_total: dataHeader.sq_total,
                 so_payment_date: moment().format('YYYY-MM-DD'),
+                so_bk_id: 1026,
+                so_manufacture: 'N',
                 so_tran_id: dataHeader.sq_tran_id,
                 so_trans_id: 'D',
                 so_trans_rmks: dataHeader.sq_trans_rmks,
@@ -412,7 +414,8 @@ class CheckoutController {
                 so_ptsfr_loc_to_id: dataHeader.sq_ptsfr_loc_to_id,
                 so_ptsfr_loc_git: dataHeader.sq_ptsfr_loc_git,
                 so_alocated: 'N',
-                so_status_packing: 'N'
+                so_status_packing: 'N',
+                so_midtrans_inv_number: dataHeader.sq_midtrans_inv_number,
             })
         }
 
