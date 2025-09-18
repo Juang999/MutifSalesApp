@@ -416,6 +416,8 @@ class CheckoutController {
                 so_alocated: 'N',
                 so_status_packing: 'N',
                 so_midtrans_inv_number: dataHeader.sq_midtrans_inv_number,
+                so_shipping_charges: dataHeader.sq_shipping_charges,
+                so_ppn_type: 'E'
             })
         }
 
