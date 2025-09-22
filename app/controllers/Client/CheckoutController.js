@@ -264,7 +264,7 @@ class CheckoutController {
         }
     }
 
-    1002745 = async (dataHeader, dataUser, transaction) => {
+    packingCharges = async (dataHeader, dataUser, transaction) => {
         let packingChargeOid = null;
         let packingChargeId = null;
 
