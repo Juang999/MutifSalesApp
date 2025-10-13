@@ -128,7 +128,8 @@ module.exports = (sequelize, DataTypes) => {
     ptnr_ktp: DataTypes.STRING,
     ptnr_is_volunteer: DataTypes.STRING,
     ptnr_is_sbm: DataTypes.STRING,
-    ptnr_area_id: DataTypes.INTEGER
+    ptnr_area_id: DataTypes.INTEGER,
+    ptnr_phone_number: DataTypes.STRING,
   }, {
     sequelize,
     schema: 'public',

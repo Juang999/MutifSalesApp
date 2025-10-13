@@ -10,6 +10,12 @@ const {Op} = require('sequelize');
 const {v4: uuidv4} = require('uuid');
 
 class UserService {
+    registerUser = async (data, transaction) => {
+        let result = await TConfUser.create(data, {transaction});
+
+        return result;
+    }
+
     findClientAccount = async (username, password) => {
         let result = await TConfUser.findOne({
             attributes: [
@@ -30,12 +36,7 @@ class UserService {
             ],
             where: {
                 usernama: username,
-                password: password,
-                [Op.and]: [
-                    Sequelize.where(Sequelize.literal(`"detail_partner"."ptnr_is_emp"`), {
-                        [Op.eq]: 'Y'
-                    })
-                ]
+                password: password
             }
         })
 
@@ -178,6 +179,16 @@ class UserService {
             created_at: moment().format('YYYY-MM-DD HH:mm:ss'),
             token_desc: 'mutif-sales-app'
         })
+    }
+
+    retrieveDataUserId = async () => {
+        let result = await TConfUser.findOne({
+            attributes: [
+                [Sequelize.literal(`MAX(userid) + 1`), 'user_id']
+            ]
+        });
+
+        return result;
     }
 }
 
