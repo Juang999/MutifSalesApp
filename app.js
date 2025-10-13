@@ -28,7 +28,7 @@ app.use('/staff/auth', require('./routes/Staff/auth'));
 app.use('/staff/partner', require('./routes/Staff/partner'));
 app.use('/staff/pricelist', require('./routes/Staff/pricelist'));
 app.use('/staff/sales-quotation', require('./routes/Staff/sales-quotation'));
-app.use('/staff/location', require('./routes/Staff/location')); 
+// app.use('/staff/location', require('./routes/Staff/location')); 
 
 // routes for client
 app.use('/client/register', require('./routes/register'));
