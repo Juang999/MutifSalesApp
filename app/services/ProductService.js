@@ -10,6 +10,8 @@ const {Op} = require('sequelize');
 class ProductService {
     getProduct = async (query, groupId, isFlashSale, spesificPrice) => {
         let productName = (query.search) ? query.search : '';
+        let priceSort = (query.price_sort) ? query.price_sort : 'ASC';
+        let newArrivalSort = (query.new_arrival_sort) ? query.new_arrival_sort : 'DESC';
 
         let result = await InvcMstr.findAll({
             attributes: [
@@ -61,9 +63,6 @@ class ProductService {
                 [Op.and]: [
                     Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_desc1"`), {
                         [Op.iLike]: `%${productName}%`
-                    }),
-                    Sequelize.where(Sequelize.literal(`"product_knowledge"."pt_shown"`), {
-                        [Op.eq]: `Y`
                     }),
                     Sequelize.where(Sequelize.literal(`"product_knowledge->singular_relation_price_list->master_price_list"."pi_ptnrg_id"`), {
                         [Op.eq]: groupId
@@ -122,15 +121,19 @@ class ProductService {
             group: [
                 'invc_en_id',
                 Sequelize.col(`product_knowledge.pt_id`),
-                Sequelize.col(`product_knowledge.pt_desc1`),
                 Sequelize.col(`product_knowledge.pt_code`),
+                Sequelize.col(`product_knowledge.pt_desc1`),
+                Sequelize.col(`product_knowledge.pt_cat_id`),
+                Sequelize.col(`product_knowledge.pt_add_date`),
                 Sequelize.literal(`"product_knowledge->entity_product"."en_desc"`),
                 Sequelize.literal('"product_knowledge->master_category"."ptcat_desc"'),
                 Sequelize.literal(`"product_knowledge->singular_relation_price_list->singular_detail_price_list"."pidd_price"`),
                 Sequelize.literal(`"product_knowledge->singular_relation_price_list->singular_detail_price_list"."pidd_disc"`),
             ],
             order: [
-                ['qty', 'DESC']
+                [Sequelize.col(`product_knowledge.pt_cat_id`), 'ASC'],
+                [Sequelize.col(`product_knowledge.pt_add_date`), newArrivalSort],
+                ['price', priceSort],
             ],
         })
 
